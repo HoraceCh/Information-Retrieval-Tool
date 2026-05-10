@@ -39,10 +39,10 @@ export async function generateSearchQuery(
   targetDatabase: string = "通用搜索引擎 (Baidu/Bing)", 
   languagePref: string = "双语混合",
   customApiKey?: string,
-  modelName: string = "gemini-3.1-pro-preview"
+  modelName: string = "gemini-3.1-pro-preview",
+  customBaseUrl?: string
 ): Promise<SearchQueryResponse> {
   const schemaInfo = DB_SCHEMAS[targetDatabase] || DB_SCHEMAS["通用搜索引擎 (Baidu/Bing)"];
-  const currentAi = customApiKey ? new GoogleGenAI({ apiKey: customApiKey }) : ai;
   
   const prompt = `
 你是一位专业的检索专家，正在辅助学生准备“AI+信息素养”大赛。
@@ -81,48 +81,99 @@ export async function generateSearchQuery(
 `;
 
   try {
-    const response = await currentAi.models.generateContent({
-      model: modelName,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            keywords: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  original: { type: Type.STRING },
-                  zhSynonyms: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  enSynonyms: { type: Type.ARRAY, items: { type: Type.STRING } }
-                },
-                required: ["original", "zhSynonyms", "enSynonyms"]
-              }
-            },
-            booleanQuery: { type: Type.STRING },
-            fieldSpecificQuery: { type: Type.STRING },
-            schemaMapping: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  field: { type: Type.STRING },
-                  mappedConcept: { type: Type.STRING },
-                  reason: { type: Type.STRING }
-                },
-                required: ["field", "mappedConcept", "reason"]
-              }
-            },
-            explanation: { type: Type.STRING }
-          },
-          required: ["keywords", "booleanQuery", "fieldSpecificQuery", "schemaMapping", "explanation"]
-        }
-      }
-    });
+    let resultText = "";
 
-    const result = JSON.parse(response.text || "{}");
+    if (modelName.startsWith("deepseek")) {
+      // DeepSeek (OpenAI compatible API)
+      const apiKey = customApiKey;
+      if (!apiKey) {
+        throw new Error(JSON.stringify({
+          title: "Missing API Key",
+          details: "使用 DeepSeek 模型必须在设置中配置对应的 API Key。 (DeepSeek models require a custom API Key in Settings.)"
+        }));
+      }
+
+      const requestBody: any = {
+        model: modelName,
+        messages: [{ role: "user", content: prompt }]
+      };
+      
+      // deepseek-reasoner does not support response_format
+      if (modelName !== "deepseek-reasoner") {
+        requestBody.response_format = { type: "json_object" };
+      }
+
+      const endpoint = customBaseUrl ? customBaseUrl.replace(/\/$/, '') + "/chat/completions" : "https://api.deepseek.com/chat/completions";
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      resultText = data.choices?.[0]?.message?.content || "{}";
+      
+      // Strip markdown code blocks if the model wrapped the JSON
+      if (resultText.includes("\`\`\`")) {
+        resultText = resultText.replace(/\`\`\`(json)?/g, "").trim();
+      }
+
+    } else {
+      // Gemini API
+      const currentAi = customApiKey ? new GoogleGenAI({ apiKey: customApiKey }) : ai;
+      const response = await currentAi.models.generateContent({
+        model: modelName,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              keywords: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    original: { type: Type.STRING },
+                    zhSynonyms: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    enSynonyms: { type: Type.ARRAY, items: { type: Type.STRING } }
+                  },
+                  required: ["original", "zhSynonyms", "enSynonyms"]
+                }
+              },
+              booleanQuery: { type: Type.STRING },
+              fieldSpecificQuery: { type: Type.STRING },
+              schemaMapping: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    field: { type: Type.STRING },
+                    mappedConcept: { type: Type.STRING },
+                    reason: { type: Type.STRING }
+                  },
+                  required: ["field", "mappedConcept", "reason"]
+                }
+              },
+              explanation: { type: Type.STRING }
+            },
+            required: ["keywords", "booleanQuery", "fieldSpecificQuery", "schemaMapping", "explanation"]
+          }
+        }
+      });
+      resultText = response.text || "{}";
+    }
+
+    const result = JSON.parse(resultText);
     return result as SearchQueryResponse;
   } catch (error: any) {
     console.error("Gemini API Error:", error);

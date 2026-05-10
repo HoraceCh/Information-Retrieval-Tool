@@ -53,9 +53,11 @@ const UI_STRINGS = {
     clearHistory: "CLEAR / 清空",
     historyButton: "HISTORY",
     configTitle: "系统配置 Configuration",
-    apiKeyLabel: "Gemini API Key",
+    apiKeyLabel: "API Key",
     apiKeyPlaceholder: "输入您的 API Key (为空使用默认)",
     modelLabel: "底层模型 Model",
+    baseUrlLabel: "Base URL (可选)",
+    baseUrlPlaceholder: "自定义 API 端点，如: https://api.deepseek.com",
     saveConfig: "SAVE / 保存",
     closeConfig: "CLOSE / 关闭",
     dbTypesLabel: "DB Source",
@@ -94,6 +96,8 @@ const UI_STRINGS = {
     apiKeyLabel: "API 密钥",
     apiKeyPlaceholder: "输入您的 API 密钥 (为空使用默认)",
     modelLabel: "底层大模型",
+    baseUrlLabel: "基础 URL (可选)",
+    baseUrlPlaceholder: "例如: https://api.deepseek.com",
     saveConfig: "保存",
     closeConfig: "关闭",
     dbTypesLabel: "目标数据库",
@@ -132,6 +136,8 @@ const UI_STRINGS = {
     apiKeyLabel: "API Key",
     apiKeyPlaceholder: "Enter your API Key (leave empty for default)",
     modelLabel: "Underlying Model",
+    baseUrlLabel: "Base URL (Optional)",
+    baseUrlPlaceholder: "e.g., https://api.deepseek.com",
     saveConfig: "Save",
     closeConfig: "Close",
     dbTypesLabel: "DB Source",
@@ -145,7 +151,9 @@ const MODELS = [
   "gemini-2.5-pro",
   "gemini-2.5-flash",
   "gemini-2.0-pro-exp-02-05",
-  "gemini-2.0-flash"
+  "gemini-2.0-flash",
+  "deepseek-chat",
+  "deepseek-reasoner"
 ];
 
 const DB_TYPES = [
@@ -182,6 +190,7 @@ export default function App() {
   const [uiLang, setUiLang] = useState<"mix" | "zh" | "en">("mix");
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [apiKey, setApiKey] = useState("");
+  const [apiBaseUrl, setApiBaseUrl] = useState("");
   const [selectedModel, setSelectedModel] = useState(MODELS[0]);
 
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -207,7 +216,7 @@ export default function App() {
     setError(null);
     setShowMapped(true);
     try {
-      const resp = await generateSearchQuery(input, dbType, langPref, apiKey, selectedModel);
+      const resp = await generateSearchQuery(input, dbType, langPref, apiKey, selectedModel, apiBaseUrl);
       setResult(resp);
       const newItem: HistoryItem = {
         id: Date.now().toString(),
@@ -620,6 +629,16 @@ export default function App() {
                       ))}
                     </select>
                   </div>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.baseUrlLabel}</label>
+                  <input
+                    type="text"
+                    value={apiBaseUrl}
+                    onChange={(e) => setApiBaseUrl(e.target.value)}
+                    placeholder={t.baseUrlPlaceholder}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-cyan-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
+                  />
                 </div>
               </div>
               <div className="px-6 py-4 border-t border-white/5 bg-black/20 flex justify-end gap-3">
