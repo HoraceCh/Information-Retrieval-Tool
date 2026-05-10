@@ -34,8 +34,15 @@ const DB_SCHEMAS: Record<string, string> = {
   "百度学术 / PubScholar": "通用学术平台，支持 intitle: (限制标题), author: (限制作者), 以及双引号精确匹配。用空格表示AND，| 表示OR，-表示排除。"
 };
 
-export async function generateSearchQuery(input: string, targetDatabase: string = "通用搜索引擎 (Baidu/Bing)", languagePref: string = "双语混合"): Promise<SearchQueryResponse> {
+export async function generateSearchQuery(
+  input: string, 
+  targetDatabase: string = "通用搜索引擎 (Baidu/Bing)", 
+  languagePref: string = "双语混合",
+  customApiKey?: string,
+  modelName: string = "gemini-3.1-pro-preview"
+): Promise<SearchQueryResponse> {
   const schemaInfo = DB_SCHEMAS[targetDatabase] || DB_SCHEMAS["通用搜索引擎 (Baidu/Bing)"];
+  const currentAi = customApiKey ? new GoogleGenAI({ apiKey: customApiKey }) : ai;
   
   const prompt = `
 你是一位专业的检索专家，正在辅助学生准备“AI+信息素养”大赛。
@@ -74,8 +81,8 @@ export async function generateSearchQuery(input: string, targetDatabase: string 
 `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+    const response = await currentAi.models.generateContent({
+      model: modelName,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -117,8 +124,23 @@ export async function generateSearchQuery(input: string, targetDatabase: string 
 
     const result = JSON.parse(response.text || "{}");
     return result as SearchQueryResponse;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
-    throw new Error("检索式生成失败，请检查网络连接或 API 配置。");
+    let title = "检索式生成失败 / Query Generation Failed";
+    let details = "请检查网络连接或 API 配置。 (Please check your network connection or API configuration.)";
+    
+    if (error.status === 401 || error.message?.includes("API key not valid")) {
+      details = "提供的 API Key 无效或未授权。请在设置(Settings)中查验。(The provided API Key is invalid or unauthorized. Please verify it in Settings.)";
+    } else if (error.status === 429 || error.message?.includes("quota")) {
+      details = "API 请求配额超限，请稍后再试或更换 API Key。(API request quota exceeded. Please try again later or use a different API Key.)";
+    } else if (error.status === 503 || error.message?.includes("overloaded")) {
+      details = "模型服务当前不可用或过载，请稍后再试或更换模型。(The service is currently unavailable or overloaded. Please try again later or switch models.)";
+    } else if (error.message?.includes("fetch failed") || error.message?.includes("Failed to fetch")) {
+      details = "网络请求失败，请检查您的网络连接。(Network request failed. Please check your internet connection.)";
+    } else {
+      details = `内部错误/Internal Error: ${error.message || "Unknown error"}`;
+    }
+    
+    throw new Error(JSON.stringify({ title, details }));
   }
 }
