@@ -20,7 +20,7 @@ import {
   Clock
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { generateSearchQuery, SearchQueryResponse } from "./services/gemini";
+import { generateSearchQuery, SearchQueryResponse, ProviderConfig } from "./services/gemini";
 
 const UI_STRINGS = {
   mix: {
@@ -53,6 +53,13 @@ const UI_STRINGS = {
     clearHistory: "CLEAR / 清空",
     historyButton: "HISTORY",
     configTitle: "系统配置 Configuration",
+    providerLabel: "模型提供商 Provider",
+    addProvider: "+ 新增 Custom Provider",
+    providerName: "提供商名称 Provider Name",
+    authTypeLabel: "鉴权方式 Auth Type",
+    customHeaderLabel: "Header 名称 (可选)",
+    deleteProvider: "DELETE / 删除",
+    modelsListLabel: "支持的模型 (逗号分隔)",
     apiKeyLabel: "API Key",
     apiKeyPlaceholder: "输入您的 API Key (为空使用默认)",
     modelLabel: "底层模型 Model",
@@ -93,6 +100,13 @@ const UI_STRINGS = {
     clearHistory: "清空",
     historyButton: "历史",
     configTitle: "系统配置",
+    providerLabel: "模型提供商",
+    addProvider: "+ 新增自定义提供商",
+    providerName: "提供商名称",
+    authTypeLabel: "鉴权方式",
+    customHeaderLabel: "自定义 Header (可选)",
+    deleteProvider: "删除提供商",
+    modelsListLabel: "支持的模型 (用逗号分隔)",
     apiKeyLabel: "API 密钥",
     apiKeyPlaceholder: "输入您的 API 密钥 (为空使用默认)",
     modelLabel: "底层大模型",
@@ -133,6 +147,13 @@ const UI_STRINGS = {
     clearHistory: "Clear",
     historyButton: "HISTORY",
     configTitle: "Configuration",
+    providerLabel: "Model Provider",
+    addProvider: "+ Add Custom Provider",
+    providerName: "Provider Name",
+    authTypeLabel: "Auth Type",
+    customHeaderLabel: "Header Name (Optional)",
+    deleteProvider: "Delete Provider",
+    modelsListLabel: "Supported Models (Comma separated)",
     apiKeyLabel: "API Key",
     apiKeyPlaceholder: "Enter your API Key (leave empty for default)",
     modelLabel: "Underlying Model",
@@ -145,15 +166,25 @@ const UI_STRINGS = {
   }
 };
 
-const MODELS = [
-  "gemini-3.1-pro-preview",
-  "gemini-3-flash-preview",
-  "gemini-2.5-pro",
-  "gemini-2.5-flash",
-  "gemini-2.0-pro-exp-02-05",
-  "gemini-2.0-flash",
-  "deepseek-chat",
-  "deepseek-reasoner"
+const DEFAULT_PROVIDERS: ProviderConfig[] = [
+  {
+    id: "gemini",
+    name: "Google Gemini",
+    isGemini: true,
+    endpoint: "default",
+    authType: 'Bearer',
+    apiKey: "",
+    models: "gemini-3.1-pro-preview,gemini-3-flash-preview,gemini-2.5-pro,gemini-2.5-flash,gemini-2.0-pro-exp-02-05,gemini-2.0-flash"
+  },
+  {
+    id: "deepseek",
+    name: "DeepSeek",
+    isGemini: false,
+    endpoint: "https://api.deepseek.com",
+    authType: 'Bearer',
+    apiKey: "",
+    models: "deepseek-chat,deepseek-reasoner"
+  }
 ];
 
 const DB_TYPES = [
@@ -189,9 +220,10 @@ export default function App() {
 
   const [uiLang, setUiLang] = useState<"mix" | "zh" | "en">("mix");
   const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [apiKey, setApiKey] = useState("");
-  const [apiBaseUrl, setApiBaseUrl] = useState("");
-  const [selectedModel, setSelectedModel] = useState(MODELS[0]);
+  
+  const [providers, setProviders] = useState<ProviderConfig[]>(DEFAULT_PROVIDERS);
+  const [activeProviderId, setActiveProviderId] = useState<string>("gemini");
+  const [activeModel, setActiveModel] = useState<string>("gemini-3.1-pro-preview");
 
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -203,6 +235,14 @@ export default function App() {
     if (saved) {
       try { setHistory(JSON.parse(saved)); } catch (e) {}
     }
+    const savedProviders = localStorage.getItem("ai_retrieval_providers");
+    if (savedProviders) {
+      try { setProviders(JSON.parse(savedProviders)); } catch (e) {}
+    }
+    const savedActiveProv = localStorage.getItem("ai_retrieval_active_prov");
+    if (savedActiveProv) setActiveProviderId(savedActiveProv);
+    const savedActiveMod = localStorage.getItem("ai_retrieval_active_mod");
+    if (savedActiveMod) setActiveModel(savedActiveMod);
   }, []);
 
   const saveHistory = (items: HistoryItem[]) => {
@@ -210,13 +250,60 @@ export default function App() {
     localStorage.setItem("ai_retrieval_history", JSON.stringify(items));
   };
 
+  const saveProviders = (newProviders: ProviderConfig[]) => {
+    setProviders(newProviders);
+    localStorage.setItem("ai_retrieval_providers", JSON.stringify(newProviders));
+  };
+  const saveActiveProviderId = (id: string) => {
+    setActiveProviderId(id);
+    localStorage.setItem("ai_retrieval_active_prov", id);
+  };
+  const saveActiveModel = (model: string) => {
+    setActiveModel(model);
+    localStorage.setItem("ai_retrieval_active_mod", model);
+  };
+
+  const handleCreateProvider = () => {
+    const newId = `custom-${Date.now()}`;
+    const newProvider: ProviderConfig = {
+      id: newId,
+      name: "New Provider",
+      isGemini: false,
+      endpoint: "https://api.openai.com/v1",
+      authType: 'Bearer',
+      apiKey: "",
+      models: "gpt-3.5-turbo,gpt-4"
+    };
+    saveProviders([...providers, newProvider]);
+    saveActiveProviderId(newId);
+    saveActiveModel("gpt-3.5-turbo");
+  };
+
+  const handleDeleteProvider = (id: string) => {
+    const newProviders = providers.filter(p => p.id !== id);
+    saveProviders(newProviders);
+    saveActiveProviderId("gemini");
+    saveActiveModel("gemini-3.1-pro-preview");
+  };
+
+  const updateActiveProvider = (updates: Partial<ProviderConfig>) => {
+    const newProviders = providers.map(p => 
+      p.id === activeProviderId ? { ...p, ...updates } : p
+    );
+    saveProviders(newProviders);
+  };
+
+  const activeProvider = providers.find(p => p.id === activeProviderId) || providers[0];
+  const availableModels = activeProvider.models.split(',').map(m => m.trim()).filter(Boolean);
+
   const handleGenerate = async () => {
     if (!input.trim()) return;
     setLoading(true);
     setError(null);
     setShowMapped(true);
     try {
-      const resp = await generateSearchQuery(input, dbType, langPref, apiKey, selectedModel, apiBaseUrl);
+      const provider = providers.find(p => p.id === activeProviderId);
+      const resp = await generateSearchQuery(input, dbType, langPref, activeModel, provider);
       setResult(resp);
       const newItem: HistoryItem = {
         id: Date.now().toString(),
@@ -591,9 +678,9 @@ export default function App() {
           >
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative"
+              className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
             >
-              <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/5">
+              <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/5 shrink-0">
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
                   <Settings size={16} className="text-cyan-400" />
                   {t.configTitle}
@@ -602,52 +689,135 @@ export default function App() {
                   <X size={18} />
                 </button>
               </div>
-              <div className="p-6 flex flex-col gap-5">
+
+              <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 custom-scrollbar">
+                
+                {/* Active Provider Selection */}
+                <div>
+                  <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.providerLabel}</label>
+                  <div className="flex gap-2">
+                    <select
+                      value={activeProviderId}
+                      onChange={(e) => {
+                        saveActiveProviderId(e.target.value);
+                        const p = providers.find(prov => prov.id === e.target.value);
+                        if (p) {
+                          const mods = p.models.split(',').filter(Boolean);
+                          if (mods.length > 0) saveActiveModel(mods[0].trim());
+                        }
+                      }}
+                      className="flex-1 bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-cyan-100 focus:outline-none focus:border-cyan-500/50 transition-colors font-mono appearance-none select-border"
+                    >
+                      {providers.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                    <button 
+                      onClick={handleCreateProvider}
+                      className="px-4 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold hover:bg-emerald-500/30 transition-colors whitespace-nowrap"
+                    >
+                      {t.addProvider}
+                    </button>
+                  </div>
+                </div>
+
+                {/* API Key */}
                 <div>
                   <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.apiKeyLabel}</label>
                   <input
                     type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
+                    value={activeProvider.apiKey}
+                    onChange={(e) => updateActiveProvider({ apiKey: e.target.value })}
                     placeholder={t.apiKeyPlaceholder}
                     className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-cyan-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
                   />
                   <p className="text-[10px] text-slate-500 mt-2 font-mono">
-                    If left empty, the system default key will be used.
+                    If left empty for Gemini, the system default key will be used. User keys are saved locally.
                   </p>
                 </div>
+
+                {/* Model Selection */}
                 <div>
                   <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.modelLabel}</label>
-                  <div className="relative">
-                    <select
-                      value={selectedModel}
-                      onChange={(e) => setSelectedModel(e.target.value)}
-                      className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-cyan-100 focus:outline-none focus:border-cyan-500/50 transition-colors font-mono appearance-none"
-                    >
-                      {MODELS.map(m => (
-                        <option key={m} value={m}>{m}</option>
-                      ))}
-                    </select>
+                  <select
+                    value={activeModel}
+                    onChange={(e) => saveActiveModel(e.target.value)}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-cyan-100 focus:outline-none focus:border-cyan-500/50 transition-colors font-mono appearance-none"
+                  >
+                    {availableModels.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Custom Provider Advanced Fields */}
+                {activeProvider.id !== 'gemini' && activeProvider.id !== 'deepseek' && (
+                  <div className="p-4 rounded-xl border border-dashed border-cyan-500/30 bg-cyan-950/10 flex flex-col gap-4 mt-2">
+                    <div>
+                      <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.providerName}</label>
+                      <input
+                        type="text"
+                        value={activeProvider.name}
+                        onChange={(e) => updateActiveProvider({ name: e.target.value })}
+                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-cyan-100 font-mono focus:outline-none focus:border-cyan-500/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">API Endpoint Base URL</label>
+                      <input
+                        type="text"
+                        value={activeProvider.endpoint}
+                        onChange={(e) => updateActiveProvider({ endpoint: e.target.value })}
+                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-cyan-100 font-mono focus:outline-none focus:border-cyan-500/50"
+                      />
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="flex-1">
+                        <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.authTypeLabel}</label>
+                        <select
+                          value={activeProvider.authType}
+                          onChange={(e) => updateActiveProvider({ authType: e.target.value as any })}
+                          className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-cyan-100 font-mono focus:outline-none focus:border-cyan-500/50"
+                        >
+                          <option value="Bearer">Bearer Token</option>
+                          <option value="Header">Custom Header</option>
+                        </select>
+                      </div>
+                      {activeProvider.authType === 'Header' && (
+                        <div className="flex-1">
+                          <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.customHeaderLabel}</label>
+                          <input
+                            type="text"
+                            value={activeProvider.authHeaderName || ""}
+                            onChange={(e) => updateActiveProvider({ authHeaderName: e.target.value })}
+                            placeholder="e.g. x-api-key"
+                            className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-cyan-100 font-mono focus:outline-none focus:border-cyan-500/50"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.modelsListLabel}</label>
+                      <input
+                        type="text"
+                        value={activeProvider.models}
+                        onChange={(e) => updateActiveProvider({ models: e.target.value })}
+                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-cyan-100 font-mono focus:outline-none focus:border-cyan-500/50"
+                      />
+                    </div>
+                    <div className="pt-2">
+                       <button 
+                         onClick={() => handleDeleteProvider(activeProvider.id)}
+                         className="text-xs uppercase font-bold tracking-widest text-red-400 hover:text-red-300 transition-colors"
+                       >
+                         {t.deleteProvider}
+                       </button>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.baseUrlLabel}</label>
-                  <input
-                    type="text"
-                    value={apiBaseUrl}
-                    onChange={(e) => setApiBaseUrl(e.target.value)}
-                    placeholder={t.baseUrlPlaceholder}
-                    className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-cyan-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
-                  />
-                </div>
+                )}
               </div>
-              <div className="px-6 py-4 border-t border-white/5 bg-black/20 flex justify-end gap-3">
-                <button 
-                  onClick={() => setIsConfigOpen(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-colors uppercase tracking-widest"
-                >
-                  {t.closeConfig}
-                </button>
+
+              <div className="shrink-0 px-6 py-4 border-t border-white/5 bg-black/20 flex justify-end gap-3 z-10">
                 <button 
                   onClick={() => setIsConfigOpen(false)}
                   className="px-4 py-2 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(8,145,178,0.2)]"

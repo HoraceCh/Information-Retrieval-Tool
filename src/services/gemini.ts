@@ -34,13 +34,23 @@ const DB_SCHEMAS: Record<string, string> = {
   "百度学术 / PubScholar": "通用学术平台，支持 intitle: (限制标题), author: (限制作者), 以及双引号精确匹配。用空格表示AND，| 表示OR，-表示排除。"
 };
 
+export interface ProviderConfig {
+  id: string;
+  name: string;
+  isGemini: boolean;
+  endpoint: string;
+  authType: 'Bearer' | 'Header';
+  authHeaderName?: string;
+  apiKey: string;
+  models: string;
+}
+
 export async function generateSearchQuery(
   input: string, 
   targetDatabase: string = "通用搜索引擎 (Baidu/Bing)", 
   languagePref: string = "双语混合",
-  customApiKey?: string,
   modelName: string = "gemini-3.1-pro-preview",
-  customBaseUrl?: string
+  provider?: ProviderConfig
 ): Promise<SearchQueryResponse> {
   const schemaInfo = DB_SCHEMAS[targetDatabase] || DB_SCHEMAS["通用搜索引擎 (Baidu/Bing)"];
   
@@ -83,13 +93,15 @@ export async function generateSearchQuery(
   try {
     let resultText = "";
 
-    if (modelName.startsWith("deepseek")) {
-      // DeepSeek (OpenAI compatible API)
-      const apiKey = customApiKey;
+    const isGeminiSDK = provider ? provider.isGemini : !modelName.startsWith("deepseek");
+
+    if (!isGeminiSDK) {
+      // OpenAI compatible API (DeepSeek, Custom, etc.)
+      const apiKey = provider?.apiKey || "";
       if (!apiKey) {
         throw new Error(JSON.stringify({
           title: "Missing API Key",
-          details: "使用 DeepSeek 模型必须在设置中配置对应的 API Key。 (DeepSeek models require a custom API Key in Settings.)"
+          details: "该模型提供商未配置 API Key。 (API Key is missing for this provider in Settings.)"
         }));
       }
 
@@ -103,14 +115,24 @@ export async function generateSearchQuery(
         requestBody.response_format = { type: "json_object" };
       }
 
-      const endpoint = customBaseUrl ? customBaseUrl.replace(/\/$/, '') + "/chat/completions" : "https://api.deepseek.com/chat/completions";
+      let endpoint = "https://api.deepseek.com/chat/completions";
+      if (provider?.endpoint && provider.endpoint !== "default") {
+        endpoint = provider.endpoint.replace(/\/$/, '') + (provider.endpoint.endsWith('/chat/completions') ? "" : "/chat/completions");
+      }
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json"
+      };
+
+      if (provider?.authType === 'Header' && provider.authHeaderName) {
+        headers[provider.authHeaderName] = apiKey;
+      } else {
+        headers["Authorization"] = `Bearer ${apiKey}`;
+      }
 
       const response = await fetch(endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
-        },
+        headers,
         body: JSON.stringify(requestBody)
       });
 
@@ -129,7 +151,8 @@ export async function generateSearchQuery(
 
     } else {
       // Gemini API
-      const currentAi = customApiKey ? new GoogleGenAI({ apiKey: customApiKey }) : ai;
+      const geminiKey = provider?.apiKey || "";
+      const currentAi = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
       const response = await currentAi.models.generateContent({
         model: modelName,
         contents: prompt,
