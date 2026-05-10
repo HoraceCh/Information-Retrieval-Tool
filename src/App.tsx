@@ -17,10 +17,15 @@ import {
   Languages,
   X,
   History,
-  Clock
+  Clock,
+  ChevronDown,
+  Globe,
+  Settings2,
+  Server,
+  BarChart2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { generateSearchQuery, SearchQueryResponse, ProviderConfig } from "./services/gemini";
+import { generateSearchQuery, SearchQueryResponse, ProviderConfig, testConnection } from "./services/gemini";
 
 const UI_STRINGS = {
   mix: {
@@ -65,10 +70,20 @@ const UI_STRINGS = {
     modelLabel: "底层模型 Model",
     baseUrlLabel: "Base URL (可选)",
     baseUrlPlaceholder: "自定义 API 端点，如: https://api.deepseek.com",
+    testConnectionBtn: "TEST CONNECTION / 测试连接",
+    testSuccess: "Connection Successful / 连接成功",
+    testFailed: "Connection Failed / 连接失败",
+    testing: "Testing... / 测试中...",
     saveConfig: "SAVE / 保存",
     closeConfig: "CLOSE / 关闭",
     dbTypesLabel: "DB Source",
-    langPrefLabel: "Lang Pref"
+    langPrefLabel: "Lang Pref",
+    statsTitle: "Usage Statistics / 使用统计",
+    statsButton: "STATS",
+    statsQueries: "Queries / 查询量",
+    statsSuccess: "Success Rate / 成功率",
+    statsTokens: "Tokens Used / 消耗Token",
+    statsNoData: "No usage data available / 暂无使用数据"
   },
   zh: {
     appTitle: "AI 检索力",
@@ -112,10 +127,20 @@ const UI_STRINGS = {
     modelLabel: "底层大模型",
     baseUrlLabel: "基础 URL (可选)",
     baseUrlPlaceholder: "例如: https://api.deepseek.com",
+    testConnectionBtn: "测试连接",
+    testSuccess: "连接成功",
+    testFailed: "连接失败",
+    testing: "测试中...",
     saveConfig: "保存",
     closeConfig: "关闭",
     dbTypesLabel: "目标数据库",
-    langPrefLabel: "语种偏好"
+    langPrefLabel: "语种偏好",
+    statsTitle: "使用统计",
+    statsButton: "统计",
+    statsQueries: "查询次数",
+    statsSuccess: "成功率",
+    statsTokens: "Token 消耗",
+    statsNoData: "暂无使用数据"
   },
   en: {
     appTitle: "AI_RETRIEVAL_X",
@@ -159,10 +184,20 @@ const UI_STRINGS = {
     modelLabel: "Underlying Model",
     baseUrlLabel: "Base URL (Optional)",
     baseUrlPlaceholder: "e.g., https://api.deepseek.com",
+    testConnectionBtn: "TEST CONNECTION",
+    testSuccess: "Connection Successful",
+    testFailed: "Connection Failed",
+    testing: "Testing...",
     saveConfig: "Save",
     closeConfig: "Close",
     dbTypesLabel: "DB Source",
-    langPrefLabel: "Lang Pref"
+    langPrefLabel: "Lang Pref",
+    statsTitle: "Usage Statistics",
+    statsButton: "STATS",
+    statsQueries: "Queries",
+    statsSuccess: "Success Rate",
+    statsTokens: "Tokens Used",
+    statsNoData: "No usage data available"
   }
 };
 
@@ -208,6 +243,15 @@ interface HistoryItem {
   result: SearchQueryResponse;
 }
 
+export interface ModelUsageStats {
+  queries: number;
+  successes: number;
+  failures: number;
+  totalTokens: number;
+}
+
+export type UsageStatsRegistry = Record<string, Record<string, ModelUsageStats>>; // providerId -> model -> stats
+
 export default function App() {
   const [input, setInput] = useState("");
   const [dbType, setDbType] = useState(DB_TYPES[0]);
@@ -228,7 +272,33 @@ export default function App() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
+  const [usageStats, setUsageStats] = useState<UsageStatsRegistry>({});
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
+
+  const [testConnStatus, setTestConnStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [testConnMessage, setTestConnMessage] = useState<string>('');
+
   const t = UI_STRINGS[uiLang];
+
+  useEffect(() => {
+    setTestConnStatus('idle');
+    setTestConnMessage('');
+  }, [activeProviderId, activeModel, providers, isConfigOpen]);
+
+  const handleTestConnection = async () => {
+    setTestConnStatus('testing');
+    setTestConnMessage(t.testing);
+    try {
+      const provider = providers.find(p => p.id === activeProviderId);
+      if (!provider) throw new Error("Provider not found");
+      await testConnection(provider, activeModel);
+      setTestConnStatus('success');
+      setTestConnMessage(t.testSuccess);
+    } catch (e: any) {
+      setTestConnStatus('error');
+      setTestConnMessage(`${t.testFailed}: ${e.message}`);
+    }
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("ai_retrieval_history");
@@ -243,7 +313,16 @@ export default function App() {
     if (savedActiveProv) setActiveProviderId(savedActiveProv);
     const savedActiveMod = localStorage.getItem("ai_retrieval_active_mod");
     if (savedActiveMod) setActiveModel(savedActiveMod);
+    const savedUsageStats = localStorage.getItem("ai_retrieval_usage_stats");
+    if (savedUsageStats) {
+      try { setUsageStats(JSON.parse(savedUsageStats)); } catch(e) {}
+    }
   }, []);
+
+  const saveUsageStats = (newStats: UsageStatsRegistry) => {
+    setUsageStats(newStats);
+    localStorage.setItem("ai_retrieval_usage_stats", JSON.stringify(newStats));
+  };
 
   const saveHistory = (items: HistoryItem[]) => {
     setHistory(items);
@@ -314,7 +393,46 @@ export default function App() {
         result: resp
       };
       saveHistory([newItem, ...history].slice(0, 50));
+      
+      // Update Usage Stats
+      const provId = provider ? provider.id : activeProviderId;
+      const modName = activeModel;
+      const currentProvStats = usageStats[provId] || {};
+      const currentModStats = currentProvStats[modName] || { queries: 0, successes: 0, failures: 0, totalTokens: 0 };
+      
+      const updatedStats = {
+        ...usageStats,
+        [provId]: {
+          ...currentProvStats,
+          [modName]: {
+            ...currentModStats,
+            queries: currentModStats.queries + 1,
+            successes: currentModStats.successes + 1,
+            totalTokens: currentModStats.totalTokens + (resp._usage?.totalTokens || 0)
+          }
+        }
+      };
+      saveUsageStats(updatedStats);
+      
     } catch (err: any) {
+      // Update Usage Stats for failure
+      const provId = activeProviderId;
+      const modName = activeModel;
+      const currentProvStats = usageStats[provId] || {};
+      const currentModStats = currentProvStats[modName] || { queries: 0, successes: 0, failures: 0, totalTokens: 0 };
+      
+      const updatedStats = {
+        ...usageStats,
+        [provId]: {
+          ...currentProvStats,
+          [modName]: {
+            ...currentModStats,
+            queries: currentModStats.queries + 1,
+            failures: currentModStats.failures + 1,
+          }
+        }
+      };
+      saveUsageStats(updatedStats);
       try {
         const parsed = JSON.parse(err.message);
         setError(parsed);
@@ -366,31 +484,69 @@ export default function App() {
           </div>
         </div>
         
-        <div className="hidden md:flex gap-6 items-center">
-          <div className="flex items-center gap-2 bg-white/5 p-1 rounded-lg">
-            <button
-              onClick={() => setUiLang("zh")}
-              className={`p-1.5 rounded transition-all text-xs font-bold ${uiLang === "zh" ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
-              title="中文"
-            >
-              中
-            </button>
-            <button
-              onClick={() => setUiLang("mix")}
-              className={`p-1.5 rounded transition-all text-xs font-bold ${uiLang === "mix" ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
-              title="双语 / Bilingual"
-            >
-              Mix
-            </button>
-            <button
-              onClick={() => setUiLang("en")}
-              className={`p-1.5 rounded transition-all text-xs font-bold ${uiLang === "en" ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
-              title="English"
-            >
-              EN
-            </button>
+        <div className="flex gap-4 items-center">
+          <div 
+            className="flex items-center gap-2 bg-slate-800/40 hover:bg-slate-700/60 px-3 py-1.5 rounded-xl border border-white/5 hover:border-cyan-500/30 transition-all cursor-pointer relative group"
+            onClick={(e) => {
+              e.currentTarget.querySelector('.dropdown-menu')?.classList.toggle('hidden');
+              e.currentTarget.querySelector('.dropdown-menu')?.classList.toggle('opacity-0');
+              e.currentTarget.querySelector('.dropdown-menu')?.classList.toggle('-translate-y-2');
+            }}
+            tabIndex={0}
+            onBlur={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                e.currentTarget.querySelector('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
+              }
+            }}
+          >
+            <Languages size={14} className="text-slate-400 group-hover:text-cyan-400 transition-colors" />
+            <div className="text-xs font-bold text-slate-300 group-hover:text-white pr-5 select-none relative z-10 pointer-events-none">
+              {uiLang === 'mix' ? '中文/EN (Mix)' : uiLang === 'zh' ? '简体中文' : 'English'}
+            </div>
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity">
+              <ChevronDown size={12} className="text-cyan-400" />
+            </div>
+
+            {/* Custom Dropdown Menu */}
+            <div className="dropdown-menu hidden opacity-0 -translate-y-2 transition-all duration-200 absolute top-full right-0 mt-3 bg-[#0a0f18] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] min-w-full w-max">
+              <div className="flex flex-col py-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUiLang("mix");
+                    e.currentTarget.closest('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
+                  }}
+                  className={`px-4 py-2.5 text-xs font-bold text-left transition-colors flex items-center justify-between ${uiLang === 'mix' ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+                >
+                  中文/EN (Mix)
+                  {uiLang === 'mix' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 ml-3"></span>}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUiLang("zh");
+                    e.currentTarget.closest('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
+                  }}
+                  className={`px-4 py-2.5 text-xs font-bold text-left transition-colors flex items-center justify-between ${uiLang === 'zh' ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+                >
+                  简体中文
+                  {uiLang === 'zh' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 ml-3"></span>}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUiLang("en");
+                    e.currentTarget.closest('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
+                  }}
+                  className={`px-4 py-2.5 text-xs font-bold text-left transition-colors flex items-center justify-between ${uiLang === 'en' ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+                >
+                  English
+                  {uiLang === 'en' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 ml-3"></span>}
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="text-right">
+          <div className="hidden sm:block text-right">
             <span className="text-[9px] text-slate-500 uppercase block leading-none mb-1">{t.engineStatus}</span>
             <span className="text-xs text-emerald-400 flex items-center gap-1.5 font-bold uppercase tracking-wider">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> {t.operational}
@@ -659,8 +815,9 @@ export default function App() {
             <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsConfigOpen(true)}>
               <Settings size={12} className="mr-1" /> {t.settings}
             </span>
-            <span className="hover:text-cyan-400 cursor-pointer transition-colors">MODEL_LOGS</span>
-            <span className="hover:text-cyan-400 cursor-pointer transition-colors">API_METRICS</span>
+            <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsStatsOpen(true)}>
+              <BarChart2 size={12} className="mr-1" /> {t.statsButton}
+            </span>
             <span className="hover:text-cyan-400 cursor-pointer transition-colors">DB_STATUS: OK</span>
           </div>
         </div>
@@ -668,6 +825,81 @@ export default function App() {
           CTX_ID: {loading ? t.processing : (result ? t.genComplete : t.waitInit)} // BUILD_HASH: 0x55F2A
         </div>
       </footer>
+
+      {/* Usage Stats Modal */}
+      <AnimatePresence>
+        {isStatsOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
+            >
+              <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/5 shrink-0">
+                <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                  <BarChart2 size={16} className="text-cyan-400" />
+                  {t.statsTitle}
+                </h3>
+                <button onClick={() => setIsStatsOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 bg-slate-900/50 custom-scrollbar">
+                {Object.keys(usageStats).length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-48 text-slate-500 opacity-50">
+                    <BarChart2 size={48} className="mb-4" />
+                    <p className="text-sm uppercase tracking-widest font-bold">{t.statsNoData}</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-6">
+                    {Object.entries(usageStats).map(([provId, models]) => {
+                      const relatedProvider = providers.find(p => p.id === provId);
+                      const providerName = relatedProvider ? relatedProvider.name : provId;
+                      return (
+                        <div key={provId} className="bg-black/40 rounded-xl border border-white/5 overflow-hidden">
+                          <div className="px-4 py-3 border-b border-white/5 bg-white/[0.02] flex items-center gap-2">
+                            {relatedProvider?.isGemini ? <Globe size={14} className="text-emerald-400"/> : <Server size={14} className="text-amber-400"/>}
+                            <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">{providerName}</h4>
+                          </div>
+                          <div className="p-4 flex flex-col gap-4">
+                            {Object.entries(models).map(([model, stats]) => (
+                              <div key={model} className="flex flex-col gap-2">
+                                <div className="text-sm font-mono text-cyan-400 font-bold">{model}</div>
+                                <div className="grid grid-cols-3 gap-3">
+                                  <div className="bg-slate-800/50 rounded-lg p-3 border border-white/5">
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{t.statsQueries}</div>
+                                    <div className="text-xl font-mono text-white">{stats.queries}</div>
+                                  </div>
+                                  <div className="bg-slate-800/50 rounded-lg p-3 border border-white/5">
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{t.statsSuccess}</div>
+                                    <div className="text-xl font-mono text-emerald-400">
+                                      {stats.queries > 0 ? Math.round((stats.successes / stats.queries) * 100) : 0}%
+                                    </div>
+                                    <div className="text-[9px] text-slate-500 mt-0.5">
+                                      {stats.successes} succ / {stats.failures} fail
+                                    </div>
+                                  </div>
+                                  <div className="bg-slate-800/50 rounded-lg p-3 border border-white/5">
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{t.statsTokens}</div>
+                                    <div className="text-xl font-mono text-cyan-200">{stats.totalTokens.toLocaleString()}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Config Modal */}
       <AnimatePresence>
@@ -696,26 +928,73 @@ export default function App() {
                 <div>
                   <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.providerLabel}</label>
                   <div className="flex gap-2">
-                    <select
-                      value={activeProviderId}
-                      onChange={(e) => {
-                        saveActiveProviderId(e.target.value);
-                        const p = providers.find(prov => prov.id === e.target.value);
-                        if (p) {
-                          const mods = p.models.split(',').filter(Boolean);
-                          if (mods.length > 0) saveActiveModel(mods[0].trim());
+                    <div 
+                      className="flex-1 bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 hover:border-cyan-500/50 transition-colors cursor-pointer relative group"
+                      onClick={(e) => {
+                        e.currentTarget.querySelector('.provider-dropdown')?.classList.toggle('hidden');
+                        e.currentTarget.querySelector('.provider-dropdown')?.classList.toggle('opacity-0');
+                        e.currentTarget.querySelector('.provider-dropdown')?.classList.toggle('-translate-y-2');
+                      }}
+                      tabIndex={0}
+                      onBlur={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                          e.currentTarget.querySelector('.provider-dropdown')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
                         }
                       }}
-                      className="flex-1 bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-cyan-100 focus:outline-none focus:border-cyan-500/50 transition-colors font-mono appearance-none select-border"
                     >
-                      {providers.map(p => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
+                      <div className="flex items-center gap-2 h-full">
+                        {activeProviderId === 'gemini' || activeProviderId === 'deepseek' ? (
+                          <Globe size={14} className="text-emerald-400" />
+                        ) : (
+                          <Server size={14} className="text-amber-400" />
+                        )}
+                        <span className="text-sm text-cyan-100 font-mono flex-1 select-none pointer-events-none">
+                          {activeProvider?.name || 'Select Provider'}
+                        </span>
+                        <ChevronDown size={14} className="text-slate-500" />
+                      </div>
+
+                      {/* Provider Dropdown List */}
+                      <div className="provider-dropdown hidden opacity-0 -translate-y-2 transition-all duration-200 absolute top-full left-0 right-0 mt-2 bg-[#0a0f18] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                        <div className="flex flex-col py-1 max-h-[300px] overflow-y-auto custom-scrollbar">
+                          {providers.map(p => (
+                            <button
+                              key={p.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                saveActiveProviderId(p.id);
+                                const mods = p.models.split(',').filter(Boolean);
+                                if (mods.length > 0) saveActiveModel(mods[0].trim());
+                                e.currentTarget.closest('.provider-dropdown')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
+                              }}
+                              className={`px-4 py-3 text-sm font-mono text-left transition-colors flex items-center justify-between ${activeProviderId === p.id ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+                            >
+                              <div className="flex items-center gap-3">
+                                {p.id === 'gemini' || p.id === 'deepseek' ? (
+                                  <Globe size={14} className={activeProviderId === p.id ? "text-emerald-400" : "text-emerald-400/50"} />
+                                ) : (
+                                  <Server size={14} className={activeProviderId === p.id ? "text-amber-400" : "text-amber-400/50"} />
+                                )}
+                                <span>{p.name}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {p.id === 'gemini' || p.id === 'deepseek' ? (
+                                  <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400/50 bg-emerald-400/10 px-1.5 py-0.5 rounded">Default</span>
+                                ) : (
+                                  <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400/50 bg-amber-400/10 px-1.5 py-0.5 rounded">Custom</span>
+                                )}
+                                {activeProviderId === p.id && <Check size={14} className="text-cyan-400" />}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                     <button 
                       onClick={handleCreateProvider}
-                      className="px-4 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold hover:bg-emerald-500/30 transition-colors whitespace-nowrap"
+                      className="px-4 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold hover:bg-emerald-500/30 transition-colors whitespace-nowrap flex items-center gap-2"
                     >
+                      <Settings2 size={14} />
                       {t.addProvider}
                     </button>
                   </div>
@@ -817,7 +1096,21 @@ export default function App() {
                 )}
               </div>
 
-              <div className="shrink-0 px-6 py-4 border-t border-white/5 bg-black/20 flex justify-end gap-3 z-10">
+              <div className="shrink-0 px-6 py-4 border-t border-white/5 bg-black/20 flex items-center justify-between z-10">
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={handleTestConnection}
+                    disabled={testConnStatus === 'testing'}
+                    className="px-4 py-2 rounded-lg text-xs font-bold border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-colors uppercase tracking-widest disabled:opacity-50"
+                  >
+                    {t.testConnectionBtn}
+                  </button>
+                  {testConnStatus !== 'idle' && (
+                    <span className={`text-xs ${testConnStatus === 'success' ? 'text-emerald-400' : testConnStatus === 'error' ? 'text-red-400' : 'text-slate-400'}`}>
+                      {testConnMessage}
+                    </span>
+                  )}
+                </div>
                 <button 
                   onClick={() => setIsConfigOpen(false)}
                   className="px-4 py-2 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(8,145,178,0.2)]"

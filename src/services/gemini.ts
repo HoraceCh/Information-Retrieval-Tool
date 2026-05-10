@@ -14,12 +14,19 @@ export interface FieldMapping {
   reason: string;
 }
 
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
 export interface SearchQueryResponse {
   keywords: KeywordGroup[];
   booleanQuery: string;
   fieldSpecificQuery: string;
   schemaMapping: FieldMapping[];
   explanation: string;
+  _usage?: TokenUsage;
 }
 
 const DB_SCHEMAS: Record<string, string> = {
@@ -43,6 +50,60 @@ export interface ProviderConfig {
   authHeaderName?: string;
   apiKey: string;
   models: string;
+}
+
+export async function testConnection(provider: ProviderConfig, modelName: string): Promise<boolean> {
+  try {
+    const isGeminiSDK = provider.isGemini;
+    if (!isGeminiSDK) {
+      const apiKey = provider.apiKey;
+      if (!apiKey) throw new Error("Missing API Key");
+
+      let endpoint = "https://api.deepseek.com/chat/completions";
+      if (provider.endpoint && provider.endpoint !== "default") {
+        endpoint = provider.endpoint.replace(/\/$/, '') + (provider.endpoint.endsWith('/chat/completions') ? "" : "/chat/completions");
+      }
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json"
+      };
+
+      if (provider.authType === 'Header' && provider.authHeaderName) {
+        headers[provider.authHeaderName] = apiKey;
+      } else {
+        headers["Authorization"] = `Bearer ${apiKey}`;
+      }
+
+      const requestBody = {
+        model: modelName,
+        messages: [{ role: "user", content: "Hi" }],
+        max_tokens: 1
+      };
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+      }
+      return true;
+    } else {
+      const geminiKey = provider.apiKey || "";
+      const currentAi = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
+      const response = await currentAi.models.generateContent({
+        model: modelName || "gemini-3.1-pro-preview",
+        contents: "Hi",
+        config: { maxOutputTokens: 1 }
+      });
+      return !!response.text;
+    }
+  } catch (error) {
+    throw error;
+  }
 }
 
 export async function generateSearchQuery(
@@ -92,6 +153,7 @@ export async function generateSearchQuery(
 
   try {
     let resultText = "";
+    let usageInfo: TokenUsage | undefined;
 
     const isGeminiSDK = provider ? provider.isGemini : !modelName.startsWith("deepseek");
 
@@ -143,6 +205,13 @@ export async function generateSearchQuery(
 
       const data = await response.json();
       resultText = data.choices?.[0]?.message?.content || "{}";
+      if (data.usage) {
+        usageInfo = {
+          promptTokens: data.usage.prompt_tokens || 0,
+          completionTokens: data.usage.completion_tokens || 0,
+          totalTokens: data.usage.total_tokens || 0
+        };
+      }
       
       // Strip markdown code blocks if the model wrapped the JSON
       if (resultText.includes("\`\`\`")) {
@@ -194,9 +263,19 @@ export async function generateSearchQuery(
         }
       });
       resultText = response.text || "{}";
+      if (response.usageMetadata) {
+        usageInfo = {
+          promptTokens: response.usageMetadata.promptTokenCount || 0,
+          completionTokens: response.usageMetadata.candidatesTokenCount || 0,
+          totalTokens: response.usageMetadata.totalTokenCount || 0
+        };
+      }
     }
 
     const result = JSON.parse(resultText);
+    if (usageInfo) {
+      result._usage = usageInfo;
+    }
     return result as SearchQueryResponse;
   } catch (error: any) {
     console.error("Gemini API Error:", error);
