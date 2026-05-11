@@ -30,15 +30,22 @@ export interface SearchQueryResponse {
 }
 
 const DB_SCHEMAS: Record<string, string> = {
-  "通用搜索引擎 (Baidu/Bing)": "无固定特殊字段，支持双引号精确匹配，空格表示AND。减号表示NOT（如 -无关词），支持高级指令如 site:, filetype:, intitle:, inurl: 等。要求：生成通用的关键字组合即可。",
-  "CNKI 知网 (中文学术)": "支持中文高级检索式（逻辑符为 * + - ，分别对应 AND OR NOT）。核心字段代码：SU=主题, TI=篇名, KY=关键词, AB=摘要, AU=作者, AF=作者单位。必须严格使用这些代码。示例：SU=('人工智能' + 'AI') * TI='交通'",
-  "万方数据 (中文学术)": "支持高级布尔检索（逻辑符为 * + -）。核心检索字段：主题、题名、关键词、摘要、作者。示例：主题:(人工智能 + AI) * 题名:(应用)",
-  "维普资讯 (中文学术)": "支持高级检索逻辑（可用 AND OR NOT）。核心检索字段：M=题名或关键词, T=题名, K=关键词, R=文摘, A=作者。示例：M=(人工智能 OR AI) AND T=(算法)",
-  "ScienceDirect/Wiley (外文学术)": "英文布尔检索。支持 ALL, TITLE-ABSTR-KEY (标题摘要关键词), TITLE, AUTHORS。必须全部生成英文查询式！包含双引号的精确匹配。逻辑符必须大写 (AND, OR, NOT)。",
-  "PubMed (生物医药)": "支持严格的标签化字段检索。常用标签：[TIAB] (标题/摘要检索), [MH] (MeSH医学主旨词检索), [AU] (作者)。生成的检索式必须全英文。示例：(cancer[TIAB] OR tumor[TIAB]) AND treatment[MH]",
-  "CNIPA / Espacenet (专利检索)": "用于专利和商标查询。核心字段：TI (发明名称), AB (摘要), CL (权利要求), PA (申请人), IN (发明人), IPC (分类号)。可以使用截词符如 * ?。示例：TI=(折叠屏 OR 柔性屏) AND AB=(耐久性)",
-  "国家法律/标准/统计局 (政务数据)": "偏向全文普通布尔检索，或使用特定的分类表。主要字段：标题(Title)、全文(FullText)、发文机关(Agency)、指标名称(Indicator)。可以简单使用带括号的 AND/OR。",
-  "百度学术 / PubScholar": "通用学术平台，支持 intitle: (限制标题), author: (限制作者), 以及双引号精确匹配。用空格表示AND，| 表示OR，-表示排除。"
+  "CNKI 知网 (中文学术)": "支持布尔逻辑 (*, +, - 分别对应 AND, OR, NOT，注意算符前后需空一个字节)。精确/模糊匹配。优先算符为半角()。引号用于特殊符号短语。字段代码：SU=主题, TI=篇名, KY=关键词, AB=摘要, AB=篇关摘等。示例: SU=('人工智能' + 'AI') * TI='交通'",
+  "万方数据 (中文学术)": "支持布尔逻辑 (AND/and, OR/or, NOT/not，算符前后需空一个字节)。优先级: () > NOT > AND > OR。词组精确检索用双引号 \"\"。检索字段核心是 主题（=题名+关键词+摘要）。",
+  "维普资讯 (中文学术)": "高级检索支持 (* / +, / -, 或 AND / OR / NOT)。基本检索不支持布尔。支持期刊导航检索。",
+  "Web of Science核心合集 (SCI-E/SSCI/CPCI-S)": "支持 AND, OR, NOT。优先顺序 () > NOT > AND > OR。位置算符：NEAR/n (最多插入n个词，词序可倒，不能用于出版年), SAME (同一地址)。截词：* (0或多个), ? (1个), $ (0或1个)。精确词组使用 \"\"。需要严格的字段标识符 (如 TS=主题, TI=标题)。",
+  "Ei Compendex (工程文摘)": "支持 AND, OR, NOT。优先级 () > NOT > AND > OR。精确词组 {} 或 \"\"。位置算符：NEAR/n (无序邻近), ONEAR/n (有序邻近)。截词：*, ?, $ (提取词根)。专业字段代码如 WN KY等。",
+  "Scopus (综合文摘)": "支持 AND, OR, AND NOT (必须置于句末)。优先算符 ()。精确词组 \"\" 或 {}。位置算符：W/n (无序邻近), PRE/n (有序邻近)。截词：*, ?。可以分析出版年份、学科、资金赞助商等。",
+  "ScienceDirect (Elsevier)": "算符必须大写：AND, OR, NOT。优先级 () > NOT > AND > OR。宽松短语用 \"\"。同一检索框布尔算符不能超8个，单数会自动检出复数。不含位置算符。字段如 ALL, TITLE-ABSTR-KEY。",
+  "Springer Nature Link": "支持 AND (, &), OR, NOT。优先级 () > NOT > OR > AND。截词 * 和 ?。精确匹配用 \"\"。",
+  "EBSCO (ASP/BSP)": "支持 AND, OR, NOT。优先级 () > AND > NOT > OR。位置算符：N/n (词序不定), W/n (词序一定)。截词 *, # (0-1个), ?(单词中1个)。",
+  "PQDT (博硕士论文)": "支持 AND, OR, NOT。优先级 PRE > NEAR > AND > OR > NOT。位置算符 NEAR/n, PRE/n。截词 * 和 ?（- 等价于 PRE/0）。",
+  "IEEE Xplore": "支持 AND, OR, NOT。优先级 () > AND > NOT > OR。位置：NEAR/n, ONEAR/n。截词 * 和 ?。宽松短语 \"\"。",
+  "CNIPA / 壹专利 (中文专利)": "CNIPA高级检索：空格表示逻辑OR！其他支持逻辑检索。壹专利：AND / OR / NOT，优先级 () > N/W > NOT > AND > OR。精确词组 \"\"。位置 nN (无序), nW (有序)。截词 * 和 ?。主要字段：TI, AB, CL, PA, IN, IPC。",
+  "Espacenet / USPTO (外文专利)": "USPTO: 支持 AND, OR, NOT, XOR, 空格表OR。通配符 ?, $, *。位置: ADJ, NEAR, WITH, SAME。命令语法: 检索式.检索字段 (如 (face AND recogni*).BSUM )。Espacenet：Any, All, Proximity。",
+  "国家标准全文公开系统": "支持状态检索 (现行、作废、未生效)。分类法：ICS与CCS。主要检索字段：标准号、关键词等。",
+  "百度学术 / PubScholar": "通用平台，支持 intitle: (限制标题), author: (限制作者), 双引号精确匹配。空格表AND，|表OR，-表排除。",
+  "通用搜索引擎 (Baidu/Bing)": "支持双引号精确匹配，空格表示AND。减号表示NOT（如 -无关词），支持指令如 site:, filetype:, intitle:, inurl: 等。"
 };
 
 export interface ProviderConfig {

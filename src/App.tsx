@@ -223,15 +223,22 @@ const DEFAULT_PROVIDERS: ProviderConfig[] = [
 ];
 
 const DB_TYPES = [
-  "通用搜索引擎 (Baidu/Bing)",
   "CNKI 知网 (中文学术)",
   "万方数据 (中文学术)",
   "维普资讯 (中文学术)",
-  "ScienceDirect/Wiley (外文学术)",
-  "PubMed (生物医药)",
-  "CNIPA / Espacenet (专利检索)",
-  "国家法律/标准/统计局 (政务数据)",
-  "百度学术 / PubScholar"
+  "Web of Science核心合集 (SCI-E/SSCI/CPCI-S)",
+  "Ei Compendex (工程文摘)",
+  "Scopus (综合文摘)",
+  "ScienceDirect (Elsevier)",
+  "Springer Nature Link",
+  "EBSCO (ASP/BSP)",
+  "PQDT (博硕士论文)",
+  "IEEE Xplore",
+  "CNIPA / 壹专利 (中文专利)",
+  "Espacenet / USPTO (外文专利)",
+  "国家标准全文公开系统",
+  "百度学术 / PubScholar",
+  "通用搜索引擎 (Baidu/Bing)"
 ];
 
 interface HistoryItem {
