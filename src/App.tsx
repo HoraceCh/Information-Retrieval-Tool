@@ -22,7 +22,8 @@ import {
   Globe,
   Settings2,
   Server,
-  BarChart2
+  BarChart2,
+  ExternalLink
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { generateSearchQuery, SearchQueryResponse, ProviderConfig, testConnection } from "./services/gemini";
@@ -83,7 +84,8 @@ const UI_STRINGS = {
     statsQueries: "Queries / 查询量",
     statsSuccess: "Success Rate / 成功率",
     statsTokens: "Tokens Used / 消耗Token",
-    statsNoData: "No usage data available / 暂无使用数据"
+    statsNoData: "No usage data available / 暂无使用数据",
+    directSearch: "DIRECT_SEARCH / 一键检索"
   },
   zh: {
     appTitle: "AI 检索力",
@@ -140,7 +142,8 @@ const UI_STRINGS = {
     statsQueries: "查询次数",
     statsSuccess: "成功率",
     statsTokens: "Token 消耗",
-    statsNoData: "暂无使用数据"
+    statsNoData: "暂无使用数据",
+    directSearch: "一键检索"
   },
   en: {
     appTitle: "AI_RETRIEVAL_X",
@@ -197,7 +200,8 @@ const UI_STRINGS = {
     statsQueries: "Queries",
     statsSuccess: "Success Rate",
     statsTokens: "Tokens Used",
-    statsNoData: "No usage data available"
+    statsNoData: "No usage data available",
+    directSearch: "DIRECT SEARCH"
   }
 };
 
@@ -241,6 +245,31 @@ const DB_TYPES = [
   "通用搜索引擎 (Baidu/Bing)"
 ];
 
+const getDirectSearchUrl = (dbType: string, query: string): string | null => {
+  if (!query) return null;
+  const q = encodeURIComponent(query);
+  switch (dbType) {
+    case "CNKI 知网 (中文学术)":
+      return `https://kns.cnki.net/kns8s/defaultresult/index?kw=${q}`;
+    case "万方数据 (中文学术)":
+      return `https://s.wanfangdata.com.cn/paper?q=${q}`;
+    case "ScienceDirect (Elsevier)":
+      return `https://www.sciencedirect.com/search?qs=${q}`;
+    case "Springer Nature Link":
+      return `https://link.springer.com/search?query=${q}`;
+    case "IEEE Xplore":
+      return `https://ieeexplore.ieee.org/search/searchresult.jsp?newsearch=true&queryText=${q}`;
+    case "百度学术 / PubScholar":
+      return `https://xueshu.baidu.com/s?wd=${q}`;
+    case "通用搜索引擎 (Baidu/Bing)":
+      return `https://www.bing.com/search?q=${q}`;
+    case "Espacenet / USPTO (外文专利)":
+      return `https://worldwide.espacenet.com/searchResults?query=${q}`;
+    default:
+      return null;
+  }
+};
+
 interface HistoryItem {
   id: string;
   timestamp: number;
@@ -274,7 +303,7 @@ export default function App() {
   
   const [providers, setProviders] = useState<ProviderConfig[]>(DEFAULT_PROVIDERS);
   const [activeProviderId, setActiveProviderId] = useState<string>("gemini");
-  const [activeModel, setActiveModel] = useState<string>("gemini-3.1-pro-preview");
+  const [activeModel, setActiveModel] = useState<string>("gemini-3-flash-preview");
 
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -369,7 +398,7 @@ export default function App() {
     const newProviders = providers.filter(p => p.id !== id);
     saveProviders(newProviders);
     saveActiveProviderId("gemini");
-    saveActiveModel("gemini-3.1-pro-preview");
+    saveActiveModel("gemini-3-flash-preview");
   };
 
   const updateActiveProvider = (updates: Partial<ProviderConfig>) => {
@@ -632,6 +661,19 @@ export default function App() {
                     </>
                   )}
                 </button>
+                {result && getDirectSearchUrl(dbType, result.booleanQuery) && (
+                  <button
+                    onClick={() => {
+                      const url = getDirectSearchUrl(dbType, result.booleanQuery);
+                      if (url) window.open(url, '_blank');
+                    }}
+                    disabled={loading}
+                    className="px-6 py-3 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 font-bold rounded-xl border border-emerald-500/30 transition-all flex items-center gap-2 disabled:opacity-30"
+                  >
+                    {t.directSearch}
+                    <ExternalLink size={18} />
+                  </button>
+                )}
               </div>
             </div>
           </section>
