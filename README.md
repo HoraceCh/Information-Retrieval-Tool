@@ -44,7 +44,7 @@ If you have downloaded/exported this project to your local machine, follow these
    ```
 4. **Open in Browser**: The terminal will show a local URL (usually `http://localhost:3000`). Open this link in your browser.
 
-> **Note**: To use the AI features, you will need to input your own API Key (Gemini or DeepSeek) in the "Settings" menu of the application.
+> **Note**: If you are running this app locally, you must input your own API Key (Gemini or DeepSeek) in the "Settings" menu (⚙️) located at the bottom of the page to use the AI features. (In the AI Studio preview environment, default Gemini models work out-of-the-box).
 
 ---
 
@@ -86,4 +86,4 @@ If you have downloaded/exported this project to your local machine, follow these
    ```
 4. **在浏览器中浏览**：终端会显示一个本地访问地址（通常是 `http://localhost:3000`）。在浏览器中打开该链接即可使用。
 
-> **提示**：为激活 AI 生成服务，请先点击页面右上角的 `⚙️ (Settings)`，并在对应模型提供商处填入您的专属 API 密钥 (API Key，可选填自定义的 Base URL)。
+> **提示**：如果您在本地运行本项目，请先点击页面底部的 `⚙️ (Settings)`，并在对应模型提供商处填入您的专属 API 密钥激活生成服务。如果您是在 AI Studio 预览环境中体验，默认的 Gemini 模型已自动配置环境密钥，可直接使用（如需使用 DeepSeek 等第三方模型仍需自行填入 Key）。
