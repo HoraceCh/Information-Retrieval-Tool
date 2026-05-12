@@ -26,6 +26,7 @@ export interface SearchQueryResponse {
   fieldSpecificQuery: string;
   schemaMapping: FieldMapping[];
   explanation: string;
+  suggestedUrls?: { name: string; url: string; }[];
   _usage?: TokenUsage;
 }
 
@@ -135,6 +136,7 @@ export async function generateSearchQuery(
 3. 基础布尔检索式：结合语种偏好"${languagePref}"构建基础检索式。规则：同组词用 OR (或当地系统语法) 连接加括号，不同组用 AND 连接。
 4. 架构映射与高级检索式：基于架构参考，将检索意图映射到特定字段生成高级精准的检索式（fieldSpecificQuery）。
 5. 简明策略：提供极为简短（不超过2句话）的检索策略与字段选用说明。
+6. 智能跳转链接：根据用户的检索需求和选择的平台，自动猜测并拼装1-2个可以直接点击访问查阅的URL链接。可以结合基础或高级检索式动态填入 URL 参数（如将检索式 URL encode 后放入 kw= 或 query= 参数中）。给出合法的带 query param 的检索链接，如果没有可靠的直达检索 URL，则给出数据库或主页面的对应链接（如 https://kns.cnki.net ）。
 
 请严格按 JSON 格式返回，结构如下：
 {
@@ -154,7 +156,13 @@ export async function generateSearchQuery(
       "reason": "为什么映射到这个字段的说明"
     }
   ],
-  "explanation": "检索策略与架构选择的整体说明"
+  "explanation": "检索策略与架构选择的整体说明",
+  "suggestedUrls": [
+    {
+      "name": "推荐的平台名称 (如：CNKI 知网直接检索)",
+      "url": "https://kns.cnki.net/kns8s/defaultresult/index?kw=检索式"
+    }
+  ]
 }
 `;
 

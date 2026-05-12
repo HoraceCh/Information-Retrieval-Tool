@@ -25,6 +25,7 @@ import {
   BarChart2,
   ExternalLink
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import { generateSearchQuery, SearchQueryResponse, ProviderConfig, testConnection } from "./services/gemini";
 
@@ -57,6 +58,7 @@ const UI_STRINGS = {
     historyTitle: "检索历史 History",
     noHistory: "No history found / 暂无记录",
     clearHistory: "CLEAR / 清空",
+    confirmClearHistory: "Are you sure you want to clear all history? / 确定要清空所有历史记录吗？",
     historyButton: "HISTORY",
     configTitle: "系统配置 Configuration",
     providerLabel: "模型提供商 Provider",
@@ -115,6 +117,7 @@ const UI_STRINGS = {
     historyTitle: "检索历史",
     noHistory: "暂无记录",
     clearHistory: "清空",
+    confirmClearHistory: "确定要清空所有历史记录吗？",
     historyButton: "历史",
     configTitle: "系统配置",
     providerLabel: "模型提供商",
@@ -173,6 +176,7 @@ const UI_STRINGS = {
     historyTitle: "Search History",
     noHistory: "No history found",
     clearHistory: "Clear",
+    confirmClearHistory: "Are you sure you want to clear all history?",
     historyButton: "HISTORY",
     configTitle: "Configuration",
     providerLabel: "Model Provider",
@@ -245,31 +249,6 @@ const DB_TYPES = [
   "通用搜索引擎 (Baidu/Bing)"
 ];
 
-const getDirectSearchUrl = (dbType: string, query: string): string | null => {
-  if (!query) return null;
-  const q = encodeURIComponent(query);
-  switch (dbType) {
-    case "CNKI 知网 (中文学术)":
-      return `https://kns.cnki.net/kns8s/defaultresult/index?kw=${q}`;
-    case "万方数据 (中文学术)":
-      return `https://s.wanfangdata.com.cn/paper?q=${q}`;
-    case "ScienceDirect (Elsevier)":
-      return `https://www.sciencedirect.com/search?qs=${q}`;
-    case "Springer Nature Link":
-      return `https://link.springer.com/search?query=${q}`;
-    case "IEEE Xplore":
-      return `https://ieeexplore.ieee.org/search/searchresult.jsp?newsearch=true&queryText=${q}`;
-    case "百度学术 / PubScholar":
-      return `https://xueshu.baidu.com/s?wd=${q}`;
-    case "通用搜索引擎 (Baidu/Bing)":
-      return `https://www.bing.com/search?q=${q}`;
-    case "Espacenet / USPTO (外文专利)":
-      return `https://worldwide.espacenet.com/searchResults?query=${q}`;
-    default:
-      return null;
-  }
-};
-
 interface HistoryItem {
   id: string;
   timestamp: number;
@@ -298,7 +277,8 @@ export default function App() {
   const [error, setError] = useState<{ title: string; details: string } | null>(null);
   const [showMapped, setShowMapped] = useState(false);
 
-  const [uiLang, setUiLang] = useState<"mix" | "zh" | "en">("mix");
+  const { t, i18n } = useTranslation();
+  const uiLang = i18n.language;
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   
   const [providers, setProviders] = useState<ProviderConfig[]>(DEFAULT_PROVIDERS);
@@ -314,8 +294,6 @@ export default function App() {
   const [testConnStatus, setTestConnStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [testConnMessage, setTestConnMessage] = useState<string>('');
 
-  const t = UI_STRINGS[uiLang];
-
   useEffect(() => {
     setTestConnStatus('idle');
     setTestConnMessage('');
@@ -323,27 +301,33 @@ export default function App() {
 
   const handleTestConnection = async () => {
     setTestConnStatus('testing');
-    setTestConnMessage(t.testing);
+    setTestConnMessage(t('testing'));
     try {
       const provider = providers.find(p => p.id === activeProviderId);
       if (!provider) throw new Error("Provider not found");
       await testConnection(provider, activeModel);
       setTestConnStatus('success');
-      setTestConnMessage(t.testSuccess);
+      setTestConnMessage(t('testSuccess'));
     } catch (e: any) {
       setTestConnStatus('error');
-      setTestConnMessage(`${t.testFailed}: ${e.message}`);
+      setTestConnMessage(`${t('testFailed')}: ${e.message}`);
     }
   };
 
   useEffect(() => {
     const saved = localStorage.getItem("ai_retrieval_history");
     if (saved) {
-      try { setHistory(JSON.parse(saved)); } catch (e) {}
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setHistory(parsed);
+      } catch (e) {}
     }
     const savedProviders = localStorage.getItem("ai_retrieval_providers");
     if (savedProviders) {
-      try { setProviders(JSON.parse(savedProviders)); } catch (e) {}
+      try {
+        const parsed = JSON.parse(savedProviders);
+        if (Array.isArray(parsed)) setProviders(parsed);
+      } catch (e) {}
     }
     const savedActiveProv = localStorage.getItem("ai_retrieval_active_prov");
     if (savedActiveProv) setActiveProviderId(savedActiveProv);
@@ -514,9 +498,9 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-white uppercase flex items-center">
-              {t.appTitle} <span className="text-cyan-500 text-[10px] font-mono ml-2 opacity-70">v2.4.0</span>
+              {t('appTitle')} <span className="text-cyan-500 text-[10px] font-mono ml-2 opacity-70">v2.4.0</span>
             </h1>
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest leading-none">{t.appSubtitle}</p>
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest leading-none">{t('appSubtitle')}</p>
           </div>
         </div>
         
@@ -549,7 +533,7 @@ export default function App() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setUiLang("mix");
+                    i18n.changeLanguage("mix");
                     e.currentTarget.closest('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
                   }}
                   className={`px-4 py-2.5 text-xs font-bold text-left transition-colors flex items-center justify-between ${uiLang === 'mix' ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
@@ -560,7 +544,7 @@ export default function App() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setUiLang("zh");
+                    i18n.changeLanguage("zh");
                     e.currentTarget.closest('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
                   }}
                   className={`px-4 py-2.5 text-xs font-bold text-left transition-colors flex items-center justify-between ${uiLang === 'zh' ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
@@ -571,7 +555,7 @@ export default function App() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setUiLang("en");
+                    i18n.changeLanguage("en");
                     e.currentTarget.closest('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
                   }}
                   className={`px-4 py-2.5 text-xs font-bold text-left transition-colors flex items-center justify-between ${uiLang === 'en' ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
@@ -583,9 +567,9 @@ export default function App() {
             </div>
           </div>
           <div className="hidden sm:block text-right">
-            <span className="text-[9px] text-slate-500 uppercase block leading-none mb-1">{t.engineStatus}</span>
+            <span className="text-[9px] text-slate-500 uppercase block leading-none mb-1">{t('engineStatus')}</span>
             <span className="text-xs text-emerald-400 flex items-center gap-1.5 font-bold uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> {t.operational}
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> {t('operational')}
             </span>
           </div>
         </div>
@@ -599,18 +583,18 @@ export default function App() {
           {/* Input Block */}
           <section className="flex-1 bg-slate-900/40 rounded-2xl border border-white/5 p-6 flex flex-col relative group transition-all hover:border-white/10 shadow-lg">
             <div className="absolute top-4 right-4 text-[10px] text-slate-500 font-mono tracking-tighter opacity-50">INPUT_NATURAL_LANGUAGE</div>
-            <label className="text-[11px] text-cyan-400/80 mb-3 uppercase font-bold tracking-[0.2em]">{t.inputLabel}</label>
+            <label className="text-[11px] text-cyan-400/80 mb-3 uppercase font-bold tracking-[0.2em]">{t('inputLabel')}</label>
             
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={t.inputPlaceholder}
+              placeholder={t('inputPlaceholder')}
               className="flex-1 bg-transparent border-none outline-none resize-none text-xl text-slate-200 placeholder:text-slate-700 leading-relaxed font-medium"
             />
 
             <div className="mt-4 flex flex-wrap justify-between items-center pt-4 border-t border-white/5 gap-4">
               <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2" title={t.dbTypesLabel}>
+                <div className="flex items-center gap-2" title={t('dbTypesLabel')}>
                   <Database size={16} className="text-cyan-500/50" />
                   <select
                     value={dbType}
@@ -623,7 +607,7 @@ export default function App() {
                   </select>
                 </div>
 
-                <div className="flex items-center gap-2" title={t.langPrefLabel}>
+                <div className="flex items-center gap-2" title={t('langPrefLabel')}>
                   <Languages size={16} className="text-cyan-500/50" />
                   <select
                     value={langPref}
@@ -642,7 +626,7 @@ export default function App() {
                   <button 
                     onClick={reset}
                     className="p-2.5 bg-white/5 rounded-xl text-slate-500 hover:text-white hover:bg-white/10 transition-all border border-white/5"
-                    title={t.reset}
+                    title={t('reset')}
                   >
                     <RotateCcw size={18} />
                   </button>
@@ -656,24 +640,23 @@ export default function App() {
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
-                      {t.generate}
+                      {t('generate')}
                       <Search size={18} className="translate-x-0 group-hover/btn:translate-x-1 transition-transform" />
                     </>
                   )}
                 </button>
-                {result && getDirectSearchUrl(dbType, result.booleanQuery) && (
-                  <button
-                    onClick={() => {
-                      const url = getDirectSearchUrl(dbType, result.booleanQuery);
-                      if (url) window.open(url, '_blank');
-                    }}
-                    disabled={loading}
-                    className="px-6 py-3 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 font-bold rounded-xl border border-emerald-500/30 transition-all flex items-center gap-2 disabled:opacity-30"
+                {result && Array.isArray(result.suggestedUrls) && result.suggestedUrls.map((urlItem, i) => (
+                  <a
+                    key={i}
+                    href={urlItem.url || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`px-6 py-3 bg-emerald-600/20 text-emerald-400 font-bold rounded-xl border border-emerald-500/30 transition-all flex items-center gap-2 ${loading ? 'opacity-30 pointer-events-none' : 'hover:bg-emerald-600/30'}`}
                   >
-                    {t.directSearch}
+                    {urlItem.name || t('directSearch')}
                     <ExternalLink size={18} />
-                  </button>
-                )}
+                  </a>
+                ))}
               </div>
             </div>
           </section>
@@ -694,7 +677,7 @@ export default function App() {
             
             <div className="p-6 h-full flex flex-col relative z-10">
               <div className="flex justify-between items-start mb-4">
-                <label className="text-[11px] text-cyan-400/80 uppercase font-bold tracking-[0.2em]">{t.formulaTitle}</label>
+                <label className="text-[11px] text-cyan-400/80 uppercase font-bold tracking-[0.2em]">{t('formulaTitle')}</label>
                 {result && (
                   <div className="flex bg-black/40 rounded-lg p-1 border border-cyan-500/20">
                     <button
@@ -703,7 +686,7 @@ export default function App() {
                         !showMapped ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'
                       }`}
                     >
-                      {t.basicWeb}
+                      {t('basicWeb')}
                     </button>
                     <button
                       onClick={() => setShowMapped(true)}
@@ -711,7 +694,7 @@ export default function App() {
                         showMapped ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'
                       }`}
                     >
-                      {t.schemaMapped}
+                      {t('schemaMapped')}
                     </button>
                   </div>
                 )}
@@ -722,7 +705,7 @@ export default function App() {
                   {result ? (showMapped ? result.fieldSpecificQuery : result.booleanQuery) : "Formula will appear here..."}
                 </div>
 
-                {result && showMapped && result.schemaMapping && result.schemaMapping.length > 0 && (
+                {result && showMapped && Array.isArray(result.schemaMapping) && result.schemaMapping.length > 0 && (
                   <div className="flex-1 overflow-y-auto custom-scrollbar mt-2">
                     <h4 className="text-[10px] text-cyan-400/70 font-mono tracking-widest uppercase mb-3">Field Mapping Logic</h4>
                     <div className="space-y-2">
@@ -744,14 +727,14 @@ export default function App() {
               {result && (
                 <div className="mt-4 pt-3 border-t border-cyan-500/20 flex justify-between items-center">
                   <span className="text-[10px] text-cyan-500/60 font-mono italic flex items-center gap-2">
-                    <Check size={10} className="text-emerald-500" /> {t.processedWith}
+                    <Check size={10} className="text-emerald-500" /> {t('processedWith')}
                   </span>
                   <button 
                     onClick={() => handleCopy(showMapped ? result.fieldSpecificQuery : result.booleanQuery)}
                     className="text-[11px] text-cyan-400 hover:text-cyan-300 font-black tracking-widest flex items-center gap-1.5 transition-all"
                   >
                     {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                    {copied ? t.copied : t.copyCode}
+                    {copied ? t('copied') : t('copyCode')}
                   </button>
                 </div>
               )}
@@ -766,14 +749,14 @@ export default function App() {
             <div className="p-6 border-b border-white/5">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-1 h-3 bg-cyan-500 rounded-full"></div>
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">{t.semanticMap}</h3>
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">{t('semanticMap')}</h3>
               </div>
-              <p className="text-[10px] text-slate-500 uppercase tracking-tighter">{t.topicExpansion}</p>
+              <p className="text-[10px] text-slate-500 uppercase tracking-tighter">{t('topicExpansion')}</p>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
               <AnimatePresence mode="popLayout">
-                {result ? (
+                {result && Array.isArray(result.keywords) && result.keywords.length > 0 ? (
                   result.keywords.map((group, idx) => (
                     <motion.div
                       key={group.original}
@@ -783,13 +766,13 @@ export default function App() {
                       className="p-4 rounded-xl bg-white/5 border border-white/10 group hover:border-cyan-500/30 transition-all"
                     >
                       <div className="flex justify-between items-center mb-3">
-                        <span className="text-[10px] font-mono text-cyan-400 opacity-70">#0{idx + 1} {t.coreKeyword}</span>
+                        <span className="text-[10px] font-mono text-cyan-400 opacity-70">#0{idx + 1} {t('coreKeyword')}</span>
                         <div className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.5)]"></div>
                       </div>
                       <p className="text-sm font-black text-white mb-3 uppercase tracking-tight">{group.original}</p>
                       <div className="flex flex-wrap gap-1.5 mb-2">
                         <span className="text-[9px] font-mono text-slate-600 uppercase">ZH:</span>
-                        {group.zhSynonyms?.map((syn, sIdx) => (
+                        {Array.isArray(group.zhSynonyms) && group.zhSynonyms.map((syn, sIdx) => (
                           <span 
                             key={`zh-${sIdx}`}
                             className="text-[10px] font-medium bg-white/5 border border-white/10 px-2 py-0.5 rounded text-slate-300 hover:text-cyan-400 transition-colors"
@@ -800,7 +783,7 @@ export default function App() {
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         <span className="text-[9px] font-mono text-slate-600 uppercase">EN:</span>
-                        {group.enSynonyms?.map((syn, sIdx) => (
+                        {Array.isArray(group.enSynonyms) && group.enSynonyms.map((syn, sIdx) => (
                           <span 
                             key={`en-${sIdx}`}
                             className="text-[10px] font-medium bg-cyan-950/30 border border-cyan-500/20 px-2 py-0.5 rounded text-cyan-200 italic hover:text-cyan-100 transition-colors"
@@ -814,7 +797,7 @@ export default function App() {
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full opacity-10 py-12">
                      <Search size={40} />
-                     <p className="mt-4 text-[10px] font-mono tracking-tighter uppercase">{t.waitingInput}</p>
+                     <p className="mt-4 text-[10px] font-mono tracking-tighter uppercase">{t('waitingInput')}</p>
                   </div>
                 )}
               </AnimatePresence>
@@ -829,16 +812,16 @@ export default function App() {
             
             <div className="relative z-10">
               <span className="text-[10px] text-slate-500 uppercase font-black block mb-2 tracking-widest flex items-center gap-2">
-                <Lightbulb size={12} className="text-orange-400" /> {t.insightTitle}
+                <Lightbulb size={12} className="text-orange-400" /> {t('insightTitle')}
               </span>
               <p className="text-[11px] text-slate-400 leading-relaxed italic line-clamp-4">
-                {result ? result.explanation : t.insightDesc}
+                {result ? result.explanation : t('insightDesc')}
               </p>
             </div>
 
             <div className="relative z-10 border-t border-white/5 pt-3">
                <div className="flex justify-between items-end">
-                  <div className="text-[10px] font-mono text-cyan-400/70 uppercase"><span className="font-bold">{t.recallBoost}</span></div>
+                  <div className="text-[10px] font-mono text-cyan-400/70 uppercase"><span className="font-bold">{t('recallBoost')}</span></div>
                   <div className="h-4 flex items-end gap-1">
                     {[0.2, 0.4, 0.7, 0.5, 0.9, 1.0].map((h, i) => (
                       <div key={i} className="w-1 bg-cyan-500/40 rounded-t-sm" style={{ height: `${h * 100}%` }}></div>
@@ -855,23 +838,23 @@ export default function App() {
         <div className="flex gap-8">
           <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span>
-            {t.sysOpt}
+            {t('sysOpt')}
           </div>
           <div className="flex items-center gap-4 text-[10px] text-slate-500 font-mono tracking-tighter">
             <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsHistoryOpen(true)}>
-              <History size={12} className="mr-1" /> {t.historyButton}
+              <History size={12} className="mr-1" /> {t('historyButton')}
             </span>
             <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsConfigOpen(true)}>
-              <Settings size={12} className="mr-1" /> {t.settings}
+              <Settings size={12} className="mr-1" /> {t('settings')}
             </span>
             <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsStatsOpen(true)}>
-              <BarChart2 size={12} className="mr-1" /> {t.statsButton}
+              <BarChart2 size={12} className="mr-1" /> {t('statsButton')}
             </span>
             <span className="hover:text-cyan-400 cursor-pointer transition-colors">DB_STATUS: OK</span>
           </div>
         </div>
         <div className="text-[10px] text-slate-600 font-mono uppercase tracking-tighter">
-          CTX_ID: {loading ? t.processing : (result ? t.genComplete : t.waitInit)} // BUILD_HASH: 0x55F2A
+          CTX_ID: {loading ? t('processing') : (result ? t('genComplete') : t('waitInit'))} // BUILD_HASH: 0x55F2A
         </div>
       </footer>
 
@@ -889,7 +872,7 @@ export default function App() {
               <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/5 shrink-0">
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
                   <BarChart2 size={16} className="text-cyan-400" />
-                  {t.statsTitle}
+                  {t('statsTitle')}
                 </h3>
                 <button onClick={() => setIsStatsOpen(false)} className="text-slate-400 hover:text-white transition-colors">
                   <X size={18} />
@@ -900,7 +883,7 @@ export default function App() {
                 {Object.keys(usageStats).length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 text-slate-500 opacity-50">
                     <BarChart2 size={48} className="mb-4" />
-                    <p className="text-sm uppercase tracking-widest font-bold">{t.statsNoData}</p>
+                    <p className="text-sm uppercase tracking-widest font-bold">{t('statsNoData')}</p>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-6">
@@ -919,11 +902,11 @@ export default function App() {
                                 <div className="text-sm font-mono text-cyan-400 font-bold">{model}</div>
                                 <div className="grid grid-cols-3 gap-3">
                                   <div className="bg-slate-800/50 rounded-lg p-3 border border-white/5">
-                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{t.statsQueries}</div>
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{t('statsQueries')}</div>
                                     <div className="text-xl font-mono text-white">{stats.queries}</div>
                                   </div>
                                   <div className="bg-slate-800/50 rounded-lg p-3 border border-white/5">
-                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{t.statsSuccess}</div>
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{t('statsSuccess')}</div>
                                     <div className="text-xl font-mono text-emerald-400">
                                       {stats.queries > 0 ? Math.round((stats.successes / stats.queries) * 100) : 0}%
                                     </div>
@@ -932,7 +915,7 @@ export default function App() {
                                     </div>
                                   </div>
                                   <div className="bg-slate-800/50 rounded-lg p-3 border border-white/5">
-                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{t.statsTokens}</div>
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{t('statsTokens')}</div>
                                     <div className="text-xl font-mono text-cyan-200">{stats.totalTokens.toLocaleString()}</div>
                                   </div>
                                 </div>
@@ -964,7 +947,7 @@ export default function App() {
               <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/5 shrink-0">
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
                   <Settings size={16} className="text-cyan-400" />
-                  {t.configTitle}
+                  {t('configTitle')}
                 </h3>
                 <button onClick={() => setIsConfigOpen(false)} className="text-slate-400 hover:text-white transition-colors">
                   <X size={18} />
@@ -975,7 +958,7 @@ export default function App() {
                 
                 {/* Active Provider Selection */}
                 <div>
-                  <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.providerLabel}</label>
+                  <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('providerLabel')}</label>
                   <div className="flex gap-2">
                     <div 
                       className="flex-1 bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 hover:border-cyan-500/50 transition-colors cursor-pointer relative group"
@@ -1044,19 +1027,19 @@ export default function App() {
                       className="px-4 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold hover:bg-emerald-500/30 transition-colors whitespace-nowrap flex items-center gap-2"
                     >
                       <Settings2 size={14} />
-                      {t.addProvider}
+                      {t('addProvider')}
                     </button>
                   </div>
                 </div>
 
                 {/* API Key */}
                 <div>
-                  <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.apiKeyLabel}</label>
+                  <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('apiKeyLabel')}</label>
                   <input
                     type="password"
                     value={activeProvider.apiKey}
                     onChange={(e) => updateActiveProvider({ apiKey: e.target.value })}
-                    placeholder={t.apiKeyPlaceholder}
+                    placeholder={t('apiKeyPlaceholder')}
                     className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-cyan-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
                   />
                   <p className="text-[10px] text-slate-500 mt-2 font-mono">
@@ -1066,7 +1049,7 @@ export default function App() {
 
                 {/* Model Selection */}
                 <div>
-                  <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.modelLabel}</label>
+                  <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('modelLabel')}</label>
                   <select
                     value={activeModel}
                     onChange={(e) => saveActiveModel(e.target.value)}
@@ -1082,7 +1065,7 @@ export default function App() {
                 {activeProvider.id !== 'gemini' && activeProvider.id !== 'deepseek' && (
                   <div className="p-4 rounded-xl border border-dashed border-cyan-500/30 bg-cyan-950/10 flex flex-col gap-4 mt-2">
                     <div>
-                      <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.providerName}</label>
+                      <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('providerName')}</label>
                       <input
                         type="text"
                         value={activeProvider.name}
@@ -1101,7 +1084,7 @@ export default function App() {
                     </div>
                     <div className="flex gap-4">
                       <div className="flex-1">
-                        <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.authTypeLabel}</label>
+                        <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('authTypeLabel')}</label>
                         <select
                           value={activeProvider.authType}
                           onChange={(e) => updateActiveProvider({ authType: e.target.value as any })}
@@ -1113,7 +1096,7 @@ export default function App() {
                       </div>
                       {activeProvider.authType === 'Header' && (
                         <div className="flex-1">
-                          <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.customHeaderLabel}</label>
+                          <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('customHeaderLabel')}</label>
                           <input
                             type="text"
                             value={activeProvider.authHeaderName || ""}
@@ -1125,7 +1108,7 @@ export default function App() {
                       )}
                     </div>
                     <div>
-                      <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t.modelsListLabel}</label>
+                      <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('modelsListLabel')}</label>
                       <input
                         type="text"
                         value={activeProvider.models}
@@ -1138,7 +1121,7 @@ export default function App() {
                          onClick={() => handleDeleteProvider(activeProvider.id)}
                          className="text-xs uppercase font-bold tracking-widest text-red-400 hover:text-red-300 transition-colors"
                        >
-                         {t.deleteProvider}
+                         {t('deleteProvider')}
                        </button>
                     </div>
                   </div>
@@ -1152,7 +1135,7 @@ export default function App() {
                     disabled={testConnStatus === 'testing'}
                     className="px-4 py-2 rounded-lg text-xs font-bold border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-colors uppercase tracking-widest disabled:opacity-50"
                   >
-                    {t.testConnectionBtn}
+                    {t('testConnectionBtn')}
                   </button>
                   {testConnStatus !== 'idle' && (
                     <span className={`text-xs ${testConnStatus === 'success' ? 'text-emerald-400' : testConnStatus === 'error' ? 'text-red-400' : 'text-slate-400'}`}>
@@ -1164,7 +1147,7 @@ export default function App() {
                   onClick={() => setIsConfigOpen(false)}
                   className="px-4 py-2 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(8,145,178,0.2)]"
                 >
-                  {t.saveConfig}
+                  {t('saveConfig')}
                 </button>
               </div>
             </motion.div>
@@ -1186,15 +1169,19 @@ export default function App() {
               <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/5 shrink-0">
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
                   <Clock size={16} className="text-cyan-400" />
-                  {t.historyTitle}
+                  {t('historyTitle')}
                 </h3>
                 <div className="flex items-center gap-2">
                   {history.length > 0 && (
                     <button 
-                      onClick={() => saveHistory([])}
+                      onClick={() => {
+                        if (window.confirm(t('confirmClearHistory') || "Are you sure you want to clear all history? / 确定要清空所有历史记录吗？")) {
+                          saveHistory([]);
+                        }
+                      }}
                       className="text-[10px] uppercase font-bold tracking-widest px-3 py-1.5 rounded transition-all text-red-400 hover:bg-red-500/10"
                     >
-                      {t.clearHistory}
+                      {t('clearHistory')}
                     </button>
                   )}
                   <button onClick={() => setIsHistoryOpen(false)} className="text-slate-400 hover:text-white transition-colors p-1">
@@ -1207,7 +1194,7 @@ export default function App() {
                 {history.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-40 opacity-30">
                     <History size={32} className="mb-3" />
-                    <span className="text-xs uppercase font-mono tracking-widest">{t.noHistory}</span>
+                    <span className="text-xs uppercase font-mono tracking-widest">{t('noHistory')}</span>
                   </div>
                 ) : (
                   <div className="space-y-3">
