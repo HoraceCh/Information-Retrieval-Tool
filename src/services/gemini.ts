@@ -121,12 +121,13 @@ export async function generateSearchQuery(
   modelName: string = "gemini-3.1-pro-preview",
   provider?: ProviderConfig
 ): Promise<SearchQueryResponse> {
-  const schemaInfo = DB_SCHEMAS[targetDatabase] || DB_SCHEMAS["通用搜索引擎 (Baidu/Bing)"];
+  const targetDB = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请根据用户的检索词自动判断最合适的一个目标学术数据库或搜索引擎（例如：CNKI、Web of Science、PubMed、专利数据库等），并在解释中说明为何选择该库。" : targetDatabase;
+  const schemaInfo = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请自行匹配该目标数据库的常用检索语法与字段代码。" : (DB_SCHEMAS[targetDatabase] || DB_SCHEMAS["通用搜索引擎 (Baidu/Bing)"]);
   
   const prompt = `
 你是一位专业的检索专家，正在辅助学生准备“AI+信息素养”大赛。
 用户的自然语言需求是： "${input}"
-目标数据库平台： "${targetDatabase}"
+目标数据库平台： "${targetDB}"
 该数据库的字段架构参考： "${schemaInfo}"
 检索语种偏好： "${languagePref}" （在生成最终检索式时，请根据此偏好决定是否仅使用中文同义词、仅英文同义词，或中英混合以提高召回率。外文数据库请默认优先全英文。）
 
@@ -136,7 +137,7 @@ export async function generateSearchQuery(
 3. 基础布尔检索式：结合语种偏好"${languagePref}"构建基础检索式。规则：同组词用 OR (或当地系统语法) 连接加括号，不同组用 AND 连接。
 4. 架构映射与高级检索式：基于架构参考，将检索意图映射到特定字段生成高级精准的检索式（fieldSpecificQuery）。
 5. 简明策略：提供极为简短（不超过2句话）的检索策略与字段选用说明。
-6. 智能跳转链接：根据用户的检索需求和选择的平台，自动猜测并拼装1-2个可以直接点击访问查阅的URL链接。可以结合基础或高级检索式动态填入 URL 参数（如将检索式 URL encode 后放入 kw= 或 query= 参数中）。给出合法的带 query param 的检索链接，如果没有可靠的直达检索 URL，则给出数据库或主页面的对应链接（如 https://kns.cnki.net ）。
+6. 智能跳转链接：必须根据用户的最终检索词，自动猜测并拼装1-3个可以直接点击访问查阅的URL链接。建议结合基础或高级检索式动态填入 URL 参数（如将检索式 URL encode 后放入 kw= 或 query= 等参数中）。给出合法的带 query param 的检索链接。常见平台的接口参数例如知网（https://kns.cnki.net/kns8s/defaultresult/index?kw=）、百度学术（https://xueshu.baidu.com/s?wd=）、Bing（https://cn.bing.com/search?q=）等。如果无法构建准确参数，则给出其主页链接。
 
 请严格按 JSON 格式返回，结构如下：
 {
@@ -271,9 +272,20 @@ export async function generateSearchQuery(
                   required: ["field", "mappedConcept", "reason"]
                 }
               },
-              explanation: { type: Type.STRING }
+              explanation: { type: Type.STRING },
+              suggestedUrls: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    name: { type: Type.STRING },
+                    url: { type: Type.STRING }
+                  },
+                  required: ["name", "url"]
+                }
+              }
             },
-            required: ["keywords", "booleanQuery", "fieldSpecificQuery", "schemaMapping", "explanation"]
+            required: ["keywords", "booleanQuery", "fieldSpecificQuery", "schemaMapping", "explanation", "suggestedUrls"]
           }
         }
       });

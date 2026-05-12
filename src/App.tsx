@@ -231,6 +231,7 @@ const DEFAULT_PROVIDERS: ProviderConfig[] = [
 ];
 
 const DB_TYPES = [
+  "自动智能匹配 (Auto Match Engine)",
   "CNKI 知网 (中文学术)",
   "万方数据 (中文学术)",
   "维普资讯 (中文学术)",
