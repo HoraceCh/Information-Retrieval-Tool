@@ -36,7 +36,7 @@ const UI_STRINGS = {
     engineStatus: "Engine Status",
     operational: "Operational",
     inputLabel: "User Query Intent",
-    inputPlaceholder: "请详细描述您的检索需求 / Describe your search intent in detail ...",
+    inputPlaceholder: "请详细描述您的检索需求（支持多行批量输入并行生成）\nDescribe your search intent in detail (supports multi-line batch generation)...",
     reset: "重置",
     generate: "GENERATE_QUERY",
     waitingInput: "Waiting for input...",
@@ -95,7 +95,7 @@ const UI_STRINGS = {
     engineStatus: "引擎状态",
     operational: "运行中",
     inputLabel: "用户检索意图",
-    inputPlaceholder: "请详细描述您的检索需求，例如：关于柔性屏幕在极寒环境下的耐久性测试标准研究...",
+    inputPlaceholder: "请详细描述您的检索需求（支持多行输入进行并行批量生成），例如：\n区块链在金融领域的应用\n人工智能在医疗领域的应用...",
     reset: "重置",
     generate: "生成检索式",
     waitingInput: "等待输入...",
@@ -154,7 +154,7 @@ const UI_STRINGS = {
     engineStatus: "Engine Status",
     operational: "Operational",
     inputLabel: "User Query Intent",
-    inputPlaceholder: "Describe your search intent in detail, e.g., durability testing standards for flexible screens in extreme cold...",
+    inputPlaceholder: "Describe your search intent in detail (supports multi-line batch generation), e.g.,\ndurability testing standards for flexible screens in extreme cold\nblockchain risk management in supply chain finance...",
     reset: "Reset",
     generate: "GENERATE QUERY",
     waitingInput: "Waiting for input...",
@@ -273,7 +273,9 @@ export default function App() {
   const [dbType, setDbType] = useState(DB_TYPES[0]);
   const [langPref, setLangPref] = useState("双语混合 (Bilingual)");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<SearchQueryResponse | null>(null);
+  const [results, setResults] = useState<(SearchQueryResponse & { _inputLine: string })[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const result = results[activeIndex] || null;
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<{ title: string; details: string } | null>(null);
   const [showMapped, setShowMapped] = useState(false);
@@ -397,23 +399,53 @@ export default function App() {
   const availableModels = activeProvider.models.split(',').map(m => m.trim()).filter(Boolean);
 
   const handleGenerate = async () => {
-    if (!input.trim()) return;
+    const lines = input.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
     setLoading(true);
     setError(null);
     setShowMapped(true);
+    setResults([]);
+    setActiveIndex(0);
     try {
       const provider = providers.find(p => p.id === activeProviderId);
-      const resp = await generateSearchQuery(input, dbType, langPref, activeModel, provider);
-      setResult(resp);
-      const newItem: HistoryItem = {
-        id: Date.now().toString(),
-        timestamp: Date.now(),
-        input,
-        dbType,
-        langPref,
-        result: resp
-      };
-      saveHistory([newItem, ...history].slice(0, 50));
+      
+      let totalTokens = 0;
+      let totalSuccesses = 0;
+      let totalFailures = 0;
+      
+      const newItems: HistoryItem[] = [];
+
+      const resps = await Promise.all(
+        lines.map(async (line, idx) => {
+          try {
+            const resp = await generateSearchQuery(line, dbType, langPref, activeModel, provider);
+            totalTokens += (resp._usage?.totalTokens || 0);
+            totalSuccesses++;
+            newItems.push({
+              id: Date.now().toString() + idx,
+              timestamp: Date.now() + idx,
+              input: line,
+              dbType,
+              langPref,
+              result: resp
+            });
+            return { ...resp, _inputLine: line };
+          } catch (e: any) {
+            totalFailures++;
+            console.error(e);
+            return null;
+          }
+        })
+      );
+      
+      const successfulResps = resps.filter(r => r !== null) as (SearchQueryResponse & { _inputLine: string })[];
+      
+      if (successfulResps.length > 0) {
+        setResults(successfulResps);
+        saveHistory([...newItems, ...history].slice(0, 50));
+      } else {
+        throw new Error(JSON.stringify({ title: "Task Failed", details: "All parallel tasks failed to generate." }));
+      }
       
       // Update Usage Stats
       const provId = provider ? provider.id : activeProviderId;
@@ -427,16 +459,17 @@ export default function App() {
           ...currentProvStats,
           [modName]: {
             ...currentModStats,
-            queries: currentModStats.queries + 1,
-            successes: currentModStats.successes + 1,
-            totalTokens: currentModStats.totalTokens + (resp._usage?.totalTokens || 0)
+            queries: currentModStats.queries + lines.length,
+            successes: currentModStats.successes + totalSuccesses,
+            failures: currentModStats.failures + totalFailures,
+            totalTokens: currentModStats.totalTokens + totalTokens
           }
         }
       };
       saveUsageStats(updatedStats);
       
     } catch (err: any) {
-      // Update Usage Stats for failure
+      // Update Usage Stats for ALL failure (edge case)
       const provId = activeProviderId;
       const modName = activeModel;
       const currentProvStats = usageStats[provId] || {};
@@ -448,8 +481,8 @@ export default function App() {
           ...currentProvStats,
           [modName]: {
             ...currentModStats,
-            queries: currentModStats.queries + 1,
-            failures: currentModStats.failures + 1,
+            queries: currentModStats.queries + lines.length,
+            failures: currentModStats.failures + lines.length,
           }
         }
       };
@@ -476,7 +509,8 @@ export default function App() {
 
   const reset = () => {
     setInput("");
-    setResult(null);
+    setResults([]);
+    setActiveIndex(0);
     setError(null);
   };
 
@@ -484,7 +518,8 @@ export default function App() {
     setInput(item.input);
     setDbType(item.dbType);
     setLangPref(item.langPref);
-    setResult(item.result);
+    setResults([{ ...item.result, _inputLine: item.input }]);
+    setActiveIndex(0);
     setIsHistoryOpen(false);
     setError(null);
   };
@@ -661,6 +696,26 @@ export default function App() {
               </div>
             </div>
           </section>
+
+          {/* Batch Task Selector */}
+          {results.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-2">
+              {results.map((r, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveIndex(idx)}
+                  className={`px-4 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border shrink-0 ${
+                    activeIndex === idx 
+                      ? 'bg-cyan-500 text-white border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]' 
+                      : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
+                  }`}
+                >
+                  <span className="opacity-50 mr-1">T{idx + 1}:</span>
+                  {r._inputLine.length > 15 ? r._inputLine.substring(0, 15) + '...' : r._inputLine}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Formula Output Block */}
           <div className={`flex flex-col flex-1 min-h-[300px] rounded-2xl border transition-all duration-700 relative overflow-hidden shadow-inner ${
