@@ -29,20 +29,41 @@ Whether you are preparing for academic research, systematic literature reviews, 
 - **Model Flexibility & Stats**: Switch seamlessly between official Gemini APIs and custom OpenAI-compatible API endpoints (like DeepSeek). Gain insights into your token consumption and query success rates via the **Usage Statistics** panel.
 - **History Tracking**: Automatically saves the last 50 queries locally, offering one-click restoration of historical searches.
 
-### How to Run Locally
+### How to Run Locally (Beginner Friendly Guide)
 
-If you have downloaded/exported this project to your local machine, follow these steps to run it:
+If you have downloaded/exported this project to your local machine as a ZIP file, follow these detailed steps to get it running—even if you have zero coding experience!
 
-1. **Prerequisites**: Make sure you have [Node.js](https://nodejs.org/) installed on your computer.
-2. **Install Dependencies**: Open a terminal in the project folder and run:
-   ```bash
-   npm install
-   ```
-3. **Start the Development Server**:
-   ```bash
-   npm run dev
-   ```
-4. **Open in Browser**: The terminal will show a local URL (usually `http://localhost:3000`). Open this link in your browser.
+**Step 1: Install Required Software**
+1. Download and install **Node.js** from [nodejs.org](https://nodejs.org/) (We recommend the "LTS" version). This provides the necessary environment to run the application.
+2. Download and install a code editor like **Visual Studio Code (VS Code)** from [code.visualstudio.com](https://code.visualstudio.com/). It makes managing files and commands much easier.
+
+**Step 2: Prepare the Project Files**
+1. Find the `.zip` file you downloaded and **extract/unzip** it completely into a new folder on your computer.
+2. Open **VS Code**.
+3. In VS Code, click on `File` > `Open Folder...` and select the folder where you just extracted the project files.
+
+**Step 3: Open the Terminal**
+1. Inside VS Code, look at the top menu bar and click `Terminal` > `New Terminal`. 
+2. A small window will pop up at the bottom of the screen. This is where you will type commands.
+
+**Step 4: Install Dependencies (Packages)**
+In the terminal window, type the following command and press Enter:
+```bash
+npm install
+```
+*(Wait a minute or two. The system is downloading the necessary building blocks for the app to work. You'll see a folder named `node_modules` appear.)*
+
+**Step 5: Start the Application**
+Once the installation is complete, type this command and press Enter:
+```bash
+npm run dev
+```
+*(This commands starts the local server. You will see some text appear indicating the server is ready).*
+
+**Step 6: Open in Your Browser**
+1. The terminal will display a local web address, usually looking like `http://localhost:3000` or `http://localhost:5173`.
+2. Hold down the `Ctrl` key (or `Cmd` on Mac) and click that link, OR copy and paste it into Chrome/Edge/Safari.
+3. The application should now be running directly on your computer!
 
 > **Note**: If you are running this app locally, you must input your own API Key (Gemini or DeepSeek) in the "Settings" menu (⚙️) located at the bottom of the page to use the AI features. (In the AI Studio preview environment, default Gemini models work out-of-the-box).
 
@@ -71,19 +92,40 @@ If you have downloaded/exported this project to your local machine, follow these
 - **无缝接入多模型与可视化统计**：支持内置 Gemini 官方 API 及任意兼容 OpenAI 格式的第三方接口（例如 DeepSeek）。内置“Usage Statistics (使用统计)” 面板，实时追踪 Token 消耗量、查询次数与成功率。
 - **云端历史快照**：自动在本地保存最近 50 条检索快照，一键提取历史复杂的查询式及灵感。
 
-### 本地运行指南
+### 本地运行详细图文指南 (零基础小白向)
 
-如果您将此项目下载/另存到了本地，请按照以下步骤运行：
+如果您从 AI Studio 导出了此项目的 ZIP 压缩包，并希望在自己的个人电脑上运行，请遵循以下保姆级别步骤——即使您完全没有编程经验也能轻而易举地搞定！
 
-1. **环境准备**：请确保您的电脑上已安装 [Node.js](https://nodejs.org/) (建议 Node 18+)。
-2. **安装依赖**：在项目文件夹下打开终端（命令行），运行以下命令安装所需依赖库：
-   ```bash
-   npm install
-   ```
-3. **启动开发服务器**：
-   ```bash
-   npm run dev
-   ```
-4. **在浏览器中浏览**：终端会显示一个本地访问地址（通常是 `http://localhost:3000`）。在浏览器中打开该链接即可使用。
+**第 1 步：安装必备的运行环境**
+1. 去官网下载并安装 **Node.js** ([nodejs.org](https://nodejs.org/))。建议下载写着 "LTS (长期维护版)" 的版本。一路点击“下一步”默认安装即可。这是运行本软件的环境依赖基石。
+2. （强烈建议）去官网下载并安装代码编辑器 **Visual Studio Code (简称 VS Code)** ([code.visualstudio.com](https://code.visualstudio.com/))，这会极大简化接下来的操作。
+
+**第 2 步：解压并打开项目文件**
+1. 找到您刚刚下载的 `.zip` 压缩包，一定要**将其完全解压**到一个普通的文件夹中（切勿直接在压缩包里双击打开）。
+2. 打开安装好的 **VS Code** 软件。
+3. 点击 VS Code 左上角的 `文件 (File)` -> `打开文件夹 (Open Folder...)`，选中您刚刚解压出来的那个文件夹。
+
+**第 3 步：打开终端（命令行）**
+1. 在 VS Code 的顶部菜单栏中，点击 `终端 (Terminal)` -> `新建终端 (New Terminal)`。
+2. 此时在软件的底部会弹出一个代码输入框，这就相当于一个“指挥中心”。
+
+**第 4 步：安装项目依赖（下载所需的积木）**
+在底部的终端光标处，输入以下代码并按下回车键 (Enter)：
+```bash
+npm install
+```
+*(请耐心等待一两分钟。电脑会自动连网为您下载程序运行需要的各种开源组件。界面上出现一堆滚动的文字和进度条是正常现象。)*
+
+**第 5 步：启动项目服务**
+当上述命令跑完，并且底部重新出现等待输入的闪烁光标后，继续输入以下代码并按回车键：
+```bash
+npm run dev
+```
+*(这条命令会把软件服务在你本地电脑正式跑起来。)*
+
+**第 6 步：在浏览器中开始使用**
+1. 稍等几秒钟，当你在终端里看到类似 `http://localhost:3000` 或 `http://localhost:5173` 的链接时，说明启动成功了。
+2. 按住键盘上的 `Ctrl` 键 (苹果 Mac 电脑按 `Cmd` 键) 的同时，用鼠标左键点击那个链接；或者直接把它长按复制，粘贴到你的浏览器（如 Chrome, Edge）地址栏并回车。
+3. **恭喜！** 您现在已经成功在本地掌握并运行这套强大的 AI 检索系统了！
 
 > **提示**：如果您在本地运行本项目，请先点击页面底部的 `⚙️ (Settings)`，并在对应模型提供商处填入您的专属 API 密钥激活生成服务。如果您是在 AI Studio 预览环境中体验，默认的 Gemini 模型已自动配置环境密钥，可直接使用（如需使用 DeepSeek 等第三方模型仍需自行填入 Key）。
