@@ -53,14 +53,19 @@ npm install
 ```
 *(Wait a minute or two. The system is downloading the necessary building blocks for the app to work. You'll see a folder named `node_modules` appear.)*
 
-**Step 5: Start the Application**
+**Step 5: Configure Environment Variables (.env)**
+1. In the project folder, locate the file named `.env.example`.
+2. Duplicate this file and rename the copy to `.env`.
+3. Open `.env` in VS Code and fill in the required environment variables (e.g., `GEMINI_API_KEY=your_gemini_api_key`), or you can configure keys directly in the application's UI settings later.
+
+**Step 6: Start the Application**
 Once the installation is complete, type this command and press Enter:
 ```bash
 npm run dev
 ```
 *(This commands starts the local server. You will see some text appear indicating the server is ready).*
 
-**Step 6: Open in Your Browser**
+**Step 7: Open in Your Browser**
 1. The terminal will display a local web address, usually looking like `http://localhost:3000` or `http://localhost:5173`.
 2. Hold down the `Ctrl` key (or `Cmd` on Mac) and click that link, OR copy and paste it into Chrome/Edge/Safari.
 3. The application should now be running directly on your computer!
@@ -116,14 +121,19 @@ npm install
 ```
 *(请耐心等待一两分钟。电脑会自动连网为您下载程序运行需要的各种开源组件。界面上出现一堆滚动的文字和进度条是正常现象。)*
 
-**第 5 步：启动项目服务**
+**第 5 步：配置环境变量 (.env)**
+1. 在项目文件夹中，找到名为 `.env.example` 的文件。
+2. 复制该文件，并将复制出的新文件重命名为 `.env`（注意前面有个点）。
+3. 在 VS Code 中打开 `.env` 文件，填入所需的环境变量（例如 `GEMINI_API_KEY=您的Gemini密钥`）。您也可以选择跳过此步，直接在网页界面的设置中填写密钥。
+
+**第 6 步：启动项目服务**
 当上述命令跑完，并且底部重新出现等待输入的闪烁光标后，继续输入以下代码并按回车键：
 ```bash
 npm run dev
 ```
 *(这条命令会把软件服务在你本地电脑正式跑起来。)*
 
-**第 6 步：在浏览器中开始使用**
+**第 7 步：在浏览器中开始使用**
 1. 稍等几秒钟，当你在终端里看到类似 `http://localhost:3000` 或 `http://localhost:5173` 的链接时，说明启动成功了。
 2. 按住键盘上的 `Ctrl` 键 (苹果 Mac 电脑按 `Cmd` 键) 的同时，用鼠标左键点击那个链接；或者直接把它长按复制，粘贴到你的浏览器（如 Chrome, Edge）地址栏并回车。
 3. **恭喜！** 您现在已经成功在本地掌握并运行这套强大的 AI 检索系统了！
