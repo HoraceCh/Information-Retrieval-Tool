@@ -217,7 +217,7 @@ const DEFAULT_PROVIDERS: ProviderConfig[] = [
     endpoint: "default",
     authType: 'Bearer',
     apiKey: "",
-    models: "gemini-3.1-pro-preview,gemini-3-flash-preview,gemini-2.5-pro,gemini-2.5-flash,gemini-2.0-pro-exp-02-05,gemini-2.0-flash"
+    models: "gemini-3.1-pro-preview,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-pro-latest,gemini-flash-latest,gemini-flash-lite-latest"
   },
   {
     id: "deepseek",
@@ -226,7 +226,7 @@ const DEFAULT_PROVIDERS: ProviderConfig[] = [
     endpoint: "https://api.deepseek.com",
     authType: 'Bearer',
     apiKey: "",
-    models: "deepseek-chat,deepseek-reasoner"
+    models: "deepseek-v4-flash,deepseek-v4-pro"
   }
 ];
 
@@ -286,7 +286,7 @@ export default function App() {
   
   const [providers, setProviders] = useState<ProviderConfig[]>(DEFAULT_PROVIDERS);
   const [activeProviderId, setActiveProviderId] = useState<string>("gemini");
-  const [activeModel, setActiveModel] = useState<string>("gemini-3-flash-preview");
+  const [activeModel, setActiveModel] = useState<string>("gemini-3.1-pro-preview");
 
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -325,17 +325,40 @@ export default function App() {
         if (Array.isArray(parsed)) setHistory(parsed);
       } catch (e) {}
     }
+    let providersToUse = DEFAULT_PROVIDERS;
     const savedProviders = localStorage.getItem("ai_retrieval_providers");
     if (savedProviders) {
       try {
         const parsed = JSON.parse(savedProviders);
-        if (Array.isArray(parsed)) setProviders(parsed);
+        if (Array.isArray(parsed)) {
+          providersToUse = parsed.map((p: any) => {
+            if (p.id === "gemini") {
+              const defaultGemini = DEFAULT_PROVIDERS.find(dp => dp.id === "gemini");
+              return { ...p, models: defaultGemini ? defaultGemini.models : p.models };
+            }
+            return p;
+          });
+          setProviders(providersToUse);
+        }
       } catch (e) {}
     }
+    
+    let activeProvIdToUse = "gemini";
     const savedActiveProv = localStorage.getItem("ai_retrieval_active_prov");
-    if (savedActiveProv) setActiveProviderId(savedActiveProv);
+    if (savedActiveProv) {
+        setActiveProviderId(savedActiveProv);
+        activeProvIdToUse = savedActiveProv;
+    }
+    
     const savedActiveMod = localStorage.getItem("ai_retrieval_active_mod");
-    if (savedActiveMod) setActiveModel(savedActiveMod);
+    const activeProviderObj = providersToUse.find(p => p.id === activeProvIdToUse) || providersToUse[0];
+    const availableModelsForProv = activeProviderObj ? activeProviderObj.models.split(',').map(m => m.trim()).filter(Boolean) : [];
+    
+    if (savedActiveMod && availableModelsForProv.includes(savedActiveMod)) {
+      setActiveModel(savedActiveMod);
+    } else if (availableModelsForProv.length > 0) {
+      setActiveModel(availableModelsForProv[0]);
+    }
     const savedUsageStats = localStorage.getItem("ai_retrieval_usage_stats");
     if (savedUsageStats) {
       try { setUsageStats(JSON.parse(savedUsageStats)); } catch(e) {}
@@ -385,7 +408,7 @@ export default function App() {
     const newProviders = providers.filter(p => p.id !== id);
     saveProviders(newProviders);
     saveActiveProviderId("gemini");
-    saveActiveModel("gemini-3-flash-preview");
+    saveActiveModel("gemini-3.1-pro-preview");
   };
 
   const updateActiveProvider = (updates: Partial<ProviderConfig>) => {
@@ -657,57 +680,57 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                {input && (
-                  <button 
-                    onClick={reset}
-                    className="p-2.5 bg-white/5 rounded-xl text-slate-500 hover:text-white hover:bg-white/10 transition-all border border-white/5"
-                    title={t('reset')}
-                  >
-                    <RotateCcw size={18} />
-                  </button>
-                )}
-                <button
-                  onClick={handleGenerate}
-                  disabled={loading || !input.trim()}
-                  className="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(8,145,178,0.3)] flex items-center gap-2 group/btn disabled:opacity-30 disabled:shadow-none"
-                >
-                  {loading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <div className="flex items-center gap-3 overflow-hidden min-h-[46px]">
+                <AnimatePresence mode="wait">
+                  {!result ? (
+                    <motion.div
+                      key="generate-btn"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="flex items-center gap-3"
+                    >
+                      {input && (
+                        <button 
+                          onClick={reset}
+                          className="p-2.5 bg-white/5 rounded-xl text-slate-500 hover:text-white hover:bg-white/10 transition-all border border-white/5"
+                          title={t('reset')}
+                        >
+                          <RotateCcw size={18} />
+                        </button>
+                      )}
+                      <button
+                        onClick={handleGenerate}
+                        disabled={loading || !input.trim()}
+                        className="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(8,145,178,0.3)] flex items-center gap-2 group/btn disabled:opacity-30 disabled:shadow-none"
+                      >
+                        {loading ? (
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            {t('generate')}
+                            <Search size={18} className="translate-x-0 group-hover/btn:translate-x-1 transition-transform" />
+                          </>
+                        )}
+                      </button>
+                    </motion.div>
                   ) : (
-                    <>
-                      {t('generate')}
-                      <Search size={18} className="translate-x-0 group-hover/btn:translate-x-1 transition-transform" />
-                    </>
+                    <motion.div
+                      key="regenerate-btn"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex items-center gap-2"
+                    >
+                      <button 
+                        onClick={reset}
+                        className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-400 hover:text-cyan-400 transition-colors uppercase tracking-widest border border-white/5 rounded-lg hover:bg-white/5"
+                      >
+                        <RotateCcw size={14} /> {t('reset')}
+                      </button>
+                      {loading && <div className="w-4 h-4 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin ml-2" />}
+                    </motion.div>
                   )}
-                </button>
-                {result && Array.isArray(result.suggestedUrls) && result.suggestedUrls.map((urlItem, i) => (
-                  <a
-                    key={i}
-                    href={urlItem.url || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => {
-                      const queryToCopy = result.fieldSpecificQuery || result.booleanQuery;
-                      navigator.clipboard.writeText(queryToCopy);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                      
-                      const needsPastePrompt = urlItem.url?.includes('cnki.net') || !urlItem.url?.includes('?');
-                      
-                      if (needsPastePrompt) {
-                        e.preventDefault();
-                        if (window.confirm("已自动复制检索式到剪贴板。\n\n即将为您打开检索页面，请在页面中直接粘贴 (Ctrl+V / Cmd+V) 刚复制好的检索式即可。\n\n(Query copied to clipboard. Press OK to proceed and paste it.)")) {
-                          window.open(urlItem.url, '_blank', 'noopener,noreferrer');
-                        }
-                      }
-                    }}
-                    className={`px-6 py-3 bg-emerald-600/20 text-emerald-400 font-bold rounded-xl border border-emerald-500/30 transition-all flex items-center gap-2 ${loading ? 'opacity-30 pointer-events-none' : 'hover:bg-emerald-600/30'}`}
-                  >
-                    {urlItem.name || t('directSearch')}
-                    <ExternalLink size={18} />
-                  </a>
-                ))}
+                </AnimatePresence>
               </div>
             </div>
           </section>
@@ -800,13 +823,43 @@ export default function App() {
                   <span className="text-[10px] text-cyan-500/60 font-mono italic flex items-center gap-2">
                     <Check size={10} className="text-emerald-500" /> {t('processedWith')}
                   </span>
-                  <button 
-                    onClick={() => handleCopy(showMapped ? result.fieldSpecificQuery : result.booleanQuery)}
-                    className="text-[11px] text-cyan-400 hover:text-cyan-300 font-black tracking-widest flex items-center gap-1.5 transition-all"
-                  >
-                    {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                    {copied ? t('copied') : t('copyCode')}
-                  </button>
+                  <div className="flex items-center gap-4">
+                    <button 
+                      onClick={() => handleCopy(showMapped ? result.fieldSpecificQuery : result.booleanQuery)}
+                      className="text-[11px] text-cyan-400 hover:text-cyan-300 font-black tracking-widest flex items-center gap-1.5 transition-all"
+                    >
+                      {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                      {copied ? t('copied') : t('copyCode')}
+                    </button>
+                    
+                    {Array.isArray(result.suggestedUrls) && result.suggestedUrls.map((urlItem, i) => (
+                      <a
+                        key={i}
+                        href={urlItem.url || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          const queryToCopy = result.fieldSpecificQuery || result.booleanQuery;
+                          navigator.clipboard.writeText(queryToCopy);
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                          
+                          const needsPastePrompt = urlItem.url?.includes('cnki.net') || !urlItem.url?.includes('?');
+                          
+                          if (needsPastePrompt) {
+                            e.preventDefault();
+                            if (window.confirm("已自动复制检索式到剪切板。\n\n即将为您打开检索页面，请在页面中直接粘贴 (Ctrl+V / Cmd+V) 刚复制好的检索式即可。\n\n(Query copied to clipboard. Press OK to proceed and paste it.)")) {
+                              window.open(urlItem.url, '_blank', 'noopener,noreferrer');
+                            }
+                          }
+                        }}
+                        className="px-4 py-2 bg-emerald-600/20 text-emerald-400 text-[10px] font-bold rounded-lg border border-emerald-500/30 transition-all flex items-center gap-2 hover:bg-emerald-600/30 uppercase tracking-widest"
+                      >
+                        {urlItem.name || t('directSearch')}
+                        <ExternalLink size={12} />
+                      </a>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -875,8 +928,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* Strategy / Stats block */}
-          <div className="h-44 bg-slate-900/60 rounded-2xl border border-white/5 p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden group hover:border-white/10 transition-colors">
+          {/* Reasoning / Strategy / Stats block */}
+          <div className="flex-shrink-0 bg-slate-900/60 rounded-2xl border border-white/5 p-6 flex flex-col gap-4 shadow-2xl relative overflow-hidden group hover:border-white/10 transition-colors">
             <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
               <Sparkles size={80} />
             </div>
@@ -885,9 +938,21 @@ export default function App() {
               <span className="text-[10px] text-slate-500 uppercase font-black block mb-2 tracking-widest flex items-center gap-2">
                 <Lightbulb size={12} className="text-orange-400" /> {t('insightTitle')}
               </span>
-              <p className="text-[11px] text-slate-400 leading-relaxed italic line-clamp-4">
-                {result ? result.explanation : t('insightDesc')}
-              </p>
+              
+              <div className="space-y-4">
+                {result?._reasoning && (
+                  <div className="p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-xl">
+                    <span className="text-[9px] text-cyan-400 uppercase font-black block mb-2 tracking-widest">Reasoning Path</span>
+                    <p className="text-[10px] text-cyan-100/60 leading-relaxed italic line-clamp-6 overflow-y-auto custom-scrollbar max-h-32">
+                      {result._reasoning}
+                    </p>
+                  </div>
+                )}
+                
+                <p className="text-[11px] text-slate-400 leading-relaxed italic">
+                  {result ? result.explanation : t('insightDesc')}
+                </p>
+              </div>
             </div>
 
             <div className="relative z-10 border-t border-white/5 pt-3">
@@ -1183,7 +1248,14 @@ export default function App() {
                       <input
                         type="text"
                         value={activeProvider.models}
-                        onChange={(e) => updateActiveProvider({ models: e.target.value })}
+                        onChange={(e) => {
+                          const newModelsStr = e.target.value;
+                          updateActiveProvider({ models: newModelsStr });
+                          const newModelsList = newModelsStr.split(',').map(m => m.trim()).filter(Boolean);
+                          if (!newModelsList.includes(activeModel)) {
+                            saveActiveModel(newModelsList.length > 0 ? newModelsList[0] : "");
+                          }
+                        }}
                         className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-cyan-100 font-mono focus:outline-none focus:border-cyan-500/50"
                       />
                     </div>

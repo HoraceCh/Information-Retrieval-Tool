@@ -28,6 +28,7 @@ export interface SearchQueryResponse {
   explanation: string;
   suggestedUrls?: { name: string; url: string; }[];
   _usage?: TokenUsage;
+  _reasoning?: string;
 }
 
 const DB_SCHEMAS: Record<string, string> = {
@@ -124,44 +125,49 @@ export async function generateSearchQuery(
   const targetDB = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请根据用户的检索词自动判断最合适的一个目标学术数据库或搜索引擎（例如：CNKI、Web of Science、PubMed、专利数据库等），并在解释中说明为何选择该库。" : targetDatabase;
   const schemaInfo = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请自行匹配该目标数据库的常用检索语法与字段代码。" : (DB_SCHEMAS[targetDatabase] || DB_SCHEMAS["通用搜索引擎 (Baidu/Bing)"]);
   
-  const prompt = `
-你是一位专业的检索专家，正在辅助学生准备“AI+信息素养”大赛。
-用户的自然语言需求是： "${input}"
-目标数据库平台： "${targetDB}"
-该数据库的字段架构参考： "${schemaInfo}"
-检索语种偏好： "${languagePref}" （在生成最终检索式时，请根据此偏好决定是否仅使用中文同义词、仅英文同义词，或中英混合以提高召回率。外文数据库请默认优先全英文。）
+  const systemPrompt = `You are an expert search query generator. Output strictly in JSON format. No explanations.`;
+  
+  const userPrompt = `
+Query: "${input}"
+Target DB: "${targetDB}"
+DB Schema: "${schemaInfo}"
+Lang Pref: "${languagePref}"
 
-任务：
-1. 识别核心：从需求中快速识别出 2-3 个核心主轴关键词。
-2. 双语同义词扩展：为每个关键词精简挖掘 1-3 个中文同义词/上下位词，以及 1-3 个精确的英文专业术语/同义词。无需过多，确保精准。
-3. 基础布尔检索式：结合语种偏好"${languagePref}"构建基础检索式。规则：同组词用 OR (或当地系统语法) 连接加括号，不同组用 AND 连接。
-4. 架构映射与高级检索式：基于架构参考，将检索意图映射到特定字段生成高级精准的检索式（fieldSpecificQuery）。
-5. 简明策略：提供极为简短（不超过2句话）的检索策略与字段选用说明。
-6. 智能跳转链接：必须提供1-3个可用的URL链接（suggestedUrls）。\n重要跳转规则：\n- 对于【知网 CNKI】，**绝对不要**在URL中携带任何参数，只能严格返回 https://kns.cnki.net/kns8s/AdvSearch \n- 对于【万方】等支持参数跳转的库，请将此检索式 URL encode 后结合对应参数拼装完整的检索链接（例如万方的为 https://s.wanfangdata.com.cn/paper?q=检索式）。\n- 百度学术、PubMed、Bing等其它引擎请携带具体参数如 wd= 或 q=。
+Tasks:
+1. Extract 2-3 core concepts.
+2. Provide 1-3 exact CN and 1-3 EN synonyms/terms per concept.
+3. Build \`booleanQuery\` using synonyms (OR within, AND across concepts). Match Lang Pref.
+4. Build \`fieldSpecificQuery\` applying the DB Schema mapping.
+5. Provide a 1-2 sentence \`explanation\` of the strategy.
+6. Provide 1-3 \`suggestedUrls\`.
+URL Rules:
+- CNKI: ONLY return "https://kns.cnki.net/kns8s/AdvSearch" (NO query parameters).
+- Wanfang: URL-encode query, append to "https://s.wanfangdata.com.cn/paper?q=".
+- Others (PubMed, Bing, Baidu, etc.): Append query to standard URL parameters (q=, wd=, etc.).
 
-请严格按 JSON 格式返回，结构如下：
+Return exactly this JSON structure:
 {
   "keywords": [
     {
-      "original": "关键词1",
-      "zhSynonyms": ["中文同义词1", "中文同义词2", ...],
-      "enSynonyms": ["EnglishSynonym1", "EnglishSynonym2", ...]
+      "original": "core concept",
+      "zhSynonyms": ["cn1", "cn2"],
+      "enSynonyms": ["en1", "en2"]
     }
   ],
-  "booleanQuery": "基础的布尔检索式，不带字段限定",
-  "fieldSpecificQuery": "使用数据库特定字段架构的高级检索式",
+  "booleanQuery": "basic boolean query",
+  "fieldSpecificQuery": "advanced schema-mapped query",
   "schemaMapping": [
     {
-      "field": "例如 SU 或 TIAB",
-      "mappedConcept": "对应搜索的概念（如：性能指标）",
-      "reason": "为什么映射到这个字段的说明"
+      "field": "DB field tag",
+      "mappedConcept": "concept",
+      "reason": "short explanation"
     }
   ],
-  "explanation": "检索策略与架构选择的整体说明",
+  "explanation": "short strategy info",
   "suggestedUrls": [
     {
-      "name": "推荐的平台名称 (如：CNKI 知网直接检索)",
-      "url": "https://kns.cnki.net/kns8s/defaultresult/index?kw=检索式"
+      "name": "Platform Name",
+      "url": "full URL"
     }
   ]
 }
@@ -170,6 +176,7 @@ export async function generateSearchQuery(
   try {
     let resultText = "";
     let usageInfo: TokenUsage | undefined;
+    let reasoningContent: string | undefined;
 
     const isGeminiSDK = provider ? provider.isGemini : !modelName.startsWith("deepseek");
 
@@ -183,19 +190,27 @@ export async function generateSearchQuery(
         }));
       }
 
+      const isReasoner = modelName.includes("reasoner") || modelName.includes("r1") || modelName.includes("v4-pro");
       const requestBody: any = {
         model: modelName,
-        messages: [{ role: "user", content: prompt }]
+        messages: isReasoner ? [
+          { role: "user", content: `${systemPrompt}\n\n${userPrompt}` }
+        ] : [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        max_tokens: isReasoner ? 8192 : 4096
       };
       
-      // deepseek-reasoner does not support response_format
-      if (modelName !== "deepseek-reasoner") {
+      // DeepSeek models might have different support for response_format
+      if (!isReasoner) {
         requestBody.response_format = { type: "json_object" };
       }
 
       let endpoint = "https://api.deepseek.com/chat/completions";
       if (provider?.endpoint && provider.endpoint !== "default") {
-        endpoint = provider.endpoint.replace(/\/$/, '') + (provider.endpoint.endsWith('/chat/completions') ? "" : "/chat/completions");
+        const base = provider.endpoint.replace(/\/$/, '');
+        endpoint = base.endsWith('/chat/completions') ? base : `${base}/chat/completions`;
       }
 
       const headers: Record<string, string> = {
@@ -220,7 +235,10 @@ export async function generateSearchQuery(
       }
 
       const data = await response.json();
-      resultText = data.choices?.[0]?.message?.content || "{}";
+      const message = data.choices?.[0]?.message;
+      resultText = message?.content || "{}";
+      reasoningContent = message?.reasoning_content;
+
       if (data.usage) {
         usageInfo = {
           promptTokens: data.usage.prompt_tokens || 0,
@@ -229,18 +247,20 @@ export async function generateSearchQuery(
         };
       }
       
-      // Strip markdown code blocks if the model wrapped the JSON
-      if (resultText.includes("\`\`\`")) {
-        resultText = resultText.replace(/\`\`\`(json)?/g, "").trim();
+      // Better JSON extraction from markdown
+      const jsonMatch = resultText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      if (jsonMatch) {
+        resultText = jsonMatch[1].trim();
+      } else if (resultText.includes("\`\`\`")) {
+        resultText = resultText.replace(/\`\`\`(json)?/gi, "").trim();
       }
-
     } else {
       // Gemini API
       const geminiKey = provider?.apiKey || "";
       const currentAi = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
       const response = await currentAi.models.generateContent({
         model: modelName,
-        contents: prompt,
+        contents: `${systemPrompt}\n\n${userPrompt}`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -303,9 +323,21 @@ export async function generateSearchQuery(
     if (usageInfo) {
       result._usage = usageInfo;
     }
+    if (reasoningContent) {
+      result._reasoning = reasoningContent;
+    }
     return result as SearchQueryResponse;
   } catch (error: any) {
     console.error("Gemini API Error:", error);
+    
+    // Check if it's already our structured JSON error format
+    try {
+      const parsed = JSON.parse(error.message);
+      if (parsed.title && parsed.details) {
+        throw error; // Re-throw the original error directly
+      }
+    } catch (_) {}
+
     let title = "检索式生成失败 / Query Generation Failed";
     let details = "请检查网络连接或 API 配置。 (Please check your network connection or API configuration.)";
     
