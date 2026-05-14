@@ -687,6 +687,21 @@ export default function App() {
                     href={urlItem.url || '#'}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => {
+                      const queryToCopy = result.fieldSpecificQuery || result.booleanQuery;
+                      navigator.clipboard.writeText(queryToCopy);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                      
+                      const needsPastePrompt = urlItem.url?.includes('cnki.net') || !urlItem.url?.includes('?');
+                      
+                      if (needsPastePrompt) {
+                        e.preventDefault();
+                        if (window.confirm("已自动复制检索式到剪贴板。\n\n即将为您打开检索页面，请在页面中直接粘贴 (Ctrl+V / Cmd+V) 刚复制好的检索式即可。\n\n(Query copied to clipboard. Press OK to proceed and paste it.)")) {
+                          window.open(urlItem.url, '_blank', 'noopener,noreferrer');
+                        }
+                      }
+                    }}
                     className={`px-6 py-3 bg-emerald-600/20 text-emerald-400 font-bold rounded-xl border border-emerald-500/30 transition-all flex items-center gap-2 ${loading ? 'opacity-30 pointer-events-none' : 'hover:bg-emerald-600/30'}`}
                   >
                     {urlItem.name || t('directSearch')}

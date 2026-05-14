@@ -137,7 +137,7 @@ export async function generateSearchQuery(
 3. 基础布尔检索式：结合语种偏好"${languagePref}"构建基础检索式。规则：同组词用 OR (或当地系统语法) 连接加括号，不同组用 AND 连接。
 4. 架构映射与高级检索式：基于架构参考，将检索意图映射到特定字段生成高级精准的检索式（fieldSpecificQuery）。
 5. 简明策略：提供极为简短（不超过2句话）的检索策略与字段选用说明。
-6. 智能跳转链接：必须根据用户的最终检索词，自动猜测并拼装1-3个可以直接点击访问查阅的URL链接。建议结合基础或高级检索式动态填入 URL 参数（如将检索式 URL encode 后放入 kw= 或 query= 等参数中）。给出合法的带 query param 的检索链接。常见平台的接口参数例如知网（https://kns.cnki.net/kns8s/defaultresult/index?kw=）、百度学术（https://xueshu.baidu.com/s?wd=）、Bing（https://cn.bing.com/search?q=）等。如果无法构建准确参数，则给出其主页链接。
+6. 智能跳转链接：必须提供1-3个可用的URL链接（suggestedUrls）。\n重要跳转规则：\n- 对于【知网 CNKI】，**绝对不要**在URL中携带任何参数，只能严格返回 https://kns.cnki.net/kns8s/AdvSearch \n- 对于【万方】等支持参数跳转的库，请将此检索式 URL encode 后结合对应参数拼装完整的检索链接（例如万方的为 https://s.wanfangdata.com.cn/paper?q=检索式）。\n- 百度学术、PubMed、Bing等其它引擎请携带具体参数如 wd= 或 q=。
 
 请严格按 JSON 格式返回，结构如下：
 {
