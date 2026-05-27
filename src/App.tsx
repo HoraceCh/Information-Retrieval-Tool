@@ -87,7 +87,10 @@ const UI_STRINGS = {
     statsSuccess: "Success Rate / 成功率",
     statsTokens: "Tokens Used / 消耗Token",
     statsNoData: "No usage data available / 暂无使用数据",
-    directSearch: "DIRECT_SEARCH / 一键检索"
+    directSearch: "DIRECT_SEARCH / 一键检索",
+    operatorStyleLabel: "Operator Style / 算符风格",
+    operatorStyleStandard: "Standard / 标准 OR 词 (A OR B)",
+    operatorStyleSpace: "Space / 空格代替 OR (A B)"
   },
   zh: {
     appTitle: "AI 检索力",
@@ -146,7 +149,10 @@ const UI_STRINGS = {
     statsSuccess: "成功率",
     statsTokens: "Token 消耗",
     statsNoData: "暂无使用数据",
-    directSearch: "一键检索"
+    directSearch: "一键检索",
+    operatorStyleLabel: "检索逻辑算符风格",
+    operatorStyleStandard: "标准 OR 词连接 (e.g. A OR B)",
+    operatorStyleSpace: "空格代替 OR 连接 (e.g. A B)"
   },
   en: {
     appTitle: "AI_RETRIEVAL_X",
@@ -205,7 +211,10 @@ const UI_STRINGS = {
     statsSuccess: "Success Rate",
     statsTokens: "Tokens Used",
     statsNoData: "No usage data available",
-    directSearch: "DIRECT SEARCH"
+    directSearch: "DIRECT SEARCH",
+    operatorStyleLabel: "Search Logic Operator Style",
+    operatorStyleStandard: "Standard (e.g. A OR B)",
+    operatorStyleSpace: "Space as OR (e.g. A B)"
   }
 };
 
@@ -217,7 +226,7 @@ const DEFAULT_PROVIDERS: ProviderConfig[] = [
     endpoint: "default",
     authType: 'Bearer',
     apiKey: "",
-    models: "gemini-3.1-pro-preview,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-pro-latest,gemini-flash-latest,gemini-flash-lite-latest"
+    models: "gemini-3.5-flash,gemini-3.1-pro-preview,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-pro-latest,gemini-flash-latest,gemini-flash-lite-latest"
   },
   {
     id: "deepseek",
@@ -243,7 +252,8 @@ const DB_TYPES = [
   "EBSCO (ASP/BSP)",
   "PQDT (博硕士论文)",
   "IEEE Xplore",
-  "CNIPA / 壹专利 (中文专利)",
+  "CNIPA (中国专利)",
+  "壹专利 (中文专利)",
   "Espacenet / USPTO (外文专利)",
   "国家标准全文公开系统",
   "百度学术 / PubScholar",
@@ -268,12 +278,44 @@ export interface ModelUsageStats {
 
 export type UsageStatsRegistry = Record<string, Record<string, ModelUsageStats>>; // providerId -> model -> stats
 
+// Custom local query Cache for instant local performance
+const getLocalCache = (line: string, dbType: string, langPref: string, model: string, providerId: string, operatorStyle: string) => {
+  try {
+    const cacheStr = localStorage.getItem("ai_retrieval_v2_cache");
+    if (!cacheStr) return null;
+    const cache = JSON.parse(cacheStr);
+    const key = `${providerId}_${model}_${dbType}_${langPref}_${operatorStyle}_${line.trim()}`;
+    const item = cache[key];
+    if (item && Date.now() - item.timestamp < 3600000 * 24) { // Valid for 24 hours
+      return item.result;
+    }
+  } catch (e) {}
+  return null;
+};
+
+const setLocalCache = (line: string, dbType: string, langPref: string, model: string, providerId: string, operatorStyle: string, result: any) => {
+  try {
+    const cacheStr = localStorage.getItem("ai_retrieval_v2_cache") || "{}";
+    const cache = JSON.parse(cacheStr);
+    const key = `${providerId}_${model}_${dbType}_${langPref}_${operatorStyle}_${line.trim()}`;
+    cache[key] = {
+      timestamp: Date.now(),
+      result
+    };
+    const keys = Object.keys(cache);
+    if (keys.length > 200) { // Max 200 entries to maintain normal local storage size
+      delete cache[keys[0]];
+    }
+    localStorage.setItem("ai_retrieval_v2_cache", JSON.stringify(cache));
+  } catch (e) {}
+};
+
 export default function App() {
   const [input, setInput] = useState("");
   const [dbType, setDbType] = useState(DB_TYPES[0]);
   const [langPref, setLangPref] = useState("双语混合 (Bilingual)");
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<(SearchQueryResponse & { _inputLine: string })[]>([]);
+  const [results, setResults] = useState<(SearchQueryResponse & { _inputLine: string; _isLoading?: boolean; _isError?: boolean })[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const result = results[activeIndex] || null;
   const [copied, setCopied] = useState(false);
@@ -286,7 +328,13 @@ export default function App() {
   
   const [providers, setProviders] = useState<ProviderConfig[]>(DEFAULT_PROVIDERS);
   const [activeProviderId, setActiveProviderId] = useState<string>("gemini");
-  const [activeModel, setActiveModel] = useState<string>("gemini-3.1-pro-preview");
+  const [activeModel, setActiveModel] = useState<string>("gemini-3.5-flash");
+  const [operatorStyle, setOperatorStyle] = useState<"OR" | "Space">("OR");
+
+  const saveOperatorStyle = (style: "OR" | "Space") => {
+    setOperatorStyle(style);
+    localStorage.setItem("ai_retrieval_operator_style", style);
+  };
 
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -363,6 +411,12 @@ export default function App() {
     if (savedUsageStats) {
       try { setUsageStats(JSON.parse(savedUsageStats)); } catch(e) {}
     }
+    const savedOperatorStyle = localStorage.getItem("ai_retrieval_operator_style");
+    if (savedOperatorStyle === "Space") {
+      setOperatorStyle("Space");
+    } else {
+      setOperatorStyle("OR");
+    }
   }, []);
 
   const saveUsageStats = (newStats: UsageStatsRegistry) => {
@@ -408,7 +462,7 @@ export default function App() {
     const newProviders = providers.filter(p => p.id !== id);
     saveProviders(newProviders);
     saveActiveProviderId("gemini");
-    saveActiveModel("gemini-3.1-pro-preview");
+    saveActiveModel("gemini-3.5-flash");
   };
 
   const updateActiveProvider = (updates: Partial<ProviderConfig>) => {
@@ -427,8 +481,21 @@ export default function App() {
     setLoading(true);
     setError(null);
     setShowMapped(true);
-    setResults([]);
+    
+    // Initialize results with high-fidelity loading overlays immediately
+    const initialResults = lines.map(line => ({
+      _inputLine: line,
+      _isLoading: true,
+      keywords: [],
+      booleanQuery: "正在智能解析生成布尔逻辑式... (AI processing standard Boolean query...)",
+      fieldSpecificQuery: "正在根据数据库字段Schema生成专业检索式... (AI processing Field Specific query...)",
+      schemaMapping: [],
+      explanation: "正在调用模型智能分析同义词并匹配高级检索策略...",
+      suggestedUrls: []
+    }));
+    setResults(initialResults);
     setActiveIndex(0);
+
     try {
       const provider = providers.find(p => p.id === activeProviderId);
       
@@ -438,36 +505,83 @@ export default function App() {
       
       const newItems: HistoryItem[] = [];
 
-      const resps = await Promise.all(
-        lines.map(async (line, idx) => {
-          try {
-            const resp = await generateSearchQuery(line, dbType, langPref, activeModel, provider);
-            totalTokens += (resp._usage?.totalTokens || 0);
-            totalSuccesses++;
-            newItems.push({
-              id: Date.now().toString() + idx,
-              timestamp: Date.now() + idx,
-              input: line,
-              dbType,
-              langPref,
-              result: resp
-            });
-            return { ...resp, _inputLine: line };
-          } catch (e: any) {
-            totalFailures++;
-            console.error(e);
-            return null;
+      // Concurrently run all requests but resolve them dynamically to the UI!
+      const promises = lines.map(async (line, idx) => {
+        try {
+          // Check local cache for instant retrieval speed optimization
+          const cachedResult = getLocalCache(line, dbType, langPref, activeModel, activeProviderId, operatorStyle);
+          let resp;
+          if (cachedResult) {
+            resp = { ...cachedResult, _fromCache: true, _inputLine: line };
+          } else {
+            resp = await generateSearchQuery(line, dbType, langPref, activeModel, provider, operatorStyle);
+            // Save successful result to cache
+            setLocalCache(line, dbType, langPref, activeModel, activeProviderId, operatorStyle, resp);
           }
-        })
-      );
-      
-      const successfulResps = resps.filter(r => r !== null) as (SearchQueryResponse & { _inputLine: string })[];
+
+          const finalResp = { ...resp, _inputLine: line, _isLoading: false };
+          
+          // Progressive UI update - immediately injects into results as soon as resolved!
+          setResults(current => {
+            const next = [...current];
+            next[idx] = finalResp;
+            return next;
+          });
+
+          const historyItem: HistoryItem = {
+            id: (Date.now() + idx).toString(),
+            timestamp: Date.now() + idx,
+            input: line,
+            dbType,
+            langPref,
+            result: finalResp
+          };
+
+          newItems.push(historyItem);
+          totalTokens += (resp._usage?.totalTokens || 0);
+          totalSuccesses++;
+          return finalResp;
+        } catch (e: any) {
+          totalFailures++;
+          console.error(e);
+          
+          let errMsg = "An error occurred during query generation.";
+          try {
+            const parsed = JSON.parse(e.message);
+            errMsg = parsed.details || parsed.title || errMsg;
+          } catch (_) {
+            errMsg = e.message || errMsg;
+          }
+
+          const failedResp = {
+            _inputLine: line,
+            _isLoading: false,
+            _isError: true,
+            keywords: [],
+            booleanQuery: "生成失败 / Generation Failed",
+            fieldSpecificQuery: "生成失败 / Generation Failed",
+            schemaMapping: [],
+            explanation: errMsg,
+            suggestedUrls: []
+          };
+
+          setResults(current => {
+            const next = [...current];
+            next[idx] = failedResp;
+            return next;
+          });
+
+          return null;
+        }
+      });
+
+      const resps = await Promise.all(promises);
+      const successfulResps = resps.filter(r => r !== null && !r._isError);
       
       if (successfulResps.length > 0) {
-        setResults(successfulResps);
         saveHistory([...newItems, ...history].slice(0, 50));
       } else {
-        throw new Error(JSON.stringify({ title: "Task Failed", details: "All parallel tasks failed to generate." }));
+        throw new Error(JSON.stringify({ title: "任务生成失败 / Generation Failed", details: "所有输入行的检索式并行生成任务均已失败，请检查API配置。 (All parallel tasks failed to generate.)" }));
       }
       
       // Update Usage Stats
@@ -742,14 +856,15 @@ export default function App() {
                 <button
                   key={idx}
                   onClick={() => setActiveIndex(idx)}
-                  className={`px-4 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border shrink-0 ${
+                  className={`px-4 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border shrink-0 flex items-center gap-1.5 ${
                     activeIndex === idx 
                       ? 'bg-cyan-500 text-white border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]' 
                       : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
                   }`}
                 >
-                  <span className="opacity-50 mr-1">T{idx + 1}:</span>
-                  {r._inputLine.length > 15 ? r._inputLine.substring(0, 15) + '...' : r._inputLine}
+                  {r._isLoading && <div className="w-2.5 h-2.5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin shrink-0" />}
+                  <span className="opacity-50">T{idx + 1}:</span>
+                  <span>{r._inputLine.length > 15 ? r._inputLine.substring(0, 15) + '...' : r._inputLine}</span>
                 </button>
               ))}
             </div>
@@ -771,7 +886,14 @@ export default function App() {
             
             <div className="p-6 h-full flex flex-col relative z-10">
               <div className="flex justify-between items-start mb-4">
-                <label className="text-[11px] text-cyan-400/80 uppercase font-bold tracking-[0.2em]">{t('formulaTitle')}</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-[11px] text-cyan-400/80 uppercase font-bold tracking-[0.2em]">{t('formulaTitle')}</label>
+                  {result && result._fromCache && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] rounded-full font-bold uppercase tracking-widest animate-pulse">
+                      <Sparkles size={11} className="text-emerald-400" /> ⚡️ {uiLang === 'zh' || i18n.language === 'mix' ? '缓存加速' : 'CACHE SPEEDUP'}
+                    </span>
+                  )}
+                </div>
                 {result && (
                   <div className="flex bg-black/40 rounded-lg p-1 border border-cyan-500/20">
                     <button
@@ -795,11 +917,20 @@ export default function App() {
               </div>
               
               <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-                <div className="font-mono text-cyan-100 text-base leading-relaxed overflow-y-auto custom-scrollbar select-all flex-shrink-0 min-h-[80px] p-4 bg-black/20 rounded-lg border border-cyan-500/10">
+                <div className={`font-mono text-cyan-100 text-base leading-relaxed overflow-y-auto custom-scrollbar select-all flex-shrink-0 min-h-[80px] p-4 bg-black/20 rounded-lg border border-cyan-500/10 ${result?._isLoading ? 'animate-pulse text-cyan-500/50' : ''}`}>
                   {result ? (showMapped ? result.fieldSpecificQuery : result.booleanQuery) : "Formula will appear here..."}
                 </div>
 
-                {result && showMapped && Array.isArray(result.schemaMapping) && result.schemaMapping.length > 0 && (
+                {result && result._isLoading && (
+                  <div className="flex-1 overflow-y-auto custom-scrollbar mt-2 space-y-2">
+                    <h4 className="text-[10px] text-cyan-400/50 font-mono tracking-widest uppercase mb-3 animate-pulse">正在提取概念并映射数据库字段格式 (Mapping custom DB fields)...</h4>
+                    {[1, 2].map((i) => (
+                      <div key={i} className="h-10 bg-white/5 border border-white/5 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                )}
+
+                {result && !result._isLoading && showMapped && Array.isArray(result.schemaMapping) && result.schemaMapping.length > 0 && (
                   <div className="flex-1 overflow-y-auto custom-scrollbar mt-2">
                     <h4 className="text-[10px] text-cyan-400/70 font-mono tracking-widest uppercase mb-3">Field Mapping Logic</h4>
                     <div className="space-y-2">
@@ -818,7 +949,7 @@ export default function App() {
                 )}
               </div>
 
-              {result && (
+              {result && !result._isLoading && (
                 <div className="mt-4 pt-3 border-t border-cyan-500/20 flex justify-between items-center">
                   <span className="text-[10px] text-cyan-500/60 font-mono italic flex items-center gap-2">
                     <Check size={10} className="text-emerald-500" /> {t('processedWith')}
@@ -880,7 +1011,25 @@ export default function App() {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
               <AnimatePresence mode="popLayout">
-                {result && Array.isArray(result.keywords) && result.keywords.length > 0 ? (
+                {result && result._isLoading ? (
+                  // Nice skeleton cards during active progressive streaming
+                  [1, 2, 3].map((skeletonIdx) => (
+                    <div 
+                      key={`skeleton-${skeletonIdx}`}
+                      className="p-4 rounded-xl bg-white/5 border border-white/5 animate-pulse space-y-3"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="h-3 bg-white/10 rounded w-1/4" />
+                        <div className="w-2 h-2 rounded-full bg-cyan-500/30" />
+                      </div>
+                      <div className="h-5 bg-white/10 rounded w-3/4" />
+                      <div className="space-y-2">
+                        <div className="h-4 bg-white/5 rounded w-5/6" />
+                        <div className="h-4 bg-white/5 rounded w-4/6" />
+                      </div>
+                    </div>
+                  ))
+                ) : result && Array.isArray(result.keywords) && result.keywords.length > 0 ? (
                   result.keywords.map((group, idx) => (
                     <motion.div
                       key={group.original}
@@ -940,18 +1089,28 @@ export default function App() {
               </span>
               
               <div className="space-y-4">
-                {result?._reasoning && (
-                  <div className="p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-xl">
-                    <span className="text-[9px] text-cyan-400 uppercase font-black block mb-2 tracking-widest">Reasoning Path</span>
-                    <p className="text-[10px] text-cyan-100/60 leading-relaxed italic line-clamp-6 overflow-y-auto custom-scrollbar max-h-32">
-                      {result._reasoning}
-                    </p>
+                {result && result._isLoading ? (
+                  <div className="animate-pulse space-y-2">
+                    <div className="h-3 bg-white/10 rounded w-full" />
+                    <div className="h-3 bg-white/10 rounded w-5/6" />
+                    <div className="h-3 bg-white/10 rounded w-4/6" />
                   </div>
+                ) : (
+                  <>
+                    {result?._reasoning && (
+                      <div className="p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-xl">
+                        <span className="text-[9px] text-cyan-400 uppercase font-black block mb-2 tracking-widest">Reasoning Path</span>
+                        <p className="text-[10px] text-cyan-100/60 leading-relaxed italic line-clamp-6 overflow-y-auto custom-scrollbar max-h-32">
+                          {result._reasoning}
+                        </p>
+                      </div>
+                    )}
+                    
+                    <p className="text-[11px] text-slate-400 leading-relaxed italic">
+                      {result ? result.explanation : t('insightDesc')}
+                    </p>
+                  </>
                 )}
-                
-                <p className="text-[11px] text-slate-400 leading-relaxed italic">
-                  {result ? result.explanation : t('insightDesc')}
-                </p>
               </div>
             </div>
 
@@ -1194,6 +1353,19 @@ export default function App() {
                     {availableModels.map(m => (
                       <option key={m} value={m}>{m}</option>
                     ))}
+                  </select>
+                </div>
+
+                {/* Operator Style Selection */}
+                <div>
+                  <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('operatorStyleLabel')}</label>
+                  <select
+                    value={operatorStyle}
+                    onChange={(e) => saveOperatorStyle(e.target.value as "OR" | "Space")}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-cyan-100 focus:outline-none focus:border-cyan-500/50 transition-colors appearance-none"
+                  >
+                    <option value="OR">{t('operatorStyleStandard')}</option>
+                    <option value="Space">{t('operatorStyleSpace')}</option>
                   </select>
                 </div>
 

@@ -22,7 +22,12 @@ Whether you are preparing for academic research, systematic literature reviews, 
 
 - **Natural Language Parsing**: Just describe what you're looking for in plain English or Chinese. The AI will translate your intent into strict Boolean operators (`AND`, `OR`, `NOT`).
 - **Auto Match Engine**: Unsure which database to use? The auto-match engine will intelligently choose the best database/platform for your topic and assemble the query and exact syntax accordingly.
-- **Batch Processing & Parallel Execution**: Input multiple lines of text to generate queries simultaneously. The system executes LLM tasks in parallel, saving substantial time for batch topic processing.
+- **Search Operator Style (New)**: Select custom logic operators to suit different database demands. Toggle between standard OR words (e.g. `(A OR B)`) or space disjunctions (e.g. `(A B)`), perfectly aligning with databases like CNIPA or traditional patent search fields that interpret space as logic disjunction.
+- **Progressive Streaming & Batch Parallelization**: Input multiple query lines to generate simultaneously. The UI renders progressive status updates line-by-line using elegant skeletal state indicators and spinner icons. Tasks run concurrently, providing instant performance without blocking the main workflow.
+- **Intellectual Target Databases**: Deep, precise integration with classic databases:
+  - **CNKI**: Generates strict academic formulas conforming faithfully to standard syntax (e.g. `SU = (A + B) AND TKA = C`).
+  - **Web of Science / Scopus / ScienceDirect**: Adheres strictly to Boolean and proximity guidelines.
+  - **CNIPA / Patent Division**: Separates classical CNIPA (using spaces as OR logic disjunctions) and 壹专利 (standard boolean rules) to eliminate syntax collision when searching patent repositories.
 - **Smart Jump URLs**: Automatically generates direct click-through URLs (`?kw=...` or `?q=...`) to immediately execute the created query on platforms like Baidu Academic, CNKI, or Bing.
 - **Topic Expansion Engine**: Automatically extracts core concepts, mapping them to field-specific schemas (e.g., `SU=` vs `TI=`), and enriches them with high-frequency synonyms to maximize recall (sensitivity) and precision.
 - **Bilingual Capabilities**: Generate synonyms and formulas in Chinese-only, English-only, or Bilingual modes based on your target database.
@@ -90,7 +95,12 @@ npm run dev
 
 - **自然语言无缝解析**：只需用您最习惯的语言描述需求，AI 将为您处理严谨的布尔逻辑（`*`, `+`, `-`, `AND`, `OR`, `NOT`）。
 - **智能自动匹配引擎**：不知道该去哪个库检索？自动智能匹配引擎会根据您的研究课题，自动预测并选择最合适的数据库/平台，并遵循该平台的语法生成表达式。
-- **多任务并行处理 (Batch Processing)**：支持多行输入，一键并行触发多个检索任务的生成。底层采用并发控制，大幅减少批量主题处理时的等待时间。
+- **检索逻辑算符风格（新）**：自主指定同义词/交并逻辑之间的算符风格。可在“标准 OR 词连接 (`A OR B`)”与“空格代替 OR 连接 (`A B`)”之间任意切换，无缝适配 CNIPA 专利局、外文商业专利等对空格具有严苛逻辑定义的检索系统。
+- **渐进式感知渲染与并行生成**：支持多行输入一键并行触发。极速并行请求的同时，UI 采用动态渐进式渐显渲染，各主题独立解析。内置高保真骨架屏骨骼动效、实时转圈等待标示和彻底的单行错误防崩盾，彻底消除批量处理时的黑盒枯燥感。
+- **学术级精细数据库适配**：对多个权威学术/专利数据库的指令特征进行极致优化：
+  - **知网 (CNKI)**：严格采用 `SU = ('人工' + 'AI') AND TKA = '智能'` 标准检索字段规范拼装，并使用标准的逻辑拼接字。
+  - **Springer Nature Link**：精准去除不必要/易错的语法括号及逗号符号标记（支持 `AND (&)` 和 `OR`），完全防范查询语法报错。
+  - **专利双库双轨保障**：专门拆分为“CNIPA (中国专利)”（高级检索纯空格表逻辑或(OR)风格）和“壹专利 (中文专利)”（标准 Bool 大写逻辑规则），防止检索不同源引发解析冲突。
 - **一键直达跳转 (Smart Jump URLs)**：AI 动态猜想并生成带有真实 URL 参数（如 `?kw=` 或 `?q=`）的检索直达链接，极大简化了“复制黏贴”流程，直接点击即可一键发起真实引擎检索。
 - **学术级主题扩充引擎**：自动识别并抽离核心概念模块，精准映射至各数据库的字段代码（例如 知网的 `SU=` 与 `TI=`），利用大模型庞大的知识库补齐高频同义词与相关学术词汇，大幅提升检索的**查全率 (Recall)**与**查准率 (Precision)**。
 - **多语种无缝切换**：可根据需求强制引擎仅使用中文词、仅使用英文词，或中英双语混合。完美应对外文专利库（纯英文）或国内中文刊物检索。

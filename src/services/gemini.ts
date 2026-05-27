@@ -31,25 +31,6 @@ export interface SearchQueryResponse {
   _reasoning?: string;
 }
 
-const DB_SCHEMAS: Record<string, string> = {
-  "CNKI 知网 (中文学术)": "支持布尔逻辑 (*, +, - 分别对应 AND, OR, NOT，注意算符前后需空一个字节)。精确/模糊匹配。优先算符为半角()。引号用于特殊符号短语。可检索字段：SU=主题, TKA=篇关摘, KY=关键词, TI=篇名, FT=全文, AU=作者, FI=第一作者, RP=通讯作者, AF=作者单位, FU=基金, AB=摘要, CO=小标题, RF=参考文献, CLC=分类号, LY=文献来源, DOI=DOI, CF=被引频次。示例: SU=('人工智能' + 'AI') * TKA='交通'",
-  "万方数据 (中文学术)": "高级检索支持精确或模糊匹配。运算符：AND(与), OR(或), NOT(非), \"\"(精确匹配), ()(限定检索顺序)。优先级: () > NOT > AND > OR。运算符建议使用英文半角输入。可检索字段一般为主题、标题、关键词等。",
-  "维普资讯 (中文学术)": "高级检索支持 (* / +, / -, 或 AND / OR / NOT)。基本检索不支持布尔。支持期刊导航检索。",
-  "Web of Science核心合集 (SCI-E/SSCI/CPCI-S)": "支持 AND, OR, NOT。优先顺序 () > NOT > AND > OR。位置算符：NEAR/n (最多插入n个词，词序可倒，不能用于出版年), SAME (同一地址)。截词：* (0或多个), ? (1个), $ (0或1个)。精确词组使用 \"\"。需要严格的字段标识符 (如 TS=主题, TI=标题)。",
-  "Ei Compendex (工程文摘)": "支持 AND, OR, NOT。优先级 () > NOT > AND > OR。精确词组 {} 或 \"\"。位置算符：NEAR/n (无序邻近), ONEAR/n (有序邻近)。截词：*, ?, $ (提取词根)。专业字段代码如 WN KY等。",
-  "Scopus (综合文摘)": "支持 AND, OR, AND NOT (必须置于句末)。优先算符 ()。精确词组 \"\" 或 {}。位置算符：W/n (无序邻近), PRE/n (有序邻近)。截词：*, ?。可以分析出版年份、学科、资金赞助商等。",
-  "ScienceDirect (Elsevier)": "算符必须大写：AND, OR, NOT。优先级 () > NOT > AND > OR。宽松短语用 \"\"。同一检索框布尔算符不能超8个，单数会自动检出复数。不含位置算符。字段如 ALL, TITLE-ABSTR-KEY。",
-  "Springer Nature Link": "支持 AND (, &), OR, NOT。优先级 () > NOT > OR > AND。截词 * 和 ?。精确匹配用 \"\"。",
-  "EBSCO (ASP/BSP)": "支持 AND, OR, NOT。优先级 () > AND > NOT > OR。位置算符：N/n (词序不定), W/n (词序一定)。截词 *, # (0-1个), ?(单词中1个)。",
-  "PQDT (博硕士论文)": "支持 AND, OR, NOT。优先级 PRE > NEAR > AND > OR > NOT。位置算符 NEAR/n, PRE/n。截词 * 和 ?（- 等价于 PRE/0）。",
-  "IEEE Xplore": "支持 AND, OR, NOT。优先级 () > AND > NOT > OR。位置：NEAR/n, ONEAR/n。截词 * 和 ?。宽松短语 \"\"。",
-  "CNIPA / 壹专利 (中文专利)": "CNIPA高级检索：空格表示逻辑OR！其他支持逻辑检索。壹专利：AND / OR / NOT，优先级 () > N/W > NOT > AND > OR。精确词组 \"\"。位置 nN (无序), nW (有序)。截词 * 和 ?。主要字段：TI, AB, CL, PA, IN, IPC。",
-  "Espacenet / USPTO (外文专利)": "USPTO: 支持 AND, OR, NOT, XOR, 空格表OR。通配符 ?, $, *。位置: ADJ, NEAR, WITH, SAME。命令语法: 检索式.检索字段 (如 (face AND recogni*).BSUM )。Espacenet：Any, All, Proximity。",
-  "国家标准全文公开系统": "支持状态检索 (现行、作废、未生效)。分类法：ICS与CCS。主要检索字段：标准号、关键词等。",
-  "百度学术 / PubScholar": "通用平台，支持 intitle: (限制标题), author: (限制作者), 双引号精确匹配。空格表AND，|表OR，-表排除。",
-  "通用搜索引擎 (Baidu/Bing)": "支持双引号精确匹配，空格表示AND。减号表示NOT（如 -无关词），支持指令如 site:, filetype:, intitle:, inurl: 等。"
-};
-
 export interface ProviderConfig {
   id: string;
   name: string;
@@ -60,6 +41,26 @@ export interface ProviderConfig {
   apiKey: string;
   models: string;
 }
+
+const DB_SCHEMAS: Record<string, string> = {
+  "CNKI 知网 (中文学术)": "支持布尔逻辑 (*, +, - 分别对应 AND, OR, NOT，注意算符前后需空一个字节)。精确/模糊匹配。优先算符为半角()。引号用于特殊符号短语。可检索字段：SU=主题, TKA=篇关摘, KY=关键词, TI=篇名, FT=全文, AU=作者, FI=第一作者, RP=通讯作者, AF=作者单位, FU=基金, AB=摘要, CO=小标题, RF=参考文献, CLC=分类号, LY=文献来源, DOI=DOI, CF=被引频次。示例: SU = ('人工智能' + 'AI') AND TKA = '交通'",
+  "万方数据 (中文学术)": "高级检索支持精确或模糊匹配。运算符：AND(与), OR(或), NOT(非), \"\"(精确匹配), ()(限定检索顺序)。优先级: () > NOT > AND > OR。运算符建议使用英文半角输入。可检索字段一般为主题、标题、关键词等。",
+  "维普资讯 (中文学术)": "高级检索支持 (* / +, / -, 或 AND / OR / NOT)。基本检索不支持布尔。支持期刊导航检索。",
+  "Web of Science核心合集 (SCI-E/SSCI/CPCI-S)": "支持 AND, OR, NOT。优先顺序 () > NOT > AND > OR。位置算符：NEAR/n (最多插入n个词，词序可倒，不能用于出版年), SAME (同一地址)。截词：* (0或多个), ? (1个), $ (0或1个)。精确词组使用 \"\"。需要严格的字段标识符 (如 TS=主题, TI=标题)。",
+  "Ei Compendex (工程文摘)": "支持 AND, OR, NOT。优先级 () > NOT > AND > OR。精确词组 {} 或 \"\"。位置算符：NEAR/n (无序邻近), ONEAR/n (有序邻近)。截词：*, ?, $ (提取词根)。专业字段代码如 WN KY等。",
+  "Scopus (综合文摘)": "支持 AND, OR, AND NOT (必须置于句末)。优先算符 ()。精确词组 \"\" 或 {}。位置算符：W/n (无序邻近), PRE/n (有序邻近)。截词：*, ?。可以分析出版年份、学科、资金赞助商等。",
+  "ScienceDirect (Elsevier)": "算符必须大写：AND, OR, NOT。优先级 () > NOT > AND > OR。宽松短语用 \"\"。同一检索框布尔算符不能超8个，单数会自动检出复数。不含位置算符。字段如 ALL, TITLE-ABSTR-KEY。",
+  "Springer Nature Link": "支持 AND (&), OR, NOT。优先级 () > NOT > OR > AND。截词 * 和 ?。精确匹配用 \"\"。",
+  "EBSCO (ASP/BSP)": "支持 AND, OR, NOT。优先级 () > AND > NOT > OR。位置算符：N/n (词序不定), W/n (词序一定)。截词 *, # (0-1个), ?(单词中1个)。",
+  "PQDT (博硕士论文)": "支持 AND, OR, NOT。优先级 PRE > NEAR > AND > OR > NOT。位置算符 NEAR/n, PRE/n。截词 * 和 ?（- 等价于 PRE/0）。",
+  "IEEE Xplore": "支持 AND, OR, NOT。优先级 () > AND > NOT > OR。位置：NEAR/n, ONEAR/n。截词 * 和 ?。宽松短语 \"\"。",
+  "CNIPA (中国专利)": "CNIPA高级检索：空格表示逻辑或(OR)，不支持 AND 等通用逻辑词。检索时通过空格进行同义词扩展。主要字段：TI=发明名称, AB=摘要, CL=权利要求, PA=申请人, IN=发明人, IPC=分类号。",
+  "壹专利 (中文专利)": "壹专利支持 AND / OR / NOT 逻辑算符。优先级：() > N/W > NOT > AND > OR。精确词组需使用 \"\" 英文半角双引号。位置算符：nN (无序邻近), nW (有序邻近)。截词符：* (0-多个) 和 ? (单字)。主要字段：TI=标题, AB=摘要, CL=权利要求书, PA=申请人, IN=发明人, IPC=分类号。",
+  "Espacenet / USPTO (外文专利)": "USPTO: 支持 AND, OR, NOT, XOR, 空格表OR。通配符 ?, $, *。位置: ADJ, NEAR, WITH, SAME。命令语法: 检索式.检索字段 (如 (face AND recogni*).BSUM )。Espacenet：Any, All, Proximity。",
+  "国家标准全文公开系统": "支持状态检索 (现行、作废、未生效)。分类法：ICS与CCS。主要检索字段：标准号、关键词等。",
+  "百度学术 / PubScholar": "通用平台，支持 intitle: (限制标题), author: (限制作者), 双引号精确匹配。空格表AND，|表OR，-表排除。",
+  "通用搜索引擎 (Baidu/Bing)": "支持双引号精确匹配，空格表示AND。减号表示NOT（如 -无关词），支持指令如 site:, filetype:, intitle:, inurl: 等。"
+};
 
 export async function testConnection(provider: ProviderConfig, modelName: string): Promise<boolean> {
   try {
@@ -104,7 +105,7 @@ export async function testConnection(provider: ProviderConfig, modelName: string
       const geminiKey = provider.apiKey || "";
       const currentAi = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
       const response = await currentAi.models.generateContent({
-        model: modelName || "gemini-3.1-pro-preview",
+        model: modelName || "gemini-3.5-flash",
         contents: "Hi",
         config: { maxOutputTokens: 1 }
       });
@@ -119,56 +120,59 @@ export async function generateSearchQuery(
   input: string, 
   targetDatabase: string = "通用搜索引擎 (Baidu/Bing)", 
   languagePref: string = "双语混合",
-  modelName: string = "gemini-3.1-pro-preview",
-  provider?: ProviderConfig
+  modelName: string = "gemini-3.5-flash",
+  provider?: ProviderConfig,
+  operatorStyle: "OR" | "Space" = "OR"
 ): Promise<SearchQueryResponse> {
   const targetDB = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请根据用户的检索词自动判断最合适的一个目标学术数据库或搜索引擎（例如：CNKI、Web of Science、PubMed、专利数据库等），并在解释中说明为何选择该库。" : targetDatabase;
   const schemaInfo = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请自行匹配该目标数据库的常用检索语法与字段代码。" : (DB_SCHEMAS[targetDatabase] || DB_SCHEMAS["通用搜索引擎 (Baidu/Bing)"]);
   
-  const systemPrompt = `You are an expert search query generator. Output strictly in JSON format. No explanations.`;
+  const operatorInstruct = operatorStyle === "Space" 
+    ? "Strictly use Space (single whitespace character) instead of 'OR' to connect synonyms/alternative terms in booleanQuery and fieldSpecificQuery. For example, use '(A B)' instead of '(A OR B)'. No 'OR' word should appear as logical disjunction."
+    : "Strictly use standard 'OR' operator to connect synonyms/alternative terms in booleanQuery and fieldSpecificQuery. For example, use '(A OR B)' instead of '(A B)'.";
+
+  const systemPrompt = `You are a professional search query generator. Build optimized search strings for the target DB. Output STRICTLY as JSON.\nConstraint style: ${operatorInstruct}`;
   
   const userPrompt = `
 Query: "${input}"
 Target DB: "${targetDB}"
 DB Schema: "${schemaInfo}"
 Lang Pref: "${languagePref}"
+Search Operator Style: "${operatorStyle === "Space" ? "Use Space as OR (e.g. '(A B)')" : "Use Standard 'OR' (e.g. '(A OR B)')"}"
 
 Tasks:
 1. Extract 2-3 core concepts.
-2. Provide 1-3 exact CN and 1-3 EN synonyms/terms per concept.
-3. Build \`booleanQuery\` using synonyms (OR within, AND across concepts). Match Lang Pref.
-4. Build \`fieldSpecificQuery\` applying the DB Schema mapping.
-5. Provide a 1-2 sentence \`explanation\` of the strategy.
-6. Provide 1-3 \`suggestedUrls\`.
-URL Rules:
-- CNKI: ONLY return "https://kns.cnki.net/kns8s/AdvSearch" (NO query parameters).
-- Wanfang: URL-encode query, append to "https://s.wanfangdata.com.cn/paper?q=".
-- Others (PubMed, Bing, Baidu, etc.): Append query to standard URL parameters (q=, wd=, etc.).
+2. Provide 1-3 CN and EN synonyms per concept.
+3. Build 'booleanQuery': OR within concepts, AND across concepts. Match Lang Pref AND strictly obey the Search Operator Style (${operatorStyle}).
+4. Build 'fieldSpecificQuery' applying DB Schema fields AND strictly obey the Search Operator Style (${operatorStyle}).
+5. Provide a 1-sentence 'explanation'.
+6. Provide 1-3 'suggestedUrls'. 
+Rules:
+- CNKI: return "https://kns.cnki.net/kns8s/AdvSearch" (no query params).
+- Wanfang: suffix encoded query: "https://s.wanfangdata.com.cn/paper?q="
+- Others: append encoded query to standard parameters.
 
-Return exactly this JSON structure:
+Return JSON format:
 {
   "keywords": [
     {
-      "original": "core concept",
-      "zhSynonyms": ["cn1", "cn2"],
-      "enSynonyms": ["en1", "en2"]
+      "original": "concept",
+      "zhSynonyms": ["cn1"],
+      "enSynonyms": ["en1"]
     }
   ],
-  "booleanQuery": "basic boolean query",
-  "fieldSpecificQuery": "advanced schema-mapped query",
+  "booleanQuery": "query string",
+  "fieldSpecificQuery": "schema query",
   "schemaMapping": [
     {
-      "field": "DB field tag",
+      "field": "tag",
       "mappedConcept": "concept",
-      "reason": "short explanation"
+      "reason": "why"
     }
   ],
-  "explanation": "short strategy info",
+  "explanation": "strategy",
   "suggestedUrls": [
-    {
-      "name": "Platform Name",
-      "url": "full URL"
-    }
+    {"name": "Name", "url": "URL"}
   ]
 }
 `;
@@ -260,8 +264,10 @@ Return exactly this JSON structure:
       const currentAi = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
       const response = await currentAi.models.generateContent({
         model: modelName,
-        contents: `${systemPrompt}\n\n${userPrompt}`,
+        contents: userPrompt,
         config: {
+          systemInstruction: systemPrompt,
+          temperature: 0,
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -348,7 +354,7 @@ Return exactly this JSON structure:
     } else if (error.status === 503 || error.message?.includes("overloaded")) {
       details = "模型服务当前不可用或过载，请稍后再试或更换模型。(The service is currently unavailable or overloaded. Please try again later or switch models.)";
     } else if (error.message?.includes("fetch failed") || error.message?.includes("Failed to fetch")) {
-      details = "网络请求失败，请检查您的网络连接。(Network request failed. Please check your internet connection.)";
+      details = "网络请求失败，请检查您的 network 连接。(Network request failed. Please check your internet connection.)";
     } else {
       details = `内部错误/Internal Error: ${error.message || "Unknown error"}`;
     }
