@@ -319,6 +319,7 @@ export default function App() {
   const [activeIndex, setActiveIndex] = useState(0);
   const result = results[activeIndex] || null;
   const [copied, setCopied] = useState(false);
+  const [jumpDbName, setJumpDbName] = useState<string | null>(null);
   const [error, setError] = useState<{ title: string; details: string } | null>(null);
   const [showMapped, setShowMapped] = useState(false);
 
@@ -349,6 +350,15 @@ export default function App() {
     setTestConnStatus('idle');
     setTestConnMessage('');
   }, [activeProviderId, activeModel, providers, isConfigOpen]);
+
+  useEffect(() => {
+    if (jumpDbName) {
+      const timer = setTimeout(() => {
+        setJumpDbName(null);
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [jumpDbName]);
 
   const handleTestConnection = async () => {
     setTestConnStatus('testing');
@@ -971,18 +981,26 @@ export default function App() {
                         rel="noopener noreferrer"
                         onClick={(e) => {
                           const queryToCopy = result.fieldSpecificQuery || result.booleanQuery;
-                          navigator.clipboard.writeText(queryToCopy);
+                          
+                          // Robust clipboard copy mechanism
+                          if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(queryToCopy);
+                          } else {
+                            const textarea = document.createElement('textarea');
+                            textarea.style.position = 'fixed'; // Avoid scrolling
+                            textarea.style.opacity = '0';
+                            textarea.value = queryToCopy;
+                            document.body.appendChild(textarea);
+                            textarea.select();
+                            try {
+                              document.execCommand('copy');
+                            } catch (err) {}
+                            document.body.removeChild(textarea);
+                          }
+                          
                           setCopied(true);
                           setTimeout(() => setCopied(false), 2000);
-                          
-                          const needsPastePrompt = urlItem.url?.includes('cnki.net') || !urlItem.url?.includes('?');
-                          
-                          if (needsPastePrompt) {
-                            e.preventDefault();
-                            if (window.confirm("已自动复制检索式到剪切板。\n\n即将为您打开检索页面，请在页面中直接粘贴 (Ctrl+V / Cmd+V) 刚复制好的检索式即可。\n\n(Query copied to clipboard. Press OK to proceed and paste it.)")) {
-                              window.open(urlItem.url, '_blank', 'noopener,noreferrer');
-                            }
-                          }
+                          setJumpDbName(urlItem.name || "数据库 (Database)");
                         }}
                         className="px-4 py-2 bg-emerald-600/20 text-emerald-400 text-[10px] font-bold rounded-lg border border-emerald-500/30 transition-all flex items-center gap-2 hover:bg-emerald-600/30 uppercase tracking-widest"
                       >
@@ -1569,6 +1587,74 @@ export default function App() {
             <p className="text-[11px] font-mono text-red-300/80 leading-relaxed pt-1 break-words">
               {error.details}
             </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Non-blocking database redirection toast and manual fallback */}
+      <AnimatePresence>
+        {jumpDbName && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 50 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+            className="fixed bottom-6 right-6 z-[200] w-96 bg-slate-950/95 border border-cyan-500/40 backdrop-blur-xl rounded-2xl p-4 shadow-[0_10px_30px_rgba(0,0,0,0.6),0_0_20px_rgba(6,182,212,0.15)] flex flex-col gap-3"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/40 shrink-0 animate-pulse">
+                  <Check size={12} className="text-emerald-400" />
+                </div>
+                <h4 className="text-xs font-black text-white tracking-widest uppercase">
+                  检索式已自动复制 / COPIED!
+                </h4>
+              </div>
+              <button 
+                onClick={() => setJumpDbName(null)}
+                className="text-slate-500 hover:text-white transition-colors"
+                id="close-jump-toast"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="space-y-1">
+              <p className="text-xs text-slate-200">
+                正在为您在新窗口中启动 <span className="text-cyan-400 font-bold underline">{jumpDbName}</span> 进行检索。
+              </p>
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                如新标签页未弹出，说明被您的浏览器拦截。请点击下方“手动前往”链接直接进入。入站后直接按 <span className="text-cyan-400 font-mono font-bold">Ctrl+V</span> (或 Cmd+V) 粘贴您的专属检索式即可！
+              </p>
+            </div>
+
+            <div className="flex justify-between items-center bg-black/50 p-2.5 rounded-lg border border-white/5 gap-2 overflow-hidden">
+              <span className="text-[9px] font-mono text-slate-500 uppercase shrink-0">CLIPBOARD:</span>
+              <span className="text-[10px] font-mono text-cyan-300 truncate select-all">
+                {result ? (showMapped ? result.fieldSpecificQuery : result.booleanQuery) : ""}
+              </span>
+            </div>
+
+            <div className="flex gap-2 justify-end pt-1">
+              <button
+                onClick={() => setJumpDbName(null)}
+                className="px-3 py-1.5 rounded-lg text-[10px] text-slate-400 hover:text-white font-bold tracking-wider hover:bg-white/5 transition-all uppercase"
+                id="dismiss-jump-toast"
+              >
+                我知道了 (OK)
+              </button>
+              {result && result.suggestedUrls && (
+                <a
+                  href={result.suggestedUrls.find(u => u.name === jumpDbName || (!jumpDbName && u))?.url || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 font-bold rounded-lg text-[10px] tracking-widest transition-all border border-emerald-500/30 flex items-center gap-1.5 uppercase"
+                  onClick={() => setJumpDbName(null)}
+                >
+                  手动前往 (GO)
+                  <ExternalLink size={11} />
+                </a>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
