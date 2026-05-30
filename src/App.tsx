@@ -23,12 +23,15 @@ import {
   Settings2,
   Server,
   BarChart2,
-  ExternalLink
+  ExternalLink,
+  Download,
+  WifiOff
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import { generateSearchQuery, SearchQueryResponse, ProviderConfig, testConnection } from "./services/gemini";
 import OfficialWhitelist, { DEFAULT_LINKS, LinkItem, DEFAULT_CATEGORIES, extractKeywords, scoreLink } from "./components/OfficialWhitelist";
+import OfflineDownloader from "./components/OfflineDownloader";
 
 const UI_STRINGS = {
   mix: {
@@ -314,6 +317,7 @@ const setLocalCache = (line: string, dbType: string, langPref: string, model: st
 export default function App() {
   const [input, setInput] = useState("");
   const [activeTab, setActiveTab] = useState<'ai' | 'whitelist'>('ai');
+  const [showInstallerModal, setShowInstallerModal] = useState(false);
   const [dbType, setDbType] = useState(DB_TYPES[0]);
   const [langPref, setLangPref] = useState("双语混合 (Bilingual)");
   const [loading, setLoading] = useState(false);
@@ -326,6 +330,22 @@ export default function App() {
   const [showMapped, setShowMapped] = useState(false);
   const [isQuickWhitelistOpen, setIsQuickWhitelistOpen] = useState(false);
   const [quickSearchKw, setQuickSearchKw] = useState("");
+
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [consecutiveFailures, setConsecutiveFailures] = useState(0);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const quickSearchKeywords = useMemo(() => {
     const kwTrimmed = quickSearchKw.trim().toLowerCase();
@@ -430,9 +450,11 @@ export default function App() {
       await testConnection(provider, activeModel);
       setTestConnStatus('success');
       setTestConnMessage(t('testSuccess'));
+      setConsecutiveFailures(0);
     } catch (e: any) {
       setTestConnStatus('error');
       setTestConnMessage(`${t('testFailed')}: ${e.message}`);
+      setConsecutiveFailures(prev => prev + 1);
     }
   };
 
@@ -651,6 +673,7 @@ export default function App() {
       
       if (successfulResps.length > 0) {
         saveHistory([...newItems, ...history].slice(0, 50));
+        setConsecutiveFailures(0);
       } else {
         throw new Error(JSON.stringify({ title: "任务生成失败 / Generation Failed", details: "所有输入行的检索式并行生成任务均已失败，请检查API配置。 (All parallel tasks failed to generate.)" }));
       }
@@ -677,6 +700,7 @@ export default function App() {
       saveUsageStats(updatedStats);
       
     } catch (err: any) {
+      setConsecutiveFailures(prev => prev + 1);
       // Update Usage Stats for ALL failure (edge case)
       const provId = activeProviderId;
       const modName = activeModel;
@@ -731,6 +755,8 @@ export default function App() {
     setIsHistoryOpen(false);
     setError(null);
   };
+
+  const isOfflineMode = !isOnline || consecutiveFailures >= 2;
 
   return (
     <div className="min-h-screen h-screen flex flex-col bg-[#05070A] text-slate-100 font-sans overflow-hidden">
@@ -810,11 +836,54 @@ export default function App() {
               </div>
             </div>
           </div>
-          <div className="hidden sm:block text-right">
-            <span className="text-[9px] text-slate-500 uppercase block leading-none mb-1">{t('engineStatus')}</span>
-            <span className="text-xs text-emerald-400 flex items-center gap-1.5 font-bold uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> {t('operational')}
+
+          {/* Global Offline/Failure Banner Action */}
+          {isOfflineMode && (
+            <div className="hidden md:flex items-center gap-3 bg-red-500/10 border border-red-500/30 px-3.5 py-1.5 rounded-xl text-red-400 animate-fade-in shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+              <WifiOff size={14} className="animate-pulse shrink-0" />
+              <div className="flex flex-col text-left">
+                <span className="text-[10px] font-bold text-red-300 leading-tight">
+                  {!isOnline ? "已断开外网连接" : "API 连续连接失败"} (Offline Mode Active)
+                </span>
+                <span className="text-[9px] text-rose-400/80 leading-none">
+                  推荐切换至【官方网址速查】进行无流离线工作
+                </span>
+              </div>
+              <button
+                onClick={() => setActiveTab('whitelist')}
+                className="text-[10px] bg-red-500/20 hover:bg-red-500/35 text-white px-2.5 py-1 rounded border border-red-500/40 transition-all font-black select-none uppercase cursor-pointer flex items-center gap-1 shrink-0 hover:scale-105 active:scale-95"
+              >
+                立即切换 ➜
+              </button>
+            </div>
+          )}
+
+          {/* Quick Help/Offline Installer Corner Button */}
+          <button
+            onClick={() => setShowInstallerModal(true)}
+            className="p-2.5 bg-slate-850/60 hover:bg-cyan-500/10 text-slate-400 hover:text-cyan-400 border border-white/5 hover:border-cyan-500/30 rounded-xl transition-all relative group flex items-center justify-center shrink-0 cursor-pointer"
+            title="一键离线安装与本地部署说明 (Offline & Installer)"
+          >
+            <Info size={15} className="animate-pulse" />
+            <span className="absolute top-full mt-2.5 right-0 bg-[#0a0f18] border border-white/10 text-slate-200 text-[10px] px-2 py-1 rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-[110]">
+              💡 离线版生成与极速安装包 (Offline & Install)
             </span>
+          </button>
+
+          <div className="hidden sm:block text-right">
+            <span className="text-[9px] text-slate-500 uppercase block leading-none mb-1">
+              {isOfflineMode ? "服务状态 (Service)" : t('engineStatus')}
+            </span>
+            {isOfflineMode ? (
+              <span className="text-xs text-rose-500 flex items-center gap-1.5 font-bold uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                {!isOnline ? "离线形态 (Offline)" : "服务阻断 (Blocked)"}
+              </span>
+            ) : (
+              <span className="text-xs text-emerald-400 flex items-center gap-1.5 font-bold uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> {t('operational')}
+              </span>
+            )}
           </div>
         </div>
       </header>
@@ -851,7 +920,7 @@ export default function App() {
         {/* Left Column: Input & Formula Result */}
         <div className="flex-1 flex flex-col gap-6 overflow-hidden">
           {/* Input Block */}
-          <section className="flex-1 bg-slate-900/40 rounded-2xl border border-white/5 p-6 flex flex-col relative group transition-all hover:border-white/10 shadow-lg">
+          <section className="flex-1 max-h-[230px] bg-slate-900/40 rounded-2xl border border-white/5 p-6 flex flex-col relative group transition-all hover:border-white/10 shadow-lg">
             <div className="absolute top-4 right-4 text-[10px] text-slate-500 font-mono tracking-tighter opacity-50">INPUT_NATURAL_LANGUAGE</div>
             <label className="text-[11px] text-cyan-400/80 mb-3 uppercase font-bold tracking-[0.2em]">{t('inputLabel')}</label>
             
@@ -859,7 +928,7 @@ export default function App() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={t('inputPlaceholder')}
-              className="flex-1 bg-transparent border-none outline-none resize-none text-xl text-slate-200 placeholder:text-slate-700 leading-relaxed font-medium"
+              className="flex-1 bg-transparent border-none outline-none resize-none text-xl text-slate-200 placeholder:text-slate-700 leading-relaxed font-medium custom-scrollbar overflow-y-auto"
             />
 
             <div className="mt-4 flex flex-wrap justify-between items-center pt-4 border-t border-white/5 gap-4">
@@ -994,7 +1063,7 @@ export default function App() {
               )}
             </AnimatePresence>
             
-            <div className="p-6 h-full flex flex-col relative z-10">
+            <div className="p-6 flex-1 flex flex-col min-h-0 relative z-10">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-2">
                   <label className="text-[11px] text-cyan-400/80 uppercase font-bold tracking-[0.2em]">{t('formulaTitle')}</label>
@@ -1027,8 +1096,8 @@ export default function App() {
               </div>
               
               <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-                <div className={`font-mono text-cyan-100 text-base leading-relaxed overflow-y-auto custom-scrollbar select-all flex-shrink-0 min-h-[80px] p-4 bg-black/20 rounded-lg border border-cyan-500/10 ${result?._isLoading ? 'animate-pulse text-cyan-500/50' : ''}`}>
-                  {result ? (showMapped ? result.fieldSpecificQuery : result.booleanQuery) : "Formula will appear here..."}
+                <div className={`font-mono text-cyan-100 text-base leading-relaxed overflow-y-auto custom-scrollbar select-all flex-1 min-h-[150px] p-4 bg-black/20 rounded-lg border border-cyan-500/10 ${result?._isLoading ? 'animate-pulse text-cyan-500/50' : ''}`}>
+                  {result ? (showMapped ? (result.fieldSpecificQuery || result.booleanQuery) : result.booleanQuery) : "Formula will appear here..."}
                 </div>
 
                 {result && result._isLoading && (
@@ -1060,14 +1129,14 @@ export default function App() {
               </div>
 
               {result && !result._isLoading && (
-                <div className="mt-4 pt-3 border-t border-cyan-500/20 flex justify-between items-center">
-                  <span className="text-[10px] text-cyan-500/60 font-mono italic flex items-center gap-2">
+                <div className="mt-4 pt-3 border-t border-cyan-500/20 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 w-full">
+                  <span className="text-[10px] text-cyan-500/60 font-mono italic flex items-center gap-2 shrink-0">
                     <Check size={10} className="text-emerald-500" /> {t('processedWith')}
                   </span>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap items-center gap-2 max-w-full lg:justify-end justify-start">
                     <button 
-                      onClick={() => handleCopy(showMapped ? result.fieldSpecificQuery : result.booleanQuery)}
-                      className="text-[11px] text-cyan-400 hover:text-cyan-300 font-black tracking-widest flex items-center gap-1.5 transition-all"
+                      onClick={() => handleCopy(showMapped ? (result.fieldSpecificQuery || result.booleanQuery) : result.booleanQuery)}
+                      className="text-[11px] text-cyan-400 hover:text-cyan-300 font-black tracking-widest flex items-center gap-1.5 transition-all mr-2"
                     >
                       {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
                       {copied ? t('copied') : t('copyCode')}
@@ -1102,7 +1171,7 @@ export default function App() {
                           setTimeout(() => setCopied(false), 2000);
                           setJumpDbName(urlItem.name || "数据库 (Database)");
                         }}
-                        className="px-4 py-2 bg-emerald-600/20 text-emerald-400 text-[10px] font-bold rounded-lg border border-emerald-500/30 transition-all flex items-center gap-2 hover:bg-emerald-600/30 uppercase tracking-widest animate-fade-in"
+                        className="px-3 py-1.5 bg-emerald-600/20 text-emerald-400 text-[10px] font-bold rounded-lg border border-emerald-500/30 transition-all flex items-center gap-1.5 hover:bg-emerald-600/30 uppercase tracking-widest animate-fade-in"
                       >
                         {urlItem.name || t('directSearch')}
                         <ExternalLink size={12} />
@@ -1114,7 +1183,7 @@ export default function App() {
                       <button
                         key={`matched-wl-${wlIdx}`}
                         onClick={() => {
-                          const queryToCopy = showMapped ? result.fieldSpecificQuery : result.booleanQuery;
+                          const queryToCopy = showMapped ? (result.fieldSpecificQuery || result.booleanQuery) : result.booleanQuery;
                           
                           // Clipboard copy
                           if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1137,10 +1206,10 @@ export default function App() {
                           setJumpDbName(wlItem.name);
                           window.open(wlItem.url, '_blank');
                         }}
-                        className="px-4 py-2 bg-cyan-600/20 text-cyan-400 text-[10px] font-bold rounded-lg border border-cyan-500/30 transition-all flex items-center gap-2 hover:bg-cyan-600/30 uppercase tracking-widest animate-fade-in cursor-pointer"
+                        className="px-3 py-1.5 bg-cyan-600/20 text-cyan-400 text-[10px] font-bold rounded-lg border border-cyan-500/30 transition-all flex items-center gap-1.5 hover:bg-cyan-600/30 uppercase tracking-widest animate-fade-in cursor-pointer"
                         title={`官方白名单: ${wlItem.name}`}
                       >
-                        <span>{wlItem.name} (官方白名单)</span>
+                        <span>{wlItem.name}</span>
                         <Globe size={11} className="text-cyan-400" />
                         <ExternalLink size={11} />
                       </button>
@@ -1771,7 +1840,7 @@ export default function App() {
                   isInModal={true}
                   initialSearchKw={quickSearchKw}
                   onSelectLink={(wlItem) => {
-                    const queryToCopy = result ? (showMapped ? result.fieldSpecificQuery : result.booleanQuery) : null;
+                    const queryToCopy = result ? (showMapped ? (result.fieldSpecificQuery || result.booleanQuery) : result.booleanQuery) : null;
                     
                     if (queryToCopy) {
                       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1841,7 +1910,7 @@ export default function App() {
             <div className="flex justify-between items-center bg-black/50 p-2.5 rounded-lg border border-white/5 gap-2 overflow-hidden">
               <span className="text-[9px] font-mono text-slate-500 uppercase shrink-0">CLIPBOARD:</span>
               <span className="text-[10px] font-mono text-cyan-300 truncate select-all">
-                {result ? (showMapped ? result.fieldSpecificQuery : result.booleanQuery) : ""}
+                {result ? (showMapped ? (result.fieldSpecificQuery || result.booleanQuery) : result.booleanQuery) : ""}
               </span>
             </div>
 
@@ -1869,6 +1938,44 @@ export default function App() {
                 <ExternalLink size={11} />
               </a>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Offline Downloader / Installer Modal */}
+      <AnimatePresence>
+        {showInstallerModal && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/85 backdrop-blur-md z-[150] flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 15 }} 
+              animate={{ scale: 1, opacity: 1, y: 0 }} 
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="bg-[#0b0f19] border border-cyan-500/30 rounded-2xl w-full max-w-6xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(6,182,212,0.15)] relative flex flex-col h-[85vh] max-h-[85vh]"
+            >
+              <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-black/40 shrink-0">
+                <div className="flex items-center gap-2">
+                  <Download size={16} className="text-cyan-400 animate-pulse" />
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest">
+                    一键本地部署与全离线便携包生成 (Offline & Installer)
+                  </h3>
+                </div>
+                <button 
+                  onClick={() => setShowInstallerModal(false)} 
+                  className="text-slate-400 hover:text-white transition-colors p-1.5 bg-white/5 hover:bg-white/10 rounded-xl cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-[#05070a]/95">
+                <OfflineDownloader />
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

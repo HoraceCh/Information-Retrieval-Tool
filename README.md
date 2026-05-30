@@ -36,7 +36,31 @@ Whether you are preparing for academic research, systematic literature reviews, 
 
 ### How to Run Locally (Beginner Friendly Guide)
 
-If you have downloaded/exported this project to your local machine as a ZIP file, follow these detailed steps to get it running—even if you have zero coding experience!
+If you have downloaded or exported this project to your local machine as a ZIP file, first **extract/unzip** it completely into a regular folder on your computer.
+
+Choose one of the two methods below to run the application:
+
+---
+
+#### 🌟 Method A: One-Click Automated Launcher (Easiest & Highly Recommended!)
+
+We have built smart system-specific setup scripts that will automatically handle all background configurations, Node.js installation (if missing), environment variables setting, package retrieval, and browser startup.
+
+- **For Windows Users**:
+  1. Go inside the unzipped folder.
+  2. Double-click the file named **`Windows一键自动部署配置并运行.bat`**.
+  3. The script will check and automatically download Node.js (v20 LTS), configure files, run setup, and open Safari/Chrome to start the app.
+- **For macOS / Linux Users**:
+  1. Open Terminal, change directory to your project folder, and run:
+     ```bash
+     chmod +x Mac-Linux一键自动部署配置并运行.sh
+     ./Mac-Linux一键自动部署配置并运行.sh
+     ```
+  2. It will automatically check for Node.js, install packages, and open your default browser.
+
+---
+
+#### 🛠️ Method B: Manual Step-by-Step Terminal Method
 
 **Step 1: Install Required Software**
 1. Download and install **Node.js** from [nodejs.org](https://nodejs.org/) (We recommend the "LTS" version). This provides the necessary environment to run the application.
@@ -109,7 +133,33 @@ npm run dev
 
 ### 本地运行详细图文指南 (零基础小白向)
 
-如果您从 AI Studio 导出了此项目的 ZIP 压缩包，并希望在自己的个人电脑上运行，请遵循以下保姆级别步骤——即使您完全没有编程经验也能轻而易举地搞定！
+如果您从 AI Studio 导出了此项目的 ZIP 压缩包，并希望在自己的个人电脑上运行，请首先**彻底解压**该 `.zip` 压缩文件到一个普通文件夹中（切勿直接在压缩包里双击打开）。
+
+我们提供了以下两种本地运行方案。对于零编程基础的小白，强烈推荐使用**快捷方案 A**：
+
+---
+
+#### 🌟 方案 A：双击一键自动部署启动（最简畅快，强烈推荐！）
+
+我们为不熟悉命令行、也未曾配置过 Node 环境的用户，量身定制了全自动自启部署工具。双击即用，会自动在后台帮您完成：Node 探测、环境静默安装（若本地缺失）、复制参数配置、自动补全依赖以及拉起浏览器打开网页。
+
+- **Windows 系统用户**：
+  1. 打开您解压得到的项目代码根目录文件夹。
+  2. 鼠标双击打开里面的：**`Windows一键自动部署配置并运行.bat`**。
+  3. 此时会弹出浅绿色的自启动控制台。如电脑没有 Node.js，脚本将全自动在后台极速安全地为您安装好 official LTS 稳定版。
+  4. 随后脚本会自动帮您在浏览器拉起打开 `http://localhost:3000` 并完美进入检索控制台！
+
+- **macOS / Linux 系统用户**：
+  1. 在终端（Terminal）中切换到本解压目录下，运行以下赋权和启动命令：
+     ```bash
+     chmod +x Mac-Linux一键自动部署配置并运行.sh
+     ./Mac-Linux一键自动部署配置并运行.sh
+     ```
+  2. 系统会自动完成 Homebrew 检查和环境安装，并自动在浏览器拉起。
+
+---
+
+#### 🛠️ 方案 B：手动多步骤终端指令（开发调试向）
 
 **第 1 步：安装必备的运行环境**
 1. 去官网下载并安装 **Node.js** ([nodejs.org](https://nodejs.org/))。建议下载写着 "LTS (长期维护版)" 的版本。一路点击“下一步”默认安装即可。这是运行本软件的环境依赖基石。

@@ -194,6 +194,7 @@ export const DEFAULT_LINKS: LinkItem[] = [
   { name: "Science", url: "https://www.science.org", cat: "五、学术信息资源" },
   { name: "PNAS官网", url: "https://www.pnas.org", cat: "五、学术信息资源" },
   { name: "IEEE", url: "https://www.ieee.org", cat: "五、学术信息资源" },
+  { name: "Web of Science", url: "https://www.webofscience.com/wos/alldb/basic-search", cat: "五、学术信息资源" },
   { name: "中国知网CNKI中国学术会议网", url: "https://conf.cnki.net", cat: "五、学术信息资源" },
   { name: "国家图书馆博士论文数据库", url: "http://read.nlc.cn/allSearch/searchList?searchType=65&showType=1&pageNo=1", cat: "五、学术信息资源" },
   { name: "MIT Theses", url: "https://dspace.mit.edu/handle/1721.1/7582", cat: "五、学术信息资源" },
