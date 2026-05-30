@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   Search, 
   Copy, 
@@ -28,6 +28,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import { generateSearchQuery, SearchQueryResponse, ProviderConfig, testConnection } from "./services/gemini";
+import OfficialWhitelist, { DEFAULT_LINKS, LinkItem, DEFAULT_CATEGORIES, extractKeywords, scoreLink } from "./components/OfficialWhitelist";
 
 const UI_STRINGS = {
   mix: {
@@ -312,6 +313,7 @@ const setLocalCache = (line: string, dbType: string, langPref: string, model: st
 
 export default function App() {
   const [input, setInput] = useState("");
+  const [activeTab, setActiveTab] = useState<'ai' | 'whitelist'>('ai');
   const [dbType, setDbType] = useState(DB_TYPES[0]);
   const [langPref, setLangPref] = useState("双语混合 (Bilingual)");
   const [loading, setLoading] = useState(false);
@@ -322,6 +324,33 @@ export default function App() {
   const [jumpDbName, setJumpDbName] = useState<string | null>(null);
   const [error, setError] = useState<{ title: string; details: string } | null>(null);
   const [showMapped, setShowMapped] = useState(false);
+  const [isQuickWhitelistOpen, setIsQuickWhitelistOpen] = useState(false);
+  const [quickSearchKw, setQuickSearchKw] = useState("");
+
+  const quickSearchKeywords = useMemo(() => {
+    const kwTrimmed = quickSearchKw.trim().toLowerCase();
+    if (!kwTrimmed) return [];
+    return extractKeywords(kwTrimmed);
+  }, [quickSearchKw]);
+
+  const quickSearchFilteredLinks = useMemo(() => {
+    const kwTrimmed = quickSearchKw.trim();
+    if (!kwTrimmed) return DEFAULT_LINKS;
+    
+    const kws = quickSearchKeywords;
+    if (kws.length === 0) {
+      return DEFAULT_LINKS.filter(l => 
+        l.name.toLowerCase().includes(kwTrimmed.toLowerCase()) ||
+        l.url.toLowerCase().includes(kwTrimmed.toLowerCase())
+      );
+    }
+    
+    return DEFAULT_LINKS
+      .map(link => ({ link, score: scoreLink(link, kws) }))
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(x => x.link);
+  }, [quickSearchKw, quickSearchKeywords]);
 
   const { t, i18n } = useTranslation();
   const uiLang = i18n.language;
@@ -359,6 +388,38 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [jumpDbName]);
+
+  const [debouncedInput, setDebouncedInput] = useState(input);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedInput(input);
+    }, 200);
+    return () => clearTimeout(handler);
+  }, [input]);
+
+  const matchingWhitelistLinks = useMemo(() => {
+    // 1. Extract database keywords from dbType (if selected and not auto match)
+    let dbKws: string[] = [];
+    if (dbType && dbType !== "自动智能匹配 (Auto Match Engine)") {
+      dbKws = extractKeywords(dbType);
+    }
+    
+    // 2. Extract database keywords from user's current conversational input sentence!
+    const inputKws = extractKeywords(debouncedInput);
+    
+    // 3. Combine keywords
+    const combinedKws = Array.from(new Set([...inputKws, ...dbKws]));
+    if (combinedKws.length === 0) return [];
+    
+    // 4. Score all whitelist items and pick the top 4
+    return DEFAULT_LINKS
+      .map(link => ({ link, score: scoreLink(link, combinedKws) }))
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4)
+      .map(x => x.link);
+  }, [dbType, debouncedInput]);
 
   const handleTestConnection = async () => {
     setTestConnStatus('testing');
@@ -758,8 +819,34 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex gap-6 p-6 overflow-hidden min-h-0 container mx-auto max-w-[1440px]">
+      {/* Interface Tab Selector */}
+      <div className="flex border-b border-white/5 bg-[#05070A]/90 px-8 py-2 gap-4 shrink-0 justify-start items-center z-40">
+        <button
+          onClick={() => setActiveTab('ai')}
+          className={`px-4 py-2 text-xs font-black tracking-widest uppercase transition-all rounded-lg flex items-center gap-2 border ${
+            activeTab === 'ai' 
+              ? 'text-cyan-400 bg-cyan-950/20 border-cyan-500/20 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
+              : 'text-slate-500 hover:text-slate-300 border-transparent hover:bg-white/5'
+          }`}
+        >
+          <Sparkles size={14} className={activeTab === 'ai' ? 'text-cyan-400' : 'text-slate-500'} />
+          AI 智能检索式生成 (AI Query Builder)
+        </button>
+        <button
+          onClick={() => setActiveTab('whitelist')}
+          className={`px-4 py-2 text-xs font-black tracking-widest uppercase transition-all rounded-lg flex items-center gap-2 border ${
+            activeTab === 'whitelist' 
+              ? 'text-cyan-400 bg-cyan-950/20 border-cyan-500/20 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
+              : 'text-slate-500 hover:text-slate-300 border-transparent hover:bg-white/5'
+          }`}
+        >
+          <Globe size={14} className={activeTab === 'whitelist' ? 'text-cyan-400' : 'text-slate-500'} />
+          官方网址速查 (Official Whitelist)
+        </button>
+      </div>
+
+      {activeTab === 'ai' ? (
+        <main className="flex-1 flex gap-6 p-6 overflow-hidden min-h-0 container mx-auto max-w-[1440px]">
         
         {/* Left Column: Input & Formula Result */}
         <div className="flex-1 flex flex-col gap-6 overflow-hidden">
@@ -802,6 +889,19 @@ export default function App() {
                     <option value="仅英文 (English Only)" className="bg-[#05070A]">EN Only</option>
                   </select>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuickSearchKw(input.trim());
+                    setIsQuickWhitelistOpen(true);
+                  }}
+                  className="px-3 py-1.5 bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-400 hover:text-cyan-300 text-[10px] font-black rounded-lg border border-cyan-500/20 hover:border-cyan-500/40 transition-all flex items-center gap-1.5 uppercase tracking-widest cursor-pointer ml-3 shrink-0"
+                  title="速查官方白名单数据库"
+                >
+                  <Globe size={12} className="text-cyan-400" />
+                  <span>官方网址速查</span>
+                </button>
               </div>
 
               <div className="flex items-center gap-3 overflow-hidden min-h-[46px]">
@@ -861,7 +961,7 @@ export default function App() {
 
           {/* Batch Task Selector */}
           {results.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-2">
+            <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-2 shrink-0">
               {results.map((r, idx) => (
                 <button
                   key={idx}
@@ -1002,11 +1102,48 @@ export default function App() {
                           setTimeout(() => setCopied(false), 2000);
                           setJumpDbName(urlItem.name || "数据库 (Database)");
                         }}
-                        className="px-4 py-2 bg-emerald-600/20 text-emerald-400 text-[10px] font-bold rounded-lg border border-emerald-500/30 transition-all flex items-center gap-2 hover:bg-emerald-600/30 uppercase tracking-widest"
+                        className="px-4 py-2 bg-emerald-600/20 text-emerald-400 text-[10px] font-bold rounded-lg border border-emerald-500/30 transition-all flex items-center gap-2 hover:bg-emerald-600/30 uppercase tracking-widest animate-fade-in"
                       >
                         {urlItem.name || t('directSearch')}
                         <ExternalLink size={12} />
                       </a>
+                    ))}
+
+                    {/* Matched official whitelist database shortcuts */}
+                    {matchingWhitelistLinks.map((wlItem, wlIdx) => (
+                      <button
+                        key={`matched-wl-${wlIdx}`}
+                        onClick={() => {
+                          const queryToCopy = showMapped ? result.fieldSpecificQuery : result.booleanQuery;
+                          
+                          // Clipboard copy
+                          if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(queryToCopy);
+                          } else {
+                            const textarea = document.createElement('textarea');
+                            textarea.style.position = 'fixed';
+                            textarea.style.opacity = '0';
+                            textarea.value = queryToCopy;
+                            document.body.appendChild(textarea);
+                            textarea.select();
+                            try {
+                              document.execCommand('copy');
+                            } catch (err) {}
+                            document.body.removeChild(textarea);
+                          }
+                          
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                          setJumpDbName(wlItem.name);
+                          window.open(wlItem.url, '_blank');
+                        }}
+                        className="px-4 py-2 bg-cyan-600/20 text-cyan-400 text-[10px] font-bold rounded-lg border border-cyan-500/30 transition-all flex items-center gap-2 hover:bg-cyan-600/30 uppercase tracking-widest animate-fade-in cursor-pointer"
+                        title={`官方白名单: ${wlItem.name}`}
+                      >
+                        <span>{wlItem.name} (官方白名单)</span>
+                        <Globe size={11} className="text-cyan-400" />
+                        <ExternalLink size={11} />
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -1145,6 +1282,11 @@ export default function App() {
           </div>
         </aside>
       </main>
+      ) : (
+        <main className="flex-1 flex gap-6 p-6 overflow-hidden min-h-0 container mx-auto max-w-[1440px]">
+          <OfficialWhitelist />
+        </main>
+      )}
 
       {/* Footer System Bar */}
       <footer className="shrink-0 h-10 border-t border-white/5 flex items-center justify-between px-8 bg-[#05070A]">
@@ -1591,6 +1733,75 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Quick Whitelist Look-up Modal */}
+      <AnimatePresence>
+        {isQuickWhitelistOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 10 }} 
+              animate={{ scale: 1, opacity: 1, y: 0 }} 
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              className="bg-[#0b0f19] border border-white/10 rounded-2xl w-full max-w-6xl overflow-hidden shadow-2xl relative flex flex-col h-[85vh]"
+            >
+              <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/5 shrink-0">
+                <div className="flex flex-col">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                    <Globe size={16} className="text-cyan-400" />
+                    官方白名单合规网址速查
+                  </h3>
+                  <span className="text-[10px] text-slate-500 uppercase font-mono tracking-wider mt-1">
+                    {result ? "关联检索：点击任意链接将自动复制当前检索式并直达合规平台" : "点击链接一键直达官方白名单合规检索平台"}
+                  </span>
+                </div>
+                <button 
+                  onClick={() => setIsQuickWhitelistOpen(false)} 
+                  className="text-slate-400 hover:text-white transition-colors p-1.5 cursor-pointer rounded-lg hover:bg-white/5"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 min-h-0 bg-slate-950/40">
+                <OfficialWhitelist 
+                  isInModal={true}
+                  initialSearchKw={quickSearchKw}
+                  onSelectLink={(wlItem) => {
+                    const queryToCopy = result ? (showMapped ? result.fieldSpecificQuery : result.booleanQuery) : null;
+                    
+                    if (queryToCopy) {
+                      if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(queryToCopy);
+                      } else {
+                        const textarea = document.createElement('textarea');
+                        textarea.style.position = 'fixed';
+                        textarea.style.opacity = '0';
+                        textarea.value = queryToCopy;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        try {
+                          document.execCommand('copy');
+                        } catch (err) {}
+                        document.body.removeChild(textarea);
+                      }
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                      setJumpDbName(wlItem.name);
+                    }
+                    window.open(wlItem.url, '_blank');
+                    setIsQuickWhitelistOpen(false); // Close quick dialog
+                  }}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Non-blocking database redirection toast and manual fallback */}
       <AnimatePresence>
         {jumpDbName && (
@@ -1642,18 +1853,21 @@ export default function App() {
               >
                 我知道了 (OK)
               </button>
-              {result && result.suggestedUrls && (
-                <a
-                  href={result.suggestedUrls.find(u => u.name === jumpDbName || (!jumpDbName && u))?.url || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 font-bold rounded-lg text-[10px] tracking-widest transition-all border border-emerald-500/30 flex items-center gap-1.5 uppercase"
-                  onClick={() => setJumpDbName(null)}
-                >
-                  手动前往 (GO)
-                  <ExternalLink size={11} />
-                </a>
-              )}
+              <a
+                href={
+                  (result && result.suggestedUrls && result.suggestedUrls.find(u => u.name === jumpDbName)?.url) ||
+                  DEFAULT_LINKS.find(u => u.name === jumpDbName)?.url ||
+                  (result && result.suggestedUrls && result.suggestedUrls[0]?.url) ||
+                  '#'
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 font-bold rounded-lg text-[10px] tracking-widest transition-all border border-emerald-500/30 flex items-center gap-1.5 uppercase"
+                onClick={() => setJumpDbName(null)}
+              >
+                手动前往 (GO)
+                <ExternalLink size={11} />
+              </a>
             </div>
           </motion.div>
         )}
