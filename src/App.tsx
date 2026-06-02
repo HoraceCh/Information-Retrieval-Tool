@@ -506,6 +506,18 @@ export default function App() {
   const [isQuickWhitelistOpen, setIsQuickWhitelistOpen] = useState(false);
   const [quickSearchKw, setQuickSearchKw] = useState("");
 
+  const [screenHeight, setScreenHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 800);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setScreenHeight(window.innerHeight);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [consecutiveFailures, setConsecutiveFailures] = useState(0);
 
@@ -1362,9 +1374,14 @@ export default function App() {
     };
 
     return (
-      <div className={`flex flex-col min-h-[350px] lg:min-h-[380px] bg-slate-900/30 border rounded-xl p-4 overflow-hidden relative flex-1 text-left ${
-        isModelA ? 'border-cyan-500/15 hover:border-cyan-500/25 bg-cyan-950/5' : 'border-purple-500/15 hover:border-purple-500/25 bg-purple-950/5'
-      }`}>
+      <div 
+        style={{
+          minHeight: screenHeight < 700 ? '250px' : screenHeight < 800 ? '300px' : '350px'
+        }}
+        className={`flex flex-col bg-slate-900/30 border rounded-xl p-4 overflow-hidden relative flex-1 text-left ${
+          isModelA ? 'border-cyan-500/15 hover:border-cyan-500/25 bg-cyan-950/5' : 'border-purple-500/15 hover:border-purple-500/25 bg-purple-950/5'
+        }`}
+      >
         {/* Card Header */}
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
@@ -1434,15 +1451,21 @@ export default function App() {
         ) : (
           <div className="flex-1 flex flex-col gap-3 min-h-0">
             {/* Query Formula Code box */}
-            <div className="flex-1 flex flex-col min-h-[140px] relative">
-              <div className="font-mono text-cyan-100 text-xs leading-relaxed overflow-y-auto custom-scrollbar select-all flex-1 p-3 bg-black/45 rounded-lg border border-white/5 min-h-[130px]">
+            <div className="flex-1 flex flex-col relative" style={{ minHeight: screenHeight < 700 ? '90px' : '130px' }}>
+              <div 
+                style={{
+                  height: screenHeight < 700 ? '90px' : screenHeight < 800 ? '110px' : '140px',
+                  minHeight: '80px'
+                }}
+                className="font-mono text-cyan-100 text-xs leading-relaxed overflow-y-auto custom-scrollbar select-all flex-1 p-3 bg-black/45 rounded-lg border border-white/5"
+              >
                 {queryStr}
               </div>
               
               {/* Copy Overlay Button */}
               <button 
                 onClick={handleCardCopy}
-                className="absolute right-2 text-slate-400 hover:text-white bottom-2 p-1.5 bg-slate-800/80 hover:bg-slate-700 border border-white/10 rounded-lg transition-all cursor-pointer"
+                className="absolute right-2 text-slate-400 hover:text-white bottom-2 p-1.5 bg-slate-800/80 hover:bg-slate-750 border border-white/10 rounded-lg transition-all cursor-pointer"
                 title="Copy code"
               >
                 {cardCopied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
@@ -1902,9 +1925,15 @@ export default function App() {
           )}
 
           {/* Formula Output Block */}
-          <div id="guided-output-panel" className={`flex flex-col flex-1 min-h-[300px] rounded-2xl border transition-all duration-700 relative overflow-hidden shadow-inner ${
-            result ? 'bg-cyan-950/20 border-cyan-500/30' : 'bg-slate-900/20 border-white/5 grayscale pointer-events-none'
-          }`}>
+          <div 
+            id="guided-output-panel" 
+            style={{ 
+              minHeight: screenHeight < 700 ? '220px' : screenHeight < 800 ? '260px' : '300px'
+            }}
+            className={`flex flex-col flex-1 rounded-2xl border transition-all duration-700 relative overflow-hidden shadow-inner ${
+              result ? 'bg-cyan-950/20 border-cyan-500/30' : 'bg-slate-900/20 border-white/5 grayscale pointer-events-none'
+            }`}
+          >
             <AnimatePresence>
               {result && (
                 <motion.div 
@@ -1993,7 +2022,15 @@ export default function App() {
                         </button>
                       </div>
                     )}
-                    <div className={`font-mono text-cyan-100 text-sm md:text-base leading-relaxed overflow-y-auto custom-scrollbar select-all min-h-[160px] p-4 bg-black/25 rounded-lg border border-cyan-500/15 w-full shrink-0 block ${result?._isLoading ? 'animate-pulse text-cyan-500/50' : ''}`}>
+                    <div 
+                      style={{
+                        height: feedbackRating > 0
+                          ? (screenHeight < 700 ? '90px' : '110px')
+                          : (screenHeight < 700 ? '110px' : screenHeight < 850 ? '140px' : '170px'),
+                        minHeight: '80px'
+                      }}
+                      className={`font-mono text-cyan-100 text-sm md:text-base leading-relaxed overflow-y-auto custom-scrollbar select-all p-4 bg-black/25 rounded-lg border border-cyan-500/15 w-full block ${result?._isLoading ? 'animate-pulse text-cyan-500/50' : ''}`}
+                    >
                       {result ? (showMapped ? (effectiveA.fieldSpecificQuery || effectiveA.booleanQuery) : effectiveA.booleanQuery) : "Formula will appear here..."}
                     </div>
 
@@ -2114,145 +2151,145 @@ export default function App() {
                       </div>
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* Optional Inline Rating / Feedback module */}
-              {result && !result._isLoading && (
-                <div id="guided-feedback-panel" className="mt-4 pt-4 border-t border-cyan-500/15 flex flex-col gap-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-cyan-300">
-                        {uiLang === 'zh' || i18n.language === 'mix' ? '检索意图评测与纠偏建议' : 'QUERY RELEVANCE RATING & BIAS ADVISOR'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] text-slate-400 mr-1.5">
-                        {uiLang === 'zh' || i18n.language === 'mix' ? '主观关联度评价:' : 'Relevance Score:'}
-                      </span>
-                      {[1, 2, 3, 4, 5].map((starVal) => (
-                        <button
-                          key={starVal}
-                          type="button"
-                          onClick={() => setFeedbackRating(starVal)}
-                          className="p-0.5 hover:scale-125 transition-transform cursor-pointer"
-                          title={`${starVal} ★`}
-                        >
-                          <Star 
-                            size={14} 
-                            fill={starVal <= feedbackRating ? "#22d3ee" : "transparent"} 
-                            className={starVal <= feedbackRating ? "text-cyan-400 font-bold" : "text-slate-600 hover:text-cyan-400/60"} 
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Feedback Form Subtitle / Dynamic Checklist */}
-                  {feedbackRating > 0 && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex flex-col gap-2.5 bg-black/30 border border-cyan-500/10 p-3 rounded-xl"
-                    >
-                      {/* Checklists */}
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 text-left">
-                          {uiLang === 'zh' || i18n.language === 'mix' ? '选择细节诊断标签(可选):' : 'Select quick tags (Optional):'}
-                        </span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {(feedbackRating >= 4 
-                            ? (uiLang === 'zh' || i18n.language === 'mix' ? ["准确度高", "同义词丰富", "算符逻辑正确", "字段映射合理"] : ["Accurate", "Rich Synonyms", "Correct Logic", "Perfect Fields"])
-                            : (uiLang === 'zh' || i18n.language === 'mix' ? ["缺失关键同义词", "逻辑算符有误", "范围过大/噪音多", "检索语种不符", "缺少核心概念"] : ["Missing Synonyms", "Operator Error", "Too Broad", "Wrong Language", "Missing Core"])
-                          ).map((tagStr) => {
-                            const isSelected = feedbackTags.includes(tagStr);
-                            return (
-                              <button
-                                key={tagStr}
-                                type="button"
-                                onClick={() => {
-                                  if (isSelected) {
-                                    setFeedbackTags(prev => prev.filter(t => t !== tagStr));
-                                  } else {
-                                    setFeedbackTags(prev => [...prev, tagStr]);
-                                  }
-                                }}
-                                className={`text-[10px] px-2.5 py-0.5 rounded transition-all font-bold border cursor-pointer select-none ${
-                                  isSelected 
-                                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/45 shadow-[0_0_8px_rgba(6,182,212,0.15)]' 
-                                    : 'bg-white/5 text-slate-400 border-transparent hover:bg-white/10'
-                                }`}
-                              >
-                                {tagStr}
-                              </button>
-                            );
-                          })}
+                  {/* Optional Inline Rating / Feedback module (Moved inside scrollable viewport so they continuous scroll together) */}
+                  {result && !result._isLoading && (
+                    <div id="guided-feedback-panel" className="mt-4 pt-4 border-t border-cyan-500/15 flex flex-col gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-cyan-300">
+                            {uiLang === 'zh' || i18n.language === 'mix' ? '检索意图评测与纠偏建议' : 'QUERY RELEVANCE RATING & BIAS ADVISOR'}
+                          </span>
                         </div>
-                      </div>
 
-                      {/* Custom Written comments */}
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex justify-between items-center">
-                          <label className="text-[10px] uppercase font-bold text-slate-400">
-                            {uiLang === 'zh' || i18n.language === 'mix' ? '具体修正意见与期望补充的同义词/算符逻辑 (可选):' : 'Custom correction intent / expected synonyms (Optional):'}
-                          </label>
-                          {feedbackRating <= 3 && (
-                            <span className="text-[9px] font-bold text-purple-400 uppercase tracking-widest animate-pulse leading-none select-none">
-                              🤖 支持 AI 意见拟合优化
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <input 
-                            type="text"
-                            value={feedbackWritten}
-                            onChange={(e) => setFeedbackWritten(e.target.value)}
-                            placeholder={
-                              feedbackRating >= 4 
-                                ? (uiLang === 'zh' || i18n.language === 'mix' ? "有何改进点？例如：'添加某些特定词汇'..." : "Any detail tips? e.g., 'Add specific close synonym'...") 
-                                : (uiLang === 'zh' || i18n.language === 'mix' ? "请说明具体问题，例如: '缺失xxx近义词且逻辑与应该为或'..." : "Describe query issues, e.g., 'missing synonym xxx' or 'operators nesting wrong'...")
-                            }
-                            className="flex-1 bg-black/45 border border-white/10 rounded-lg text-xs px-2.5 py-1.5 text-white placeholder-slate-600 focus:outline-[#06b6d4]"
-                          />
-
-                          <button
-                            type="button"
-                            onClick={handleFeedbackSubmitOnly}
-                            className="bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-300 border border-cyan-500/30 px-3 py-1.5 rounded-lg text-[10px] uppercase font-bold tracking-wider transition-all whitespace-nowrap active:scale-95 cursor-pointer"
-                          >
-                            {uiLang === 'zh' || i18n.language === 'mix' ? "提交评分" : "LOG FEEDBACK"}
-                          </button>
-                          
-                          {feedbackRating <= 3 && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-slate-400 mr-1.5">
+                            {uiLang === 'zh' || i18n.language === 'mix' ? '主观关联度评价:' : 'Relevance Score:'}
+                          </span>
+                          {[1, 2, 3, 4, 5].map((starVal) => (
                             <button
+                              key={starVal}
                               type="button"
-                              onClick={handleFeedbackRefine}
-                              disabled={isRefiningAI}
-                              className="bg-purple-600 hover:bg-purple-550 text-white shadow-[0_0_12px_rgba(168,85,247,0.3)] hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] border border-purple-500/40 px-3 py-1.5 rounded-lg text-[10px] uppercase font-black tracking-wider transition-all whitespace-nowrap active:scale-95 flex items-center gap-1 disabled:opacity-50 cursor-pointer"
+                              onClick={() => setFeedbackRating(starVal)}
+                              className="p-0.5 hover:scale-125 transition-transform cursor-pointer"
+                              title={`${starVal} ★`}
                             >
-                              {isRefiningAI ? (
-                                <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-0.5" />
-                              ) : (
-                                "🤖 AI 双向重构"
-                              )}
+                              <Star 
+                                size={14} 
+                                fill={starVal <= feedbackRating ? "#22d3ee" : "transparent"} 
+                                className={starVal <= feedbackRating ? "text-cyan-400 font-bold" : "text-slate-600 hover:text-cyan-400/60"} 
+                              />
                             </button>
-                          )}
+                          ))}
                         </div>
                       </div>
-                    </motion.div>
-                  )}
 
-                  {/* Feedback Action Alert Notification */}
-                  {feedbackNotice && (
-                    <motion.div 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="text-[11px] font-bold text-center text-cyan-400 py-1 bg-cyan-950/20 rounded border border-cyan-500/10 px-3 block font-mono text-left"
-                    >
-                      {feedbackNotice}
-                    </motion.div>
+                      {/* Feedback Form Subtitle / Dynamic Checklist */}
+                      {feedbackRating > 0 && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex flex-col gap-2.5 bg-black/30 border border-cyan-500/10 p-3 rounded-xl"
+                        >
+                          {/* Checklists */}
+                          <div className="flex flex-col gap-1.5">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 text-left">
+                              {uiLang === 'zh' || i18n.language === 'mix' ? '选择细节诊断标签(可选):' : 'Select quick tags (Optional):'}
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {(feedbackRating >= 4 
+                                ? (uiLang === 'zh' || i18n.language === 'mix' ? ["准确度高", "同义词丰富", "算符逻辑正确", "字段映射合理"] : ["Accurate", "Rich Synonyms", "Correct Logic", "Perfect Fields"])
+                                : (uiLang === 'zh' || i18n.language === 'mix' ? ["缺失关键同义词", "逻辑算符有误", "范围过大/噪音多", "检索语种不符", "缺少核心概念"] : ["Missing Synonyms", "Operator Error", "Too Broad", "Wrong Language", "Missing Core"])
+                              ).map((tagStr) => {
+                                const isSelected = feedbackTags.includes(tagStr);
+                                return (
+                                  <button
+                                    key={tagStr}
+                                    type="button"
+                                    onClick={() => {
+                                      if (isSelected) {
+                                        setFeedbackTags(prev => prev.filter(t => t !== tagStr));
+                                      } else {
+                                        setFeedbackTags(prev => [...prev, tagStr]);
+                                      }
+                                    }}
+                                    className={`text-[10px] px-2.5 py-0.5 rounded transition-all font-bold border cursor-pointer select-none ${
+                                      isSelected 
+                                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/45 shadow-[0_0_8px_rgba(6,182,212,0.15)]' 
+                                        : 'bg-white/5 text-slate-400 border-transparent hover:bg-white/10'
+                                    }`}
+                                  >
+                                    {tagStr}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Custom Written comments */}
+                          <div className="flex flex-col gap-1.5">
+                            <div className="flex justify-between items-center">
+                              <label className="text-[10px] uppercase font-bold text-slate-400">
+                                {uiLang === 'zh' || i18n.language === 'mix' ? '具体修正意见与期望补充的同义词/算符逻辑 (可选):' : 'Custom correction intent / expected synonyms (Optional):'}
+                              </label>
+                              {feedbackRating <= 3 && (
+                                <span className="text-[9px] font-bold text-purple-400 uppercase tracking-widest animate-pulse leading-none select-none">
+                                  🤖 支持 AI 意见拟合优化
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <input 
+                                type="text"
+                                value={feedbackWritten}
+                                onChange={(e) => setFeedbackWritten(e.target.value)}
+                                placeholder={
+                                  feedbackRating >= 4 
+                                    ? (uiLang === 'zh' || i18n.language === 'mix' ? "有何改进点？例如：'添加某些特定词汇'..." : "Any detail tips? e.g., 'Add specific close synonym'...") 
+                                    : (uiLang === 'zh' || i18n.language === 'mix' ? "请说明具体问题，例如: '缺失xxx近义词且逻辑与应该为或'..." : "Describe query issues, e.g., 'missing synonym xxx' or 'operators nesting wrong'...")
+                                }
+                                className="flex-1 bg-black/45 border border-white/10 rounded-lg text-xs px-2.5 py-1.5 text-white placeholder-slate-600 focus:outline-[#06b6d4]"
+                              />
+
+                              <button
+                                type="button"
+                                onClick={handleFeedbackSubmitOnly}
+                                className="bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-300 border border-cyan-500/30 px-3 py-1.5 rounded-lg text-[10px] uppercase font-bold tracking-wider transition-all whitespace-nowrap active:scale-95 cursor-pointer"
+                              >
+                                {uiLang === 'zh' || i18n.language === 'mix' ? "提交评分" : "LOG FEEDBACK"}
+                              </button>
+                              
+                              {feedbackRating <= 3 && (
+                                <button
+                                  type="button"
+                                  onClick={handleFeedbackRefine}
+                                  disabled={isRefiningAI}
+                                  className="bg-purple-600 hover:bg-purple-550 text-white shadow-[0_0_12px_rgba(168,85,247,0.3)] hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] border border-purple-500/40 px-3 py-1.5 rounded-lg text-[10px] uppercase font-black tracking-wider transition-all whitespace-nowrap active:scale-95 flex items-center gap-1 disabled:opacity-50 cursor-pointer"
+                                >
+                                  {isRefiningAI ? (
+                                    <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-0.5" />
+                                  ) : (
+                                    "🤖 AI 双向重构"
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* Feedback Action Alert Notification */}
+                      {feedbackNotice && (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="text-[11px] font-bold text-center text-cyan-400 py-1 bg-cyan-950/20 rounded border border-cyan-500/10 px-3 block font-mono text-left"
+                        >
+                          {feedbackNotice}
+                        </motion.div>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
