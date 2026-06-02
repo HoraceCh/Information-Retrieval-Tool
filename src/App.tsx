@@ -25,13 +25,15 @@ import {
   BarChart2,
   ExternalLink,
   Download,
-  WifiOff
+  WifiOff,
+  Star
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import { generateSearchQuery, SearchQueryResponse, ProviderConfig, testConnection } from "./services/gemini";
 import OfficialWhitelist, { DEFAULT_LINKS, LinkItem, DEFAULT_CATEGORIES, extractKeywords, scoreLink } from "./components/OfficialWhitelist";
 import OfflineDownloader from "./components/OfflineDownloader";
+import FeedbackAnalytics, { UserFeedback } from "./components/FeedbackAnalytics";
 
 const UI_STRINGS = {
   mix: {
@@ -319,11 +321,184 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'ai' | 'whitelist'>('ai');
   const [showInstallerModal, setShowInstallerModal] = useState(false);
   const [dbType, setDbType] = useState(DB_TYPES[0]);
+  const [operatorStyle, setOperatorStyle] = useState<"OR" | "Space">("OR");
   const [langPref, setLangPref] = useState("双语混合 (Bilingual)");
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<(SearchQueryResponse & { _inputLine: string; _isLoading?: boolean; _isError?: boolean })[]>([]);
+  const [results, setResults] = useState<(SearchQueryResponse & { 
+    _inputLine: string; 
+    _isLoading?: boolean; 
+    _isError?: boolean;
+    _fromCache?: boolean;
+    _compareResult?: SearchQueryResponse & { 
+      _isLoading?: boolean; 
+      _isError?: boolean;
+      _fromCache?: boolean;
+      modelName?: string; 
+      providerId?: string; 
+    };
+  })[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const result = results[activeIndex] || null;
+
+  // Custom keyword selectors and reconstructed query states
+  const [semanticActiveModel, setSemanticActiveModel] = useState<'A' | 'B'>('A');
+  const [selectedWords, setSelectedWords] = useState<Record<string, boolean>>({});
+
+  const isWordSelected = (isModelB: boolean, groupIdx: number, word: string) => {
+    const key = `${activeIndex}:${isModelB ? 'B' : 'A'}:${groupIdx}:${word}`;
+    return selectedWords[key] !== false;
+  };
+
+  const toggleWordSelection = (isModelB: boolean, groupIdx: number, word: string) => {
+    const key = `${activeIndex}:${isModelB ? 'B' : 'A'}:${groupIdx}:${word}`;
+    setSelectedWords(prev => ({
+      ...prev,
+      [key]: !isWordSelected(isModelB, groupIdx, word)
+    }));
+  };
+
+  const isGroupSelected = (isModelB: boolean, groupIdx: number, group: any) => {
+    if (!group) return false;
+    const allTerms = Array.from(new Set([
+      group.original,
+      ...(Array.isArray(group.zhSynonyms) ? group.zhSynonyms : []),
+      ...(Array.isArray(group.enSynonyms) ? group.enSynonyms : [])
+    ])).filter(Boolean) as string[];
+
+    return allTerms.some(term => isWordSelected(isModelB, groupIdx, term));
+  };
+
+  const toggleGroupSelection = (isModelB: boolean, groupIdx: number, group: any) => {
+    if (!group) return;
+    const allTerms = Array.from(new Set([
+      group.original,
+      ...(Array.isArray(group.zhSynonyms) ? group.zhSynonyms : []),
+      ...(Array.isArray(group.enSynonyms) ? group.enSynonyms : [])
+    ])).filter(Boolean) as string[];
+
+    const anyActive = allTerms.some(term => isWordSelected(isModelB, groupIdx, term));
+    
+    setSelectedWords(prev => {
+      const next = { ...prev };
+      allTerms.forEach(term => {
+        const key = `${activeIndex}:${isModelB ? 'B' : 'A'}:${groupIdx}:${term}`;
+        next[key] = !anyActive;
+      });
+      return next;
+    });
+  };
+
+  const getEffectiveQueries = (mResp: any, isModelB: boolean) => {
+    if (!mResp || !Array.isArray(mResp.keywords) || mResp._isError) {
+      return {
+        booleanQuery: mResp?.booleanQuery || "",
+        fieldSpecificQuery: mResp?.fieldSpecificQuery || "",
+        isCustomized: false
+      };
+    }
+
+    let isCustomized = false;
+    const groupsSelectedWords: string[][] = [];
+
+    mResp.keywords.forEach((group: any, groupIdx: number) => {
+      const allTerms = Array.from(new Set([
+        group.original,
+        ...(Array.isArray(group.zhSynonyms) ? group.zhSynonyms : []),
+        ...(Array.isArray(group.enSynonyms) ? group.enSynonyms : [])
+      ])).filter(Boolean) as string[];
+
+      const activeTerms: string[] = [];
+      allTerms.forEach((term) => {
+        const selected = isWordSelected(isModelB, groupIdx, term);
+        if (selected) {
+          activeTerms.push(term);
+        } else {
+          isCustomized = true;
+        }
+      });
+      groupsSelectedWords.push(activeTerms);
+    });
+
+    if (!isCustomized) {
+      return {
+        booleanQuery: mResp.booleanQuery,
+        fieldSpecificQuery: mResp.fieldSpecificQuery,
+        isCustomized: false
+      };
+    }
+
+    // Reconstruct booleanQuery
+    const isSpace = operatorStyle === "Space";
+    const booleanParts = groupsSelectedWords
+      .filter(terms => terms.length > 0)
+      .map(terms => {
+        if (terms.length === 1) return terms[0];
+        if (isSpace) {
+          return `(${terms.join(" ")})`;
+        } else {
+          return `(${terms.join(" OR ")})`;
+        }
+      });
+
+    const reconstructedBoolean = booleanParts.join(isSpace ? " " : " AND ");
+
+    // Reconstruct fieldSpecificQuery
+    let reconstructedFieldSpecific = "";
+    if (Array.isArray(mResp.schemaMapping) && mResp.schemaMapping.length > 0) {
+      const isCnki = dbType.includes("CNKI");
+      const isWanfang = dbType.includes("万方");
+      const isVip = dbType.includes("维普");
+      const isChineseDb = isCnki || isWanfang || isVip;
+
+      const mappingParts = mResp.schemaMapping.map((map: any) => {
+        const groupIdx = mResp.keywords.findIndex((g: any) => g.original === map.mappedConcept);
+        if (groupIdx === -1) return null;
+
+        const terms = groupsSelectedWords[groupIdx];
+        if (!terms || terms.length === 0) return null;
+
+        if (isCnki) {
+          const inner = terms.map(t => `'${t}'`).join(" + ");
+          return terms.length === 1 ? `${map.field} = ${inner}` : `${map.field} = (${inner})`;
+        } else if (isChineseDb) {
+          const inner = terms.join(" OR ");
+          return terms.length === 1 ? `${map.field} = ${inner}` : `${map.field} = (${inner})`;
+        } else {
+          const inner = isSpace ? terms.join(" ") : terms.join(" OR ");
+          return terms.length === 1 ? `${map.field}=${inner}` : `${map.field}=(${inner})`;
+        }
+      }).filter(Boolean);
+
+      if (mappingParts.length > 0) {
+        reconstructedFieldSpecific = mappingParts.join(isSpace ? " " : " AND ");
+      } else {
+        reconstructedFieldSpecific = reconstructedBoolean;
+      }
+    } else {
+      reconstructedFieldSpecific = reconstructedBoolean;
+    }
+
+    return {
+      booleanQuery: reconstructedBoolean || "无选定词 (No words selected)",
+      fieldSpecificQuery: reconstructedFieldSpecific || "无选定词 (No words selected)",
+      isCustomized: true
+    };
+  };
+
+  const handleResetWords = () => {
+    setSelectedWords(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach((key) => {
+        if (key.startsWith(`${activeIndex}:`)) {
+          delete next[key];
+        }
+      });
+      return next;
+    });
+  };
+
+  const effectiveA = useMemo(() => getEffectiveQueries(result, false), [result, selectedWords, activeIndex, operatorStyle, dbType]);
+
   const [copied, setCopied] = useState(false);
   const [jumpDbName, setJumpDbName] = useState<string | null>(null);
   const [error, setError] = useState<{ title: string; details: string } | null>(null);
@@ -375,11 +550,173 @@ export default function App() {
   const { t, i18n } = useTranslation();
   const uiLang = i18n.language;
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+
+  const [tourStep, setTourStep] = useState<number | null>(null);
+  const [tourBounds, setTourBounds] = useState<{ top: number; left: number; width: number; height: number; } | null>(null);
+
+  const TOUR_DEMO_RESULT: SearchQueryResponse = {
+    booleanQuery: '("Diabetic Retinopathy" OR "糖尿病视网膜病变" OR "糖网") AND ("Artificial Intelligence" OR "人工智能" OR "Deep Learning" OR "深度学习") AND ("Screening" OR "筛查" OR "Diagnosis" OR "诊断")',
+    fieldSpecificQuery: 'SU = ("Diabetic Retinopathy" + "糖尿病视网膜病变" + "糖网") AND SU = ("Artificial Intelligence" + "人工智能" + "Deep Learning" + "深度学习") AND SU = ("Screening" + "筛查" + "Diagnosis" + "诊断")',
+    keywords: [
+      {
+        original: "Diabetic Retinopathy",
+        zhSynonyms: ["糖尿病视网膜病变", "糖网", "糖尿病眼病"],
+        enSynonyms: ["Diabetic Retinopathy", "DR", "Diabetic Eye Disease"]
+      },
+      {
+        original: "Artificial Intelligence",
+        zhSynonyms: ["人工智能", "机器学习", "深度学习", "卷积神经网络"],
+        enSynonyms: ["Artificial Intelligence", "AI", "Machine Learning", "Deep Learning", "CNN"]
+      },
+      {
+        original: "Screening",
+        zhSynonyms: ["筛查", "早期诊断", "影像检测"],
+        enSynonyms: ["Screening", "Early Detection", "Diagnosis", "Image Analysis"]
+      }
+    ],
+    schemaMapping: [
+      {
+        field: "Title/Abstract",
+        mappedConcept: "Diabetic Retinopathy",
+        reason: "Core medical condition to filter literature strictly based on patient cohort."
+      },
+      {
+        field: "Keywords",
+        mappedConcept: "Artificial Intelligence",
+        reason: "Core methodological approach detailing the tech stack utilized in screening."
+      },
+      {
+        field: "Subject/Title",
+        mappedConcept: "Screening",
+        reason: "Clinical objective describing the actual application environment."
+      }
+    ],
+    explanation: "This query incorporates essential medical vocabularies (Diabetic Retinopathy, DR) combined with technical methodologies (AI, Deep Learning) and clinical tasks (Screening) ensuring high recall and precision on both PubMed and CNKI standards.",
+    suggestedUrls: [
+      { name: "PubMed", url: "https://pubmed.ncbi.nlm.nih.gov/" },
+      { name: "CNKI 知网学术", url: "https://kns.cnki.net/kns8s/" }
+    ],
+    _usage: {
+      promptTokens: 412,
+      completionTokens: 320,
+      totalTokens: 732
+    },
+    _reasoning: "First-stage clinical classification linked with high-level computing methodologies."
+  };
+
+  const startTour = () => {
+    setIsQuickWhitelistOpen(false);
+    setIsConfigOpen(false);
+    setIsHistoryOpen(false);
+    setActiveTab('ai');
+    
+    setTimeout(() => {
+      setResults([TOUR_DEMO_RESULT]);
+      setActiveIndex(0);
+      setTourStep(0);
+    }, 100);
+  };
+
+  const exitTour = () => {
+    setTourStep(null);
+    localStorage.setItem("visited-guided-search-v1.0", "true");
+  };
+
+  useEffect(() => {
+    if (tourStep === null) {
+      setTourBounds(null);
+      return;
+    }
+
+    const STEPS_TARGETS = [
+      "guided-input-panel",
+      "guided-config-panel",
+      "guided-output-panel",
+      "guided-refinement-panel",
+      "guided-feedback-panel"
+    ];
+
+    const targetId = STEPS_TARGETS[tourStep];
+    const updateBoundsForTour = () => {
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        const rect = el.getBoundingClientRect();
+        setTourBounds({
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height
+        });
+      } else {
+        setTourBounds(null);
+      }
+    };
+
+    const scrollTimer = setTimeout(updateBoundsForTour, 250);
+    const intervalTimer = setInterval(updateBoundsForTour, 600);
+    window.addEventListener('resize', updateBoundsForTour);
+    window.addEventListener('scroll', updateBoundsForTour, true);
+
+    return () => {
+      clearTimeout(scrollTimer);
+      clearInterval(intervalTimer);
+      window.removeEventListener('resize', updateBoundsForTour);
+      window.removeEventListener('scroll', updateBoundsForTour, true);
+    };
+  }, [tourStep]);
+
+  useEffect(() => {
+    const visited = localStorage.getItem("visited-guided-search-v1.0");
+    if (!visited) {
+      const initTourTimer = setTimeout(() => {
+        startTour();
+      }, 1500);
+      return () => clearTimeout(initTourTimer);
+    }
+  }, []);
+
+  const TOUR_STEPS = useMemo(() => [
+    {
+      targetId: "guided-input-panel",
+      title: uiLang === 'zh' || i18n.language === 'mix' ? "第一步：输入学术主题 / 检索意图" : "Step 1: Enter Academic Topic / Search Intent",
+      desc: uiLang === 'zh' || i18n.language === 'mix'
+        ? "在这里直接输入以人类自然语言描述的学术课题、科学探究。系统能够精准识别核心概念与逻辑因果并转化为最优布尔检索式。"
+        : "Type your academic research topic in standard, everyday natural language. The analyzer engine will map core concepts and operators automatically."
+    },
+    {
+      targetId: "guided-config-panel",
+      title: uiLang === 'zh' || i18n.language === 'mix' ? "第二步：数据库字段映射与模型偏好" : "Step 2: Database Schema & Comparing Models",
+      desc: uiLang === 'zh' || i18n.language === 'mix'
+        ? "配置目标引文数据库（如 CNKI、PubMed）。系统将按各库特定规则映射限定词标记（如 SU、MH）。在此开启【对比模式】还可以同时评测两个大模型，实现双端语法比对诊断！"
+        : "Select major citation databases (such as CNKI, PubMed, IEEE) to map logic query fields. Turn on 'Comparison Mode' to see results from Model A and Model B side-by-side!"
+    },
+    {
+      targetId: "guided-output-panel",
+      title: uiLang === 'zh' || i18n.language === 'mix' ? "第三步：公式自动构建与快捷入站检索" : "Step 3: Built Formula & Direct Whitelist Redirect",
+      desc: uiLang === 'zh' || i18n.language === 'mix'
+        ? "生成的标准布尔算式高亮展示。点击底部的数据库绿色/蓝色快捷按钮，系统会自动拷贝此公式并直接打开目标官方官网检索入口，您在新页面直接按 Ctrl+V 粘贴即可完成查找！"
+        : "High-contrast logic trees and field queries generated live. Click any targeted green/blue database whitelist shortcut buttons: we will copy the compiled string and instantly resolve to their official query page, so a quick Ctrl+V does the work!"
+    },
+    {
+      targetId: "guided-refinement-panel",
+      title: uiLang === 'zh' || i18n.language === 'mix' ? "第四步：语义关联词云与动态筛选重构" : "Step 4: Semantic Synonyms & Micro-Refinement",
+      desc: uiLang === 'zh' || i18n.language === 'mix'
+        ? "右侧查阅 AI 为您检索词多维扩展的中英文同义词列表。您可以【手动点击】任何关联词条来在此检索式中排除或重新包含它，整个布尔检索式随之全自动 0.1秒极速完成动态重构！"
+        : "Check dynamic synonym mappings on the right sidebar. Click individual terms or 'Clear All / Select All' to instantly add or remove concepts from your formula on the fly!"
+    },
+    {
+      targetId: "guided-feedback-panel",
+      title: uiLang === 'zh' || i18n.language === 'mix' ? "第五步：意图主观反馈与 AI 极速二轮纠偏" : "Step 5: Logging Feedback & Double-Tuning AI",
+      desc: uiLang === 'zh' || i18n.language === 'mix'
+        ? "如结果仍不完美，给算式评分、勾选痛点标签或写下期望改进细节（例如：'排除xx概念'），点击【🤖 AI 双向重构】。大模型将依据二轮纠偏规则重新校准检索权重，生成定制检索式！"
+        : "If the formula is not perfect, log ratings and choose details (e.g. 'add year constraint' or 'exclude clinical trial'), then click '🤖 AI Double-Tuning' to trigger deep refinement NLU weight optimization!"
+    }
+  ], [uiLang]);
   
   const [providers, setProviders] = useState<ProviderConfig[]>(DEFAULT_PROVIDERS);
   const [activeProviderId, setActiveProviderId] = useState<string>("gemini");
   const [activeModel, setActiveModel] = useState<string>("gemini-3.5-flash");
-  const [operatorStyle, setOperatorStyle] = useState<"OR" | "Space">("OR");
 
   const saveOperatorStyle = (style: "OR" | "Space") => {
     setOperatorStyle(style);
@@ -408,6 +745,199 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [jumpDbName]);
+
+  const [isCompareMode, setIsCompareMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("ai_retrieval_compare_mode") === "true";
+    } catch (_) {
+      return false;
+    }
+  });
+
+  const [compareProviderId, setCompareProviderId] = useState<string>(() => {
+    try {
+      return localStorage.getItem("ai_retrieval_compare_provider") || "deepseek";
+    } catch (_) {
+      return "deepseek";
+    }
+  });
+
+  const [compareModel, setCompareModel] = useState<string>(() => {
+    try {
+      return localStorage.getItem("ai_retrieval_compare_model") || "deepseek-v4-flash";
+    } catch (_) {
+      return "deepseek-v4-flash";
+    }
+  });
+
+  const [copyTarget, setCopyTarget] = useState<'A' | 'B' | null>(null);
+
+  const saveCompareMode = (val: boolean) => {
+    setIsCompareMode(val);
+    localStorage.setItem("ai_retrieval_compare_mode", String(val));
+  };
+
+  const saveCompareProviderId = (val: string) => {
+    setCompareProviderId(val);
+    localStorage.setItem("ai_retrieval_compare_provider", val);
+  };
+
+  const saveCompareModel = (val: string) => {
+    setCompareModel(val);
+    localStorage.setItem("ai_retrieval_compare_model", val);
+  };
+
+  const [feedbacks, setFeedbacks] = useState<UserFeedback[]>(() => {
+    try {
+      const stored = localStorage.getItem("ai_retrieval_feedbacks_v2");
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const saveFeedbacksLocally = (newFeedbacks: UserFeedback[]) => {
+    setFeedbacks(newFeedbacks);
+    localStorage.setItem("ai_retrieval_feedbacks_v2", JSON.stringify(newFeedbacks));
+  };
+
+  // Feedback form state per active generated index
+  const [feedbackRating, setFeedbackRating] = useState<number>(0);
+  const [feedbackWritten, setFeedbackWritten] = useState<string>("");
+  const [feedbackTags, setFeedbackTags] = useState<string[]>([]);
+  const [isRefiningAI, setIsRefiningAI] = useState(false);
+  const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
+  const [statsSubTab, setStatsSubTab] = useState<'traffic' | 'feedback'>('traffic');
+
+  // Reset form when index or query input changes
+  useEffect(() => {
+    setFeedbackRating(0);
+    setFeedbackWritten("");
+    setFeedbackTags([]);
+    setFeedbackNotice(null);
+  }, [activeIndex, result?._inputLine]);
+
+  const handleFeedbackSubmitOnly = () => {
+    if (!result) return;
+    if (feedbackRating === 0) {
+      setFeedbackNotice(uiLang === 'zh' || i18n.language === 'mix' ? "请点击星标评分 (1-5)" : "Please select a rating (1-5 stars)");
+      return;
+    }
+
+    const newFeedbackItem: UserFeedback = {
+      id: Date.now().toString(),
+      timestamp: Date.now(),
+      queryText: result._inputLine,
+      providerId: activeProviderId,
+      modelName: activeModel,
+      dbType,
+      rating: feedbackRating,
+      tags: feedbackTags,
+      writtenFeedback: feedbackWritten.trim(),
+      optimized: false
+    };
+
+    const updatedFeedbacks = [newFeedbackItem, ...feedbacks];
+    saveFeedbacksLocally(updatedFeedbacks);
+
+    setFeedbackNotice(uiLang === 'zh' || i18n.language === 'mix' ? "✓ 反馈已收集！这将用于持续校准底层 NLU 算符及词汇体系。" : "✓ Feedback logged! This will help adjust query operator weights.");
+    setFeedbackRating(0);
+    setFeedbackWritten("");
+    setFeedbackTags([]);
+  };
+
+  const handleFeedbackRefine = async () => {
+    if (!result || isRefiningAI) return;
+    
+    // Fallback if empty feedback submitted
+    const finalFeedbackText = `[Tags: ${feedbackTags.join(', ')}] ${feedbackWritten.trim()}`;
+    if (!feedbackWritten.trim() && feedbackTags.length === 0) {
+      setFeedbackNotice(uiLang === 'zh' || i18n.language === 'mix' ? "请叙述要修正的核心痛点或圈选纠偏标签，以启发 AI 算符重构。" : "Please suggest corrective criteria or tap filter tags to initialize AI optimizer.");
+      return;
+    }
+
+    setIsRefiningAI(true);
+    setFeedbackNotice(null);
+
+    // Swap results item loader
+    setResults(current => {
+      const next = [...current];
+      next[activeIndex] = {
+        ...next[activeIndex],
+        _isLoading: true,
+        booleanQuery: uiLang === 'zh' || i18n.language === 'mix' ? "正在读取反馈意图，对布尔嵌套算符进行逻辑精减纠偏..." : "Processing feedback guidelines, adjusting nested Boolean operators...",
+        fieldSpecificQuery: uiLang === 'zh' || i18n.language === 'mix' ? "正在依据反馈对特定数据库数据库模式字段进行重构..." : "Customizing query fields based on feedback..."
+      };
+      return next;
+    });
+
+    try {
+      const provider = providers.find(p => p.id === activeProviderId);
+      const resp = await generateSearchQuery(
+        result._inputLine,
+        dbType,
+        langPref,
+        activeModel,
+        provider,
+        operatorStyle,
+        finalFeedbackText
+      );
+
+      const finalResp = { ...resp, _inputLine: result._inputLine, _isLoading: false };
+
+      setResults(current => {
+        const next = [...current];
+        next[activeIndex] = finalResp;
+        return next;
+      });
+
+      // Log feedback metrics loop
+      const feedbackItem: UserFeedback = {
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        queryText: result._inputLine,
+        providerId: activeProviderId,
+        modelName: activeModel,
+        dbType,
+        rating: feedbackRating || 2, // Assume low evaluation triggered correction
+        tags: [...feedbackTags, uiLang === 'zh' || i18n.language === 'mix' ? "AI 拟合双向重构" : "AI Re-optimized"],
+        writtenFeedback: feedbackWritten.trim() || (uiLang === 'zh' || i18n.language === 'mix' ? "模型算符重排" : "Structured operators adjustment"),
+        optimized: true
+      };
+
+      const updatedFeedbacks = [feedbackItem, ...feedbacks];
+      saveFeedbacksLocally(updatedFeedbacks);
+
+      setFeedbackNotice(uiLang === 'zh' || i18n.language === 'mix' ? "✨ 检索算式已重构完毕！" : "✨ Query restructured successfully!");
+      setFeedbackRating(0);
+      setFeedbackWritten("");
+      setFeedbackTags([]);
+
+    } catch (e: any) {
+      console.error(e);
+      let errMsg = "AI correction failed.";
+      try {
+        const parsed = JSON.parse(e.message);
+        errMsg = parsed.details || parsed.title || errMsg;
+      } catch (_) {
+        errMsg = e.message || errMsg;
+      }
+
+      setResults(current => {
+        const next = [...current];
+        next[activeIndex] = {
+          ...result,
+          _isLoading: false,
+          explanation: `${uiLang === 'zh' || i18n.language === 'mix' ? '二次精炼失败/Error' : 'AI optimization failed'}: ${errMsg}`
+        };
+        return next;
+      });
+
+      setFeedbackNotice(uiLang === 'zh' || i18n.language === 'mix' ? `⚠️ 拟合精炼失败: ${errMsg}` : `⚠️ Refine failed: ${errMsg}`);
+    } finally {
+      setIsRefiningAI(false);
+    }
+  };
 
   const [debouncedInput, setDebouncedInput] = useState(input);
 
@@ -580,123 +1110,180 @@ export default function App() {
       _inputLine: line,
       _isLoading: true,
       keywords: [],
-      booleanQuery: "正在智能解析生成布尔逻辑式... (AI processing standard Boolean query...)",
-      fieldSpecificQuery: "正在根据数据库字段Schema生成专业检索式... (AI processing Field Specific query...)",
+      booleanQuery: isCompareMode ? "Model A 正在生成布尔逻辑式... (AI processing Model A standard Boolean query...)" : "正在智能解析生成布尔逻辑式... (AI processing standard Boolean query...)",
+      fieldSpecificQuery: isCompareMode ? "Model A 正在生成字段检索式..." : "正在根据数据库字段Schema生成专业检索式... (AI processing Field Specific query...)",
       schemaMapping: [],
-      explanation: "正在调用模型智能分析同义词并匹配高级检索策略...",
-      suggestedUrls: []
+      explanation: isCompareMode ? "正在调用大模型 A 检索策略..." : "正在调用模型智能分析同义词并匹配高级检索策略...",
+      suggestedUrls: [],
+      _compareResult: isCompareMode ? {
+        keywords: [],
+        booleanQuery: "Model B 正在生成布尔逻辑式... (AI processing Model B standard Boolean query...)",
+        fieldSpecificQuery: "Model B 正在生成字段检索式...",
+        schemaMapping: [],
+        explanation: "正在调用大模型 B 检索策略...",
+        suggestedUrls: [],
+        _isLoading: true
+      } : undefined
     }));
     setResults(initialResults);
     setActiveIndex(0);
 
     try {
-      const provider = providers.find(p => p.id === activeProviderId);
+      const providerA = providers.find(p => p.id === activeProviderId);
+      const providerB = providers.find(p => p.id === compareProviderId);
       
-      let totalTokens = 0;
-      let totalSuccesses = 0;
-      let totalFailures = 0;
+      let totalTokensA = 0;
+      let totalTokensB = 0;
+      let totalSuccessesA = 0;
+      let totalSuccessesB = 0;
+      let totalFailuresA = 0;
+      let totalFailuresB = 0;
       
       const newItems: HistoryItem[] = [];
 
       // Concurrently run all requests but resolve them dynamically to the UI!
       const promises = lines.map(async (line, idx) => {
+        let respA: any = null;
+        let respB: any = null;
+
+        // Model A runner
         try {
-          // Check local cache for instant retrieval speed optimization
-          const cachedResult = getLocalCache(line, dbType, langPref, activeModel, activeProviderId, operatorStyle);
-          let resp;
-          if (cachedResult) {
-            resp = { ...cachedResult, _fromCache: true, _inputLine: line };
+          const cachedResultA = getLocalCache(line, dbType, langPref, activeModel, activeProviderId, operatorStyle);
+          if (cachedResultA) {
+            respA = { ...cachedResultA, _fromCache: true };
           } else {
-            resp = await generateSearchQuery(line, dbType, langPref, activeModel, provider, operatorStyle);
-            // Save successful result to cache
-            setLocalCache(line, dbType, langPref, activeModel, activeProviderId, operatorStyle, resp);
+            respA = await generateSearchQuery(line, dbType, langPref, activeModel, providerA, operatorStyle);
+            setLocalCache(line, dbType, langPref, activeModel, activeProviderId, operatorStyle, respA);
           }
-
-          const finalResp = { ...resp, _inputLine: line, _isLoading: false };
-          
-          // Progressive UI update - immediately injects into results as soon as resolved!
-          setResults(current => {
-            const next = [...current];
-            next[idx] = finalResp;
-            return next;
-          });
-
-          const historyItem: HistoryItem = {
-            id: (Date.now() + idx).toString(),
-            timestamp: Date.now() + idx,
-            input: line,
-            dbType,
-            langPref,
-            result: finalResp
-          };
-
-          newItems.push(historyItem);
-          totalTokens += (resp._usage?.totalTokens || 0);
-          totalSuccesses++;
-          return finalResp;
+          totalTokensA += (respA._usage?.totalTokens || 0);
+          totalSuccessesA++;
         } catch (e: any) {
-          totalFailures++;
-          console.error(e);
-          
-          let errMsg = "An error occurred during query generation.";
+          totalFailuresA++;
+          console.error("Model A failed for line:", line, e);
+          let errMsgA = "An error occurred during query generation (Model A).";
           try {
             const parsed = JSON.parse(e.message);
-            errMsg = parsed.details || parsed.title || errMsg;
+            errMsgA = parsed.details || parsed.title || errMsgA;
           } catch (_) {
-            errMsg = e.message || errMsg;
+            errMsgA = e.message || errMsgA;
           }
-
-          const failedResp = {
-            _inputLine: line,
-            _isLoading: false,
+          respA = {
             _isError: true,
             keywords: [],
-            booleanQuery: "生成失败 / Generation Failed",
-            fieldSpecificQuery: "生成失败 / Generation Failed",
+            booleanQuery: "生成失败 / Generation Failed (Model A)",
+            fieldSpecificQuery: "生成失败 / Generation Failed (Model A)",
             schemaMapping: [],
-            explanation: errMsg,
+            explanation: errMsgA,
             suggestedUrls: []
           };
-
-          setResults(current => {
-            const next = [...current];
-            next[idx] = failedResp;
-            return next;
-          });
-
-          return null;
         }
+
+        // Model B runner if in compare mode
+        if (isCompareMode) {
+          try {
+            const cachedResultB = getLocalCache(line, dbType, langPref, compareModel, compareProviderId, operatorStyle);
+            if (cachedResultB) {
+              respB = { ...cachedResultB, _fromCache: true };
+            } else {
+              respB = await generateSearchQuery(line, dbType, langPref, compareModel, providerB, operatorStyle);
+              setLocalCache(line, dbType, langPref, compareModel, compareProviderId, operatorStyle, respB);
+            }
+            totalTokensB += (respB._usage?.totalTokens || 0);
+            totalSuccessesB++;
+          } catch (e: any) {
+            totalFailuresB++;
+            console.error("Model B failed for line:", line, e);
+            let errMsgB = "An error occurred during query generation (Model B).";
+            try {
+              const parsed = JSON.parse(e.message);
+              errMsgB = parsed.details || parsed.title || errMsgB;
+            } catch (_) {
+              errMsgB = e.message || errMsgB;
+            }
+            respB = {
+              _isError: true,
+              keywords: [],
+              booleanQuery: "生成失败 / Generation Failed (Model B)",
+              fieldSpecificQuery: "生成失败 / Generation Failed (Model B)",
+              schemaMapping: [],
+              explanation: errMsgB,
+              suggestedUrls: []
+            };
+          }
+        }
+
+        const finalResp = { 
+          ...respA, 
+          _inputLine: line, 
+          _isLoading: false,
+          _compareResult: isCompareMode && respB ? {
+            ...respB,
+            modelName: compareModel,
+            providerId: compareProviderId,
+            _isLoading: false
+          } : undefined
+        };
+        
+        // Progressive UI update - immediately injects into results as soon as resolved!
+        setResults(current => {
+          const next = [...current];
+          next[idx] = finalResp;
+          return next;
+        });
+
+        const historyItem: HistoryItem = {
+          id: (Date.now() + idx).toString(),
+          timestamp: Date.now() + idx,
+          input: line,
+          dbType,
+          langPref,
+          result: finalResp
+        };
+
+        newItems.push(historyItem);
+        return finalResp;
       });
 
       const resps = await Promise.all(promises);
-      const successfulResps = resps.filter(r => r !== null && !r._isError);
       
-      if (successfulResps.length > 0) {
+      if (resps.some(r => r !== null && (!r._isError || (r._compareResult && !r._compareResult._isError)))) {
         saveHistory([...newItems, ...history].slice(0, 50));
         setConsecutiveFailures(0);
       } else {
-        throw new Error(JSON.stringify({ title: "任务生成失败 / Generation Failed", details: "所有输入行的检索式并行生成任务均已失败，请检查API配置。 (All parallel tasks failed to generate.)" }));
+        throw new Error(JSON.stringify({ title: "任务生成失败 / Generation Failed", details: "大模型异步解析出错，请检查接口配置与网络连接。 (Model processing failed, check your configurations.)" }));
       }
       
       // Update Usage Stats
-      const provId = provider ? provider.id : activeProviderId;
-      const modName = activeModel;
-      const currentProvStats = usageStats[provId] || {};
-      const currentModStats = currentProvStats[modName] || { queries: 0, successes: 0, failures: 0, totalTokens: 0 };
-      
-      const updatedStats = {
-        ...usageStats,
-        [provId]: {
-          ...currentProvStats,
-          [modName]: {
-            ...currentModStats,
-            queries: currentModStats.queries + lines.length,
-            successes: currentModStats.successes + totalSuccesses,
-            failures: currentModStats.failures + totalFailures,
-            totalTokens: currentModStats.totalTokens + totalTokens
-          }
-        }
+      let updatedStats = { ...usageStats };
+
+      // Update for Model A
+      const provA = activeProviderId;
+      const modA = activeModel;
+      if (!updatedStats[provA]) updatedStats[provA] = {};
+      const currentModAStats = updatedStats[provA][modA] || { queries: 0, successes: 0, failures: 0, totalTokens: 0 };
+      updatedStats[provA][modA] = {
+        ...currentModAStats,
+        queries: currentModAStats.queries + lines.length,
+        successes: currentModAStats.successes + totalSuccessesA,
+        failures: currentModAStats.failures + totalFailuresA,
+        totalTokens: currentModAStats.totalTokens + totalTokensA
       };
+
+      // Update for Model B if compare mode
+      if (isCompareMode) {
+        const provB = compareProviderId;
+        const modB = compareModel;
+        if (!updatedStats[provB]) updatedStats[provB] = {};
+        const currentModBStats = updatedStats[provB][modB] || { queries: 0, successes: 0, failures: 0, totalTokens: 0 };
+        updatedStats[provB][modB] = {
+          ...currentModBStats,
+          queries: currentModBStats.queries + lines.length,
+          successes: currentModBStats.successes + totalSuccessesB,
+          failures: currentModBStats.failures + totalFailuresB,
+          totalTokens: currentModBStats.totalTokens + totalTokensB
+        };
+      }
+      
       saveUsageStats(updatedStats);
       
     } catch (err: any) {
@@ -744,6 +1331,178 @@ export default function App() {
     setResults([]);
     setActiveIndex(0);
     setError(null);
+  };
+
+  const renderCompareCard = (
+    title: string, 
+    mResp: any, 
+    modelName: string, 
+    isLoading: boolean, 
+    isModelA: boolean
+  ) => {
+    const isErr = mResp?._isError;
+    const isCached = mResp?._fromCache;
+    const hasMapping = mResp && !isLoading && showMapped && Array.isArray(mResp.schemaMapping) && mResp.schemaMapping.length > 0;
+    
+    // Use user-selected keywords logic dynamically
+    const effQueries = getEffectiveQueries(mResp, !isModelA);
+    const queryStr = mResp ? (showMapped ? (effQueries.fieldSpecificQuery || effQueries.booleanQuery) : effQueries.booleanQuery) : "";
+
+    const cardCopied = copied && copyTarget === (isModelA ? 'A' : 'B');
+
+    const handleCardCopy = () => {
+      if (!queryStr) return;
+      navigator.clipboard.writeText(queryStr);
+      setCopied(true);
+      setCopyTarget(isModelA ? 'A' : 'B');
+      setTimeout(() => {
+        setCopied(false);
+        setCopyTarget(null);
+      }, 2000);
+    };
+
+    return (
+      <div className={`flex flex-col min-h-[350px] lg:min-h-[380px] bg-slate-900/30 border rounded-xl p-4 overflow-hidden relative flex-1 text-left ${
+        isModelA ? 'border-cyan-500/15 hover:border-cyan-500/25 bg-cyan-950/5' : 'border-purple-500/15 hover:border-purple-500/25 bg-purple-950/5'
+      }`}>
+        {/* Card Header */}
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${isModelA ? 'bg-cyan-400' : 'bg-purple-400'} animate-pulse`}></span>
+            <span className={`text-[10px] font-extrabold uppercase tracking-wider ${isModelA ? 'text-cyan-300' : 'text-purple-300'}`}>
+              {title}
+            </span>
+            <span className="text-[10px] text-slate-500 font-mono truncate max-w-[120px]" title={modelName}>
+              ({modelName})
+            </span>
+          </div>
+
+          <div className="flex gap-1.5 shrink-0 items-center">
+            {effQueries.isCustomized && (
+              <span className={`inline-flex items-center px-1.5 py-0.5 border text-[8px] rounded-md font-bold uppercase tracking-widest font-mono select-none ${
+                isModelA 
+                  ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-400" 
+                  : "bg-purple-500/10 border-purple-500/30 text-purple-400"
+              }`}>
+                🎯 {uiLang === 'zh' || i18n.language === 'mix' ? "自定义" : "SELECTIVE"}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedWords(prev => {
+                      const next = { ...prev };
+                      Object.keys(next).forEach((key) => {
+                        if (key.startsWith(`${activeIndex}:${isModelA ? 'A' : 'B'}:`)) {
+                          delete next[key];
+                        }
+                      });
+                      return next;
+                    });
+                  }}
+                  className="ml-1 text-[8px] hover:underline hover:text-white transition-all cursor-pointer font-extrabold focus:outline-none"
+                  title="Reset selections for this model"
+                >
+                  ✖
+                </button>
+              </span>
+            )}
+            {isCached && (
+              <span className="inline-flex items-center px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[8px] rounded-md font-bold uppercase tracking-widest font-mono animate-fade-in shadow-[0_0_8px_rgba(16,185,129,0.15)]">
+                ⚡️ CACHED
+              </span>
+            )}
+            {mResp?._usage?.totalTokens && (
+              <span className="inline-flex items-center px-1.5 py-0.5 bg-white/5 border border-white/10 text-slate-400 text-[8px] rounded-md font-bold font-mono">
+                {mResp._usage.totalTokens} Tokens
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Content */}
+        {isLoading ? (
+          <div className="flex-1 flex flex-col justify-center items-center py-8 text-slate-500 text-xs gap-3">
+            <div className="w-5 h-5 border-2 border-white/20 border-t-cyan-400 rounded-full animate-spin" />
+            <span className="font-mono animate-pulse uppercase tracking-widest text-[10px]">
+              {uiLang === 'zh' || i18n.language === 'mix' ? "大模型并行求解中..." : "SOLVING DYNAMIC RETRIEVAL..."}
+            </span>
+          </div>
+        ) : isErr || !mResp ? (
+          <div className="flex-1 overflow-y-auto p-3 bg-red-500/5 rounded-lg border border-red-500/20 text-xs text-red-400 font-mono">
+            {mResp?.explanation || "Generation failed."}
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col gap-3 min-h-0">
+            {/* Query Formula Code box */}
+            <div className="flex-1 flex flex-col min-h-[140px] relative">
+              <div className="font-mono text-cyan-100 text-xs leading-relaxed overflow-y-auto custom-scrollbar select-all flex-1 p-3 bg-black/45 rounded-lg border border-white/5 min-h-[130px]">
+                {queryStr}
+              </div>
+              
+              {/* Copy Overlay Button */}
+              <button 
+                onClick={handleCardCopy}
+                className="absolute right-2 text-slate-400 hover:text-white bottom-2 p-1.5 bg-slate-800/80 hover:bg-slate-700 border border-white/10 rounded-lg transition-all cursor-pointer"
+                title="Copy code"
+              >
+                {cardCopied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+              </button>
+            </div>
+
+            {/* Explanation strategy */}
+            {mResp.explanation && (
+              <p className="text-[11px] text-slate-400 italic line-clamp-2" title={mResp.explanation}>
+                <span className="text-[9px] font-bold text-slate-500 uppercase mr-1 select-none font-mono">STRATEGY:</span> 
+                {mResp.explanation}
+              </p>
+            )}
+
+            {/* Field Mappings */}
+            {hasMapping && (
+              <div className="flex flex-col gap-1.5 mt-1 border-t border-white/5 pt-2 custom-scrollbar overflow-y-auto max-h-[100px] sm:max-h-[120px]">
+                <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Field mappings:</span>
+                <div className="space-y-1">
+                  {mResp.schemaMapping.map((map: any, i: number) => (
+                    <div key={i} className="flex items-center gap-1.5 text-[10px] bg-white/5 px-2 py-1 rounded">
+                      <span className="text-[8px] text-emerald-400 font-mono bg-emerald-400/5 border border-emerald-500/10 px-1 py-0.2 rounded shrink-0">[{map.field}]</span>
+                      <span className="text-slate-300 font-medium truncate max-w-[100px]">"{map.mappedConcept}"</span>
+                      <span className="text-slate-500 text-[9px] truncate flex-1 block">({map.reason})</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Direct Links inside the card */}
+            {Array.isArray(mResp.suggestedUrls) && mResp.suggestedUrls.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-1 border-t border-white/5 pt-2 shrink-0">
+                {mResp.suggestedUrls.map((urlItem: any, i: number) => (
+                  <a
+                    key={i}
+                    href={urlItem.url || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => {
+                      navigator.clipboard.writeText(queryStr);
+                      setCopied(true);
+                      setCopyTarget(isModelA ? 'A' : 'B');
+                      setTimeout(() => {
+                        setCopied(false);
+                        setCopyTarget(null);
+                      }, 2000);
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 hover:text-cyan-200 border border-cyan-500/25 rounded-md text-[10px] uppercase font-black tracking-widest transition-all"
+                  >
+                    <span>{urlItem.name || "GO"}</span>
+                    <ExternalLink size={10} />
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const restoreHistory = (item: HistoryItem) => {
@@ -858,6 +1617,21 @@ export default function App() {
             </div>
           )}
 
+          {/* Guided Search Walkthrough Button */}
+          <button
+            onClick={startTour}
+            className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 hover:from-cyan-500/20 hover:to-indigo-500/20 text-cyan-400 hover:text-cyan-300 border border-cyan-500/25 hover:border-cyan-500/45 rounded-xl transition-all cursor-pointer relative group shrink-0"
+            title="交互式检索学步引导 (Interactive Search Walkthrough)"
+          >
+            <Sparkles size={13} className="text-cyan-400 animate-pulse" />
+            <span className="text-xs font-extrabold tracking-wider uppercase font-mono">
+              {uiLang === 'zh' || i18n.language === 'mix' ? "新手引导" : "Tour 👋"}
+            </span>
+            <span className="absolute top-full mt-2.5 right-0 bg-[#0a0f18] border border-white/10 text-slate-200 text-[10px] px-2.5 py-1 rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-[110]">
+              💡 {uiLang === 'zh' || i18n.language === 'mix' ? "检索学步车：3分钟掌握智能公式生成与校准" : "Onboarding: Learn to generate & refine boolean query"}
+            </span>
+          </button>
+
           {/* Quick Help/Offline Installer Corner Button */}
           <button
             onClick={() => setShowInstallerModal(true)}
@@ -920,16 +1694,94 @@ export default function App() {
         {/* Left Column: Input & Formula Result */}
         <div className="flex-1 flex flex-col gap-6 overflow-hidden">
           {/* Input Block */}
-          <section className="flex-1 max-h-[230px] bg-slate-900/40 rounded-2xl border border-white/5 p-6 flex flex-col relative group transition-all hover:border-white/10 shadow-lg">
+          <section id="guided-input-panel" className="flex-1 max-h-[290px] bg-slate-900/40 rounded-2xl border border-white/5 p-6 flex flex-col relative group transition-all hover:border-white/10 shadow-lg select-none">
             <div className="absolute top-4 right-4 text-[10px] text-slate-500 font-mono tracking-tighter opacity-50">INPUT_NATURAL_LANGUAGE</div>
-            <label className="text-[11px] text-cyan-400/80 mb-3 uppercase font-bold tracking-[0.2em]">{t('inputLabel')}</label>
+            <label className="text-[11px] text-cyan-400/80 mb-2 uppercase font-bold tracking-[0.2em]">{t('inputLabel')}</label>
             
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={t('inputPlaceholder')}
-              className="flex-1 bg-transparent border-none outline-none resize-none text-xl text-slate-200 placeholder:text-slate-700 leading-relaxed font-medium custom-scrollbar overflow-y-auto"
+              className="flex-1 bg-transparent border-none outline-none resize-none text-xl text-slate-200 placeholder:text-slate-700 leading-relaxed font-medium custom-scrollbar overflow-y-auto min-h-[50px]"
             />
+
+            {/* Comparison Mode Configuration Bar */}
+            <div id="guided-config-panel" className="flex flex-wrap items-center gap-4 mt-2 py-2 px-1 border-t border-white/5">
+              {/* Checkbox Toggle Button */}
+              <button
+                type="button"
+                onClick={() => saveCompareMode(!isCompareMode)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all text-xs font-bold leading-none cursor-pointer select-none ${
+                  isCompareMode 
+                    ? "bg-purple-500/10 border-purple-500/30 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.15)] hover:bg-purple-500/20" 
+                    : "bg-white/5 border-white/5 text-slate-400 hover:text-slate-300 hover:bg-white/10"
+                }`}
+              >
+                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${isCompareMode ? "border-purple-400 bg-purple-500" : "border-slate-500"}`}>
+                  {isCompareMode && <Check size={11} className="text-white font-extrabold stroke-[3px]" />}
+                </div>
+                <span>{uiLang === 'zh' || i18n.language === 'mix' ? "📊 对比模式" : "📊 Comparison Mode"}</span>
+              </button>
+
+              {/* Model Selectors */}
+              <div className="flex items-center gap-4 flex-wrap text-xs">
+                {/* Model A Dropdown */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase font-bold text-slate-500">
+                    {uiLang === 'zh' || i18n.language === 'mix' ? "大模型 A:" : "Model A:"}
+                  </span>
+                  <select
+                    value={`${activeProviderId}:${activeModel}`}
+                    onChange={(e) => {
+                      const [provId, modName] = e.target.value.split(':');
+                      saveActiveProviderId(provId);
+                      saveActiveModel(modName);
+                    }}
+                    className="bg-black/50 border border-white/10 px-2.5 py-1.5 rounded-lg text-xs text-sky-400 focus:outline-none focus:border-cyan-500/50 cursor-pointer font-mono font-semibold"
+                  >
+                    {providers.map(p => {
+                      const mods = p.models.split(',').map(m => m.trim()).filter(Boolean);
+                      return mods.map(m => (
+                        <option key={`${p.id}:${m}`} value={`${p.id}:${m}`} className="bg-[#05070A]">
+                          {p.name.substring(0, 10)} - {m}
+                        </option>
+                      ));
+                    })}
+                  </select>
+                </div>
+
+                {isCompareMode && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }} 
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center gap-1.5"
+                  >
+                    <span className="font-extrabold text-purple-400 text-xs select-none">VS</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-500">
+                      {uiLang === 'zh' || i18n.language === 'mix' ? "大模型 B:" : "Model B:"}
+                    </span>
+                    <select
+                      value={`${compareProviderId}:${compareModel}`}
+                      onChange={(e) => {
+                        const [provId, modName] = e.target.value.split(':');
+                        saveCompareProviderId(provId);
+                        saveCompareModel(modName);
+                      }}
+                      className="bg-black/50 border border-white/10 px-2.5 py-1.5 rounded-lg text-xs text-purple-400 focus:outline-none focus:border-purple-500/50 cursor-pointer font-mono font-semibold"
+                    >
+                      {providers.map(p => {
+                        const mods = p.models.split(',').map(m => m.trim()).filter(Boolean);
+                        return mods.map(m => (
+                          <option key={`${p.id}:${m}`} value={`${p.id}:${m}`} className="bg-[#05070A]">
+                            {p.name.substring(0, 10)} - {m}
+                          </option>
+                        ));
+                      })}
+                    </select>
+                  </motion.div>
+                )}
+              </div>
+            </div>
 
             <div className="mt-4 flex flex-wrap justify-between items-center pt-4 border-t border-white/5 gap-4">
               <div className="flex items-center gap-6">
@@ -1050,7 +1902,7 @@ export default function App() {
           )}
 
           {/* Formula Output Block */}
-          <div className={`flex flex-col flex-1 min-h-[300px] rounded-2xl border transition-all duration-700 relative overflow-hidden shadow-inner ${
+          <div id="guided-output-panel" className={`flex flex-col flex-1 min-h-[300px] rounded-2xl border transition-all duration-700 relative overflow-hidden shadow-inner ${
             result ? 'bg-cyan-950/20 border-cyan-500/30' : 'bg-slate-900/20 border-white/5 grayscale pointer-events-none'
           }`}>
             <AnimatePresence>
@@ -1063,13 +1915,15 @@ export default function App() {
               )}
             </AnimatePresence>
             
-            <div className="p-6 flex-1 flex flex-col min-h-0 relative z-10">
-              <div className="flex justify-between items-start mb-4">
+            <div className="p-4 md:p-5 flex-1 flex flex-col min-h-0 relative z-10 font-sans">
+              <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] text-cyan-400/80 uppercase font-bold tracking-[0.2em]">{t('formulaTitle')}</label>
-                  {result && result._fromCache && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] rounded-full font-bold uppercase tracking-widest animate-pulse">
-                      <Sparkles size={11} className="text-emerald-400" /> ⚡️ {uiLang === 'zh' || i18n.language === 'mix' ? '缓存加速' : 'CACHE SPEEDUP'}
+                  <label className="text-[11px] text-cyan-400/80 uppercase font-bold tracking-[0.2em]">
+                    {isCompareMode ? (uiLang === 'zh' || i18n.language === 'mix' ? "大模型双语语义比对诊断" : "AI MODEL COMPARISON DIAGNOSIS") : t('formulaTitle')}
+                  </label>
+                  {result && (result._fromCache || result._compareResult?._fromCache) && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] rounded-full font-bold uppercase tracking-widest animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+                      <Sparkles size={11} className="text-emerald-400" /> ⚡️ {uiLang === 'zh' || i18n.language === 'mix' ? '缓存加速' : 'CACHE ACTIVE'}
                     </span>
                   )}
                 </div>
@@ -1077,7 +1931,7 @@ export default function App() {
                   <div className="flex bg-black/40 rounded-lg p-1 border border-cyan-500/20">
                     <button
                       onClick={() => setShowMapped(false)}
-                      className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1.5 rounded transition-all ${
+                      className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1.5 rounded transition-all cursor-pointer ${
                         !showMapped ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'
                       }`}
                     >
@@ -1085,7 +1939,7 @@ export default function App() {
                     </button>
                     <button
                       onClick={() => setShowMapped(true)}
-                      className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1.5 rounded transition-all ${
+                      className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1.5 rounded transition-all cursor-pointer ${
                         showMapped ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'
                       }`}
                     >
@@ -1095,126 +1949,311 @@ export default function App() {
                 )}
               </div>
               
-              <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-                <div className={`font-mono text-cyan-100 text-base leading-relaxed overflow-y-auto custom-scrollbar select-all flex-1 min-h-[150px] p-4 bg-black/20 rounded-lg border border-cyan-500/10 ${result?._isLoading ? 'animate-pulse text-cyan-500/50' : ''}`}>
-                  {result ? (showMapped ? (result.fieldSpecificQuery || result.booleanQuery) : result.booleanQuery) : "Formula will appear here..."}
+              {!result ? (
+                <div className="flex-1 flex flex-col justify-center items-center text-slate-600 text-xs gap-3">
+                  <span className="font-mono tracking-widest uppercase">
+                    {uiLang === 'zh' || i18n.language === 'mix' ? "请在上方输入自然语言检索式并生成" : "No formulas generated yet"}
+                  </span>
                 </div>
-
-                {result && result._isLoading && (
-                  <div className="flex-1 overflow-y-auto custom-scrollbar mt-2 space-y-2">
-                    <h4 className="text-[10px] text-cyan-400/50 font-mono tracking-widest uppercase mb-3 animate-pulse">正在提取概念并映射数据库字段格式 (Mapping custom DB fields)...</h4>
-                    {[1, 2].map((i) => (
-                      <div key={i} className="h-10 bg-white/5 border border-white/5 rounded-lg animate-pulse" />
-                    ))}
+              ) : isCompareMode ? (
+                /* COMPARISON MODE SIDE BY SIDE CARDS */
+                <div className="flex-1 flex flex-col gap-3 overflow-hidden min-h-0 mb-2">
+                  <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0 overflow-y-auto custom-scrollbar">
+                    {renderCompareCard(
+                      uiLang === 'zh' || i18n.language === 'mix' ? "大模型 A (主流模型)" : "Model A (Active)", 
+                      result, 
+                      activeModel, 
+                      result._isLoading ?? false, 
+                      true
+                    )}
+                    {renderCompareCard(
+                      uiLang === 'zh' || i18n.language === 'mix' ? "大模型 B (比对模型)" : "Model B (Comparison)", 
+                      result._compareResult, 
+                      compareModel, 
+                      result._compareResult?._isLoading ?? (result._isLoading ?? false), 
+                      false
+                    )}
                   </div>
-                )}
-
-                {result && !result._isLoading && showMapped && Array.isArray(result.schemaMapping) && result.schemaMapping.length > 0 && (
-                  <div className="flex-1 overflow-y-auto custom-scrollbar mt-2">
-                    <h4 className="text-[10px] text-cyan-400/70 font-mono tracking-widest uppercase mb-3">Field Mapping Logic</h4>
-                    <div className="space-y-2">
-                      {result.schemaMapping.map((map, i) => (
-                        <div key={i} className="flex flex-col sm:flex-row sm:items-baseline gap-2 bg-white/5 border border-white/5 p-3 rounded-lg text-sm">
-                          <div className="flex items-center gap-2 min-w-[120px]">
-                            <span className="text-[10px] text-emerald-400 font-mono bg-emerald-400/10 px-1.5 py-0.5 rounded">[{map.field}]</span>
-                          </div>
-                          <div className="flex-1 text-slate-300 text-xs">
-                            <span className="text-cyan-200 font-medium">"{map.mappedConcept}"</span> - <span className="opacity-70">{map.reason}</span>
-                          </div>
+                </div>
+              ) : (
+                /* ORIGINAL SINGLE MODEL DISPLAY VIEWPORT */
+                <div className="flex-1 flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-1 min-h-0">
+                  <div className="flex flex-col gap-3 w-full shrink-0">
+                    {effectiveA.isCustomized && (
+                      <div className="flex justify-between items-center bg-cyan-950/40 border border-cyan-500/20 px-3 py-1.5 rounded-lg text-[10px] text-cyan-300 font-mono tracking-wide animate-fade-in mb-1 shrink-0">
+                        <div className="flex items-center gap-1.5">
+                          <Sparkles size={11} className="text-cyan-400 animate-pulse" />
+                          <span>{uiLang === 'zh' || i18n.language === 'mix' ? "已应用选定的关键词组合（实时构建）" : "Active keyword selections applied (live reconstructed)"}</span>
                         </div>
+                        <button 
+                          onClick={handleResetWords}
+                          className="text-cyan-400 font-bold hover:text-cyan-200 underline cursor-pointer focus:outline-none"
+                        >
+                          {uiLang === 'zh' || i18n.language === 'mix' ? "重置所有选择" : "Reset choices"}
+                        </button>
+                      </div>
+                    )}
+                    <div className={`font-mono text-cyan-100 text-sm md:text-base leading-relaxed overflow-y-auto custom-scrollbar select-all min-h-[160px] p-4 bg-black/25 rounded-lg border border-cyan-500/15 w-full shrink-0 block ${result?._isLoading ? 'animate-pulse text-cyan-500/50' : ''}`}>
+                      {result ? (showMapped ? (effectiveA.fieldSpecificQuery || effectiveA.booleanQuery) : effectiveA.booleanQuery) : "Formula will appear here..."}
+                    </div>
+
+                    {result && result._isLoading && (
+                      <div className="flex-1 overflow-y-auto custom-scrollbar mt-2 space-y-2">
+                        <h4 className="text-[10px] text-cyan-400/50 font-mono tracking-widest uppercase mb-3 animate-pulse">正在提取概念并映射数据库字段格式 (Mapping custom DB fields)...</h4>
+                        {[1, 2].map((i) => (
+                          <div key={i} className="h-10 bg-white/5 border border-white/5 rounded-lg animate-pulse" />
+                        ))}
+                      </div>
+                    )}
+
+                    {result && !result._isLoading && showMapped && Array.isArray(result.schemaMapping) && result.schemaMapping.length > 0 && (
+                      <div className="flex-1 overflow-y-auto custom-scrollbar mt-2">
+                        <h4 className="text-[10px] text-cyan-400/70 font-mono tracking-widest uppercase mb-3">Field Mapping Logic</h4>
+                        <div className="space-y-2">
+                          {result.schemaMapping.map((map, i) => (
+                            <div key={i} className="flex flex-col sm:flex-row sm:items-baseline gap-2 bg-white/5 border border-white/5 p-3 rounded-lg text-sm">
+                              <div className="flex items-center gap-2 min-w-[120px]">
+                                <span className="text-[10px] text-emerald-400 font-mono bg-emerald-400/10 px-1.5 py-0.5 rounded">[{map.field}]</span>
+                              </div>
+                              <div className="flex-1 text-slate-300 text-xs">
+                                <span className="text-cyan-200 font-medium">"{map.mappedConcept}"</span> - <span className="opacity-70">{map.reason}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {result && !result._isLoading && (
+                    <div className="mt-3.5 pt-2.5 border-t border-cyan-500/15 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2.5 w-full shrink-0">
+                      <span className="text-[10px] text-cyan-500/60 font-mono italic flex items-center gap-2 shrink-0">
+                        <Check size={10} className="text-emerald-500" /> {t('processedWith')}
+                      </span>
+                      <div className="flex flex-wrap items-center gap-2 max-w-full lg:justify-end justify-start">
+                        <button 
+                          onClick={() => handleCopy(showMapped ? (effectiveA.fieldSpecificQuery || effectiveA.booleanQuery) : effectiveA.booleanQuery)}
+                          className="text-[11px] text-cyan-400 hover:text-cyan-300 font-black tracking-widest flex items-center gap-1.5 transition-all mr-2"
+                        >
+                          {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                          {copied ? t('copied') : t('copyCode')}
+                        </button>
+                        
+                        {Array.isArray(result.suggestedUrls) && result.suggestedUrls.map((urlItem, i) => (
+                          <a
+                            key={i}
+                            href={urlItem.url || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                              const queryToCopy = effectiveA.fieldSpecificQuery || effectiveA.booleanQuery;
+                              
+                              // Clipboard copy
+                              if (navigator.clipboard && navigator.clipboard.writeText) {
+                                navigator.clipboard.writeText(queryToCopy);
+                              } else {
+                                const textarea = document.createElement('textarea');
+                                textarea.style.position = 'fixed';
+                                textarea.style.opacity = '0';
+                                textarea.value = queryToCopy;
+                                document.body.appendChild(textarea);
+                                textarea.select();
+                                try {
+                                  document.execCommand('copy');
+                                } catch (err) {}
+                                document.body.removeChild(textarea);
+                              }
+                              
+                              setCopied(true);
+                              setTimeout(() => setCopied(false), 2000);
+                              setJumpDbName(urlItem.name || "数据库 (Database)");
+                            }}
+                            className="px-3 py-1.5 bg-emerald-600/20 text-emerald-400 text-[10px] font-bold rounded-lg border border-emerald-500/30 transition-all flex items-center gap-1.5 hover:bg-emerald-600/30 uppercase tracking-widest animate-fade-in"
+                          >
+                            {urlItem.name || t('directSearch')}
+                            <ExternalLink size={12} />
+                          </a>
+                        ))}
+
+                        {/* Matched official whitelist database shortcuts */}
+                        {matchingWhitelistLinks.map((wlItem, wlIdx) => (
+                          <button
+                            key={`matched-wl-${wlIdx}`}
+                            onClick={() => {
+                              const queryToCopy = showMapped ? (effectiveA.fieldSpecificQuery || effectiveA.booleanQuery) : effectiveA.booleanQuery;
+                              
+                              // Clipboard copy
+                              if (navigator.clipboard && navigator.clipboard.writeText) {
+                                navigator.clipboard.writeText(queryToCopy);
+                              } else {
+                                const textarea = document.createElement('textarea');
+                                textarea.style.position = 'fixed';
+                                textarea.style.opacity = '0';
+                                textarea.value = queryToCopy;
+                                document.body.appendChild(textarea);
+                                textarea.select();
+                                try {
+                                  document.execCommand('copy');
+                                } catch (err) {}
+                                document.body.removeChild(textarea);
+                              }
+                              
+                              setCopied(true);
+                              setTimeout(() => setCopied(false), 2000);
+                              setJumpDbName(wlItem.name);
+                              window.open(wlItem.url, '_blank');
+                            }}
+                            className="px-3 py-1.5 bg-cyan-600/20 text-cyan-400 text-[10px] font-bold rounded-lg border border-cyan-500/30 transition-all flex items-center gap-1.5 hover:bg-cyan-600/30 uppercase tracking-widest animate-fade-in cursor-pointer"
+                            title={`官方白名单: ${wlItem.name}`}
+                          >
+                            <span>{wlItem.name}</span>
+                            <Globe size={11} className="text-cyan-400" />
+                            <ExternalLink size={11} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Optional Inline Rating / Feedback module */}
+              {result && !result._isLoading && (
+                <div id="guided-feedback-panel" className="mt-4 pt-4 border-t border-cyan-500/15 flex flex-col gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-cyan-300">
+                        {uiLang === 'zh' || i18n.language === 'mix' ? '检索意图评测与纠偏建议' : 'QUERY RELEVANCE RATING & BIAS ADVISOR'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-slate-400 mr-1.5">
+                        {uiLang === 'zh' || i18n.language === 'mix' ? '主观关联度评价:' : 'Relevance Score:'}
+                      </span>
+                      {[1, 2, 3, 4, 5].map((starVal) => (
+                        <button
+                          key={starVal}
+                          type="button"
+                          onClick={() => setFeedbackRating(starVal)}
+                          className="p-0.5 hover:scale-125 transition-transform cursor-pointer"
+                          title={`${starVal} ★`}
+                        >
+                          <Star 
+                            size={14} 
+                            fill={starVal <= feedbackRating ? "#22d3ee" : "transparent"} 
+                            className={starVal <= feedbackRating ? "text-cyan-400 font-bold" : "text-slate-600 hover:text-cyan-400/60"} 
+                          />
+                        </button>
                       ))}
                     </div>
                   </div>
-                )}
-              </div>
 
-              {result && !result._isLoading && (
-                <div className="mt-4 pt-3 border-t border-cyan-500/20 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 w-full">
-                  <span className="text-[10px] text-cyan-500/60 font-mono italic flex items-center gap-2 shrink-0">
-                    <Check size={10} className="text-emerald-500" /> {t('processedWith')}
-                  </span>
-                  <div className="flex flex-wrap items-center gap-2 max-w-full lg:justify-end justify-start">
-                    <button 
-                      onClick={() => handleCopy(showMapped ? (result.fieldSpecificQuery || result.booleanQuery) : result.booleanQuery)}
-                      className="text-[11px] text-cyan-400 hover:text-cyan-300 font-black tracking-widest flex items-center gap-1.5 transition-all mr-2"
+                  {/* Feedback Form Subtitle / Dynamic Checklist */}
+                  {feedbackRating > 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-col gap-2.5 bg-black/30 border border-cyan-500/10 p-3 rounded-xl"
                     >
-                      {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                      {copied ? t('copied') : t('copyCode')}
-                    </button>
-                    
-                    {Array.isArray(result.suggestedUrls) && result.suggestedUrls.map((urlItem, i) => (
-                      <a
-                        key={i}
-                        href={urlItem.url || '#'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => {
-                          const queryToCopy = result.fieldSpecificQuery || result.booleanQuery;
-                          
-                          // Robust clipboard copy mechanism
-                          if (navigator.clipboard && navigator.clipboard.writeText) {
-                            navigator.clipboard.writeText(queryToCopy);
-                          } else {
-                            const textarea = document.createElement('textarea');
-                            textarea.style.position = 'fixed'; // Avoid scrolling
-                            textarea.style.opacity = '0';
-                            textarea.value = queryToCopy;
-                            document.body.appendChild(textarea);
-                            textarea.select();
-                            try {
-                              document.execCommand('copy');
-                            } catch (err) {}
-                            document.body.removeChild(textarea);
-                          }
-                          
-                          setCopied(true);
-                          setTimeout(() => setCopied(false), 2000);
-                          setJumpDbName(urlItem.name || "数据库 (Database)");
-                        }}
-                        className="px-3 py-1.5 bg-emerald-600/20 text-emerald-400 text-[10px] font-bold rounded-lg border border-emerald-500/30 transition-all flex items-center gap-1.5 hover:bg-emerald-600/30 uppercase tracking-widest animate-fade-in"
-                      >
-                        {urlItem.name || t('directSearch')}
-                        <ExternalLink size={12} />
-                      </a>
-                    ))}
+                      {/* Checklists */}
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 text-left">
+                          {uiLang === 'zh' || i18n.language === 'mix' ? '选择细节诊断标签(可选):' : 'Select quick tags (Optional):'}
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(feedbackRating >= 4 
+                            ? (uiLang === 'zh' || i18n.language === 'mix' ? ["准确度高", "同义词丰富", "算符逻辑正确", "字段映射合理"] : ["Accurate", "Rich Synonyms", "Correct Logic", "Perfect Fields"])
+                            : (uiLang === 'zh' || i18n.language === 'mix' ? ["缺失关键同义词", "逻辑算符有误", "范围过大/噪音多", "检索语种不符", "缺少核心概念"] : ["Missing Synonyms", "Operator Error", "Too Broad", "Wrong Language", "Missing Core"])
+                          ).map((tagStr) => {
+                            const isSelected = feedbackTags.includes(tagStr);
+                            return (
+                              <button
+                                key={tagStr}
+                                type="button"
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setFeedbackTags(prev => prev.filter(t => t !== tagStr));
+                                  } else {
+                                    setFeedbackTags(prev => [...prev, tagStr]);
+                                  }
+                                }}
+                                className={`text-[10px] px-2.5 py-0.5 rounded transition-all font-bold border cursor-pointer select-none ${
+                                  isSelected 
+                                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/45 shadow-[0_0_8px_rgba(6,182,212,0.15)]' 
+                                    : 'bg-white/5 text-slate-400 border-transparent hover:bg-white/10'
+                                }`}
+                              >
+                                {tagStr}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
 
-                    {/* Matched official whitelist database shortcuts */}
-                    {matchingWhitelistLinks.map((wlItem, wlIdx) => (
-                      <button
-                        key={`matched-wl-${wlIdx}`}
-                        onClick={() => {
-                          const queryToCopy = showMapped ? (result.fieldSpecificQuery || result.booleanQuery) : result.booleanQuery;
+                      {/* Custom Written comments */}
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex justify-between items-center">
+                          <label className="text-[10px] uppercase font-bold text-slate-400">
+                            {uiLang === 'zh' || i18n.language === 'mix' ? '具体修正意见与期望补充的同义词/算符逻辑 (可选):' : 'Custom correction intent / expected synonyms (Optional):'}
+                          </label>
+                          {feedbackRating <= 3 && (
+                            <span className="text-[9px] font-bold text-purple-400 uppercase tracking-widest animate-pulse leading-none select-none">
+                              🤖 支持 AI 意见拟合优化
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <input 
+                            type="text"
+                            value={feedbackWritten}
+                            onChange={(e) => setFeedbackWritten(e.target.value)}
+                            placeholder={
+                              feedbackRating >= 4 
+                                ? (uiLang === 'zh' || i18n.language === 'mix' ? "有何改进点？例如：'添加某些特定词汇'..." : "Any detail tips? e.g., 'Add specific close synonym'...") 
+                                : (uiLang === 'zh' || i18n.language === 'mix' ? "请说明具体问题，例如: '缺失xxx近义词且逻辑与应该为或'..." : "Describe query issues, e.g., 'missing synonym xxx' or 'operators nesting wrong'...")
+                            }
+                            className="flex-1 bg-black/45 border border-white/10 rounded-lg text-xs px-2.5 py-1.5 text-white placeholder-slate-600 focus:outline-[#06b6d4]"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={handleFeedbackSubmitOnly}
+                            className="bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-300 border border-cyan-500/30 px-3 py-1.5 rounded-lg text-[10px] uppercase font-bold tracking-wider transition-all whitespace-nowrap active:scale-95 cursor-pointer"
+                          >
+                            {uiLang === 'zh' || i18n.language === 'mix' ? "提交评分" : "LOG FEEDBACK"}
+                          </button>
                           
-                          // Clipboard copy
-                          if (navigator.clipboard && navigator.clipboard.writeText) {
-                            navigator.clipboard.writeText(queryToCopy);
-                          } else {
-                            const textarea = document.createElement('textarea');
-                            textarea.style.position = 'fixed';
-                            textarea.style.opacity = '0';
-                            textarea.value = queryToCopy;
-                            document.body.appendChild(textarea);
-                            textarea.select();
-                            try {
-                              document.execCommand('copy');
-                            } catch (err) {}
-                            document.body.removeChild(textarea);
-                          }
-                          
-                          setCopied(true);
-                          setTimeout(() => setCopied(false), 2000);
-                          setJumpDbName(wlItem.name);
-                          window.open(wlItem.url, '_blank');
-                        }}
-                        className="px-3 py-1.5 bg-cyan-600/20 text-cyan-400 text-[10px] font-bold rounded-lg border border-cyan-500/30 transition-all flex items-center gap-1.5 hover:bg-cyan-600/30 uppercase tracking-widest animate-fade-in cursor-pointer"
-                        title={`官方白名单: ${wlItem.name}`}
-                      >
-                        <span>{wlItem.name}</span>
-                        <Globe size={11} className="text-cyan-400" />
-                        <ExternalLink size={11} />
-                      </button>
-                    ))}
-                  </div>
+                          {feedbackRating <= 3 && (
+                            <button
+                              type="button"
+                              onClick={handleFeedbackRefine}
+                              disabled={isRefiningAI}
+                              className="bg-purple-600 hover:bg-purple-550 text-white shadow-[0_0_12px_rgba(168,85,247,0.3)] hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] border border-purple-500/40 px-3 py-1.5 rounded-lg text-[10px] uppercase font-black tracking-wider transition-all whitespace-nowrap active:scale-95 flex items-center gap-1 disabled:opacity-50 cursor-pointer"
+                            >
+                              {isRefiningAI ? (
+                                <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-0.5" />
+                              ) : (
+                                "🤖 AI 双向重构"
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Feedback Action Alert Notification */}
+                  {feedbackNotice && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="text-[11px] font-bold text-center text-cyan-400 py-1 bg-cyan-950/20 rounded border border-cyan-500/10 px-3 block font-mono text-left"
+                    >
+                      {feedbackNotice}
+                    </motion.div>
+                  )}
                 </div>
               )}
             </div>
@@ -1224,7 +2263,7 @@ export default function App() {
         {/* Right Column: Semantics & Explanation */}
         <aside className="w-80 flex flex-col gap-6 overflow-hidden">
           {/* Keywords panel */}
-          <div className="flex-1 bg-slate-900/60 rounded-2xl border border-white/5 flex flex-col overflow-hidden shadow-2xl">
+          <div id="guided-refinement-panel" className="flex-1 bg-slate-900/60 rounded-2xl border border-white/5 flex flex-col overflow-hidden shadow-2xl">
             <div className="p-6 border-b border-white/5">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-1 h-3 bg-cyan-500 rounded-full"></div>
@@ -1234,6 +2273,29 @@ export default function App() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+              {isCompareMode && result && result._compareResult && (
+                <div className="flex bg-black/40 rounded-lg p-1 border border-white/5 mb-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setSemanticActiveModel('A')}
+                    className={`flex-1 text-[9px] uppercase font-black tracking-wider py-1.5 rounded transition-all cursor-pointer ${
+                      semanticActiveModel === 'A' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    Model A {uiLang === 'zh' || i18n.language === 'mix' ? "词表" : "Terms"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSemanticActiveModel('B')}
+                    className={`flex-1 text-[9px] uppercase font-black tracking-wider py-1.5 rounded transition-all cursor-pointer ${
+                      semanticActiveModel === 'B' ? 'bg-purple-500/20 text-purple-300' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    Model B {uiLang === 'zh' || i18n.language === 'mix' ? "词表" : "Terms"}
+                  </button>
+                </div>
+              )}
+
               <AnimatePresence mode="popLayout">
                 {result && result._isLoading ? (
                   // Nice skeleton cards during active progressive streaming
@@ -1253,49 +2315,128 @@ export default function App() {
                       </div>
                     </div>
                   ))
-                ) : result && Array.isArray(result.keywords) && result.keywords.length > 0 ? (
-                  result.keywords.map((group, idx) => (
-                    <motion.div
-                      key={group.original}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.1 }}
-                      className="p-4 rounded-xl bg-white/5 border border-white/10 group hover:border-cyan-500/30 transition-all"
-                    >
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-[10px] font-mono text-cyan-400 opacity-70">#0{idx + 1} {t('coreKeyword')}</span>
-                        <div className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.5)]"></div>
-                      </div>
-                      <p className="text-sm font-black text-white mb-3 uppercase tracking-tight">{group.original}</p>
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        <span className="text-[9px] font-mono text-slate-600 uppercase">ZH:</span>
-                        {Array.isArray(group.zhSynonyms) && group.zhSynonyms.map((syn, sIdx) => (
-                          <span 
-                            key={`zh-${sIdx}`}
-                            className="text-[10px] font-medium bg-white/5 border border-white/10 px-2 py-0.5 rounded text-slate-300 hover:text-cyan-400 transition-colors"
-                          >
-                            {syn}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        <span className="text-[9px] font-mono text-slate-600 uppercase">EN:</span>
-                        {Array.isArray(group.enSynonyms) && group.enSynonyms.map((syn, sIdx) => (
-                          <span 
-                            key={`en-${sIdx}`}
-                            className="text-[10px] font-medium bg-cyan-950/30 border border-cyan-500/20 px-2 py-0.5 rounded text-cyan-200 italic hover:text-cyan-100 transition-colors"
-                          >
-                            {syn}
-                          </span>
-                        ))}
-                      </div>
-                    </motion.div>
-                  ))
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full opacity-10 py-12">
-                     <Search size={40} />
-                     <p className="mt-4 text-[10px] font-mono tracking-tighter uppercase">{t('waitingInput')}</p>
-                  </div>
+                  (() => {
+                    const activeSemanticResponse = (isCompareMode && semanticActiveModel === 'B') ? result?._compareResult : result;
+                    const isSemanticB = isCompareMode && semanticActiveModel === 'B';
+
+                    if (activeSemanticResponse && Array.isArray(activeSemanticResponse.keywords) && activeSemanticResponse.keywords.length > 0) {
+                      return (
+                        <div className="space-y-4">
+                          {activeSemanticResponse.keywords.map((group, idx) => (
+                            <motion.div
+                              key={group.original}
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: idx * 0.1 }}
+                              className="p-4 rounded-xl bg-white/5 border border-white/10 group hover:border-cyan-500/30 transition-all text-left animate-fade-in"
+                            >
+                              <div className="flex justify-between items-center mb-3">
+                                <span className={`text-[10px] font-mono opacity-100 ${isSemanticB ? 'text-purple-400' : 'text-cyan-400'}`}>#0{idx + 1} {t('coreKeyword')}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleGroupSelection(isSemanticB, idx, group)}
+                                  className={`px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase transition-all cursor-pointer ${
+                                    isGroupSelected(isSemanticB, idx, group)
+                                      ? (isSemanticB ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30")
+                                      : "bg-slate-800/40 text-slate-500 border border-transparent"
+                                  }`}
+                                  title={uiLang === 'zh' || i18n.language === 'mix' ? "切换整组词的选定状态" : "Toggle all terms in group"}
+                                >
+                                  {isGroupSelected(isSemanticB, idx, group)
+                                    ? (uiLang === 'zh' || i18n.language === 'mix' ? "取消整组" : "CLEAR ALL")
+                                    : (uiLang === 'zh' || i18n.language === 'mix' ? "选择整组" : "SELECT ALL")
+                                  }
+                                </button>
+                              </div>
+                              
+                              <div className="flex items-center gap-1.5 mb-3 select-none">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleWordSelection(isSemanticB, idx, group.original)}
+                                  className={`p-1.5 rounded-lg flex items-center justify-between flex-1 transition-all border text-left cursor-pointer ${
+                                    isWordSelected(isSemanticB, idx, group.original)
+                                      ? (isSemanticB ? "bg-purple-950/45 border-purple-500/50 text-white font-bold" : "bg-cyan-950/45 border-cyan-500/50 text-white font-bold")
+                                      : "opacity-40 line-through border-transparent text-slate-500 bg-black/10"
+                                  }`}
+                                >
+                                  <span className="text-xs uppercase tracking-tight truncate font-sans font-medium">{group.original}</span>
+                                  <span className="text-[9px] font-mono opacity-80 uppercase shrink-0">
+                                    {isWordSelected(isSemanticB, idx, group.original) ? "✓" : "✖"}
+                                  </span>
+                                </button>
+                              </div>
+
+                              <div className="flex flex-wrap gap-1.5 mb-2.5 items-center select-none">
+                                <span className="text-[9px] font-mono text-slate-600 uppercase w-5 shrink-0 text-left">ZH:</span>
+                                <div className="flex-1 flex flex-wrap gap-1">
+                                  {Array.isArray(group.zhSynonyms) && group.zhSynonyms.length > 0 ? (
+                                    group.zhSynonyms.map((syn, sIdx) => {
+                                      const active = isWordSelected(isSemanticB, idx, syn);
+                                      return (
+                                        <button
+                                          type="button"
+                                          key={`zh-${sIdx}`}
+                                          onClick={() => toggleWordSelection(isSemanticB, idx, syn)}
+                                          className={`text-[10px] font-medium px-2 py-0.5 rounded transition-all flex items-center gap-1 border cursor-pointer ${
+                                            active
+                                              ? (isSemanticB ? "bg-purple-500/15 border-purple-500/40 text-purple-300" : "bg-cyan-500/15 border-cyan-500/40 text-cyan-300")
+                                              : "bg-black/15 border-transparent text-slate-500 opacity-40 line-through"
+                                          }`}
+                                        >
+                                          {syn}
+                                        </button>
+                                      );
+                                    })
+                                  ) : (
+                                    <span className="text-[10px] text-slate-600 italic">None</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap gap-1.5 items-center select-none">
+                                <span className="text-[9px] font-mono text-slate-600 uppercase w-5 shrink-0 text-left">EN:</span>
+                                <div className="flex-1 flex flex-wrap gap-1">
+                                  {Array.isArray(group.enSynonyms) && group.enSynonyms.length > 0 ? (
+                                    group.enSynonyms.map((syn, sIdx) => {
+                                      const active = isWordSelected(isSemanticB, idx, syn);
+                                      return (
+                                        <button
+                                          type="button"
+                                          key={`en-${sIdx}`}
+                                          onClick={() => toggleWordSelection(isSemanticB, idx, syn)}
+                                          className={`text-[10px] font-medium px-2 py-0.5 rounded transition-all flex items-center gap-1 border cursor-pointer italic ${
+                                            active
+                                              ? (isSemanticB ? "bg-purple-500/15 border-purple-500/40 text-purple-300" : "bg-cyan-500/15 border-cyan-500/40 text-cyan-300")
+                                              : "bg-black/15 border-transparent text-slate-500 opacity-40 line-through"
+                                          }`}
+                                        >
+                                          {syn}
+                                        </button>
+                                      );
+                                    })
+                                  ) : (
+                                    <span className="text-[10px] text-slate-600 italic">None</span>
+                                  )}
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                          
+                          <p className="text-[9px] text-slate-500 mt-2 hover:text-slate-400 transition-colors uppercase font-mono tracking-tighter leading-normal select-none">
+                            💡 {uiLang === 'zh' || i18n.language === 'mix' ? "提示：点击词条可在此检索式中排除或重新包含该关联词" : "Tip: click terms to exclude or include them in final query formula"}
+                          </p>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="flex flex-col items-center justify-center h-full opacity-10 py-12 select-none">
+                          <Search size={40} />
+                          <p className="mt-4 text-[10px] font-mono tracking-tighter uppercase">{t('waitingInput')}</p>
+                        </div>
+                      );
+                    }
+                  })()
                 )}
               </AnimatePresence>
             </div>
@@ -1403,8 +2544,48 @@ export default function App() {
                 </button>
               </div>
 
+              {/* Sub-tab selection indicator */}
+              <div className="px-6 py-0 border-b border-white/5 bg-slate-900/40 flex justify-start shrink-0 select-none gap-4">
+                <button
+                  type="button"
+                  onClick={() => setStatsSubTab('traffic')}
+                  className={`text-[11px] font-bold uppercase tracking-widest py-2.5 border-b-2 transition-all cursor-pointer ${
+                    statsSubTab === 'traffic' ? 'text-cyan-300 border-cyan-500' : 'text-slate-500 border-transparent hover:text-slate-300'
+                  }`}
+                >
+                  {uiLang === 'zh' || i18n.language === 'mix' ? '大模型吞吐统计 / Tokens' : 'Token Usage'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatsSubTab('feedback')}
+                  className={`text-[11px] font-bold uppercase tracking-widest py-2.5 border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+                    statsSubTab === 'feedback' ? 'text-cyan-300 border-cyan-500' : 'text-slate-500 border-transparent hover:text-slate-300'
+                  }`}
+                >
+                  {uiLang === 'zh' || i18n.language === 'mix' ? '主观评测与纠偏反馈' : 'Feedback Analytics'}
+                  {feedbacks.length > 0 && (
+                    <span className="px-1.5 py-0.2 bg-cyan-500/20 text-cyan-300 text-[9px] rounded-full scale-90 font-black">
+                      {feedbacks.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+
               <div className="flex-1 overflow-y-auto p-6 bg-slate-900/50 custom-scrollbar">
-                {Object.keys(usageStats).length === 0 ? (
+                {statsSubTab === 'feedback' ? (
+                  <FeedbackAnalytics 
+                    feedbacks={feedbacks}
+                    onClearAll={() => {
+                      if (window.confirm(uiLang === 'zh' || i18n.language === 'mix' ? "确定要清空所有的纠偏反馈分析数据吗？" : "Are you sure you want to delete all feedback logs?")) {
+                        saveFeedbacksLocally([]);
+                      }
+                    }}
+                    onDeleteOne={(id) => {
+                      saveFeedbacksLocally(feedbacks.filter(f => f.id !== id));
+                    }}
+                    lang={uiLang}
+                  />
+                ) : Object.keys(usageStats).length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 text-slate-500 opacity-50">
                     <BarChart2 size={48} className="mb-4" />
                     <p className="text-sm uppercase tracking-widest font-bold">{t('statsNoData')}</p>
@@ -1840,7 +3021,7 @@ export default function App() {
                   isInModal={true}
                   initialSearchKw={quickSearchKw}
                   onSelectLink={(wlItem) => {
-                    const queryToCopy = result ? (showMapped ? (result.fieldSpecificQuery || result.booleanQuery) : result.booleanQuery) : null;
+                    const queryToCopy = result ? (showMapped ? (effectiveA.fieldSpecificQuery || effectiveA.booleanQuery) : effectiveA.booleanQuery) : null;
                     
                     if (queryToCopy) {
                       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1870,7 +3051,7 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
-
+ 
       {/* Non-blocking database redirection toast and manual fallback */}
       <AnimatePresence>
         {jumpDbName && (
@@ -1906,11 +3087,11 @@ export default function App() {
                 如新标签页未弹出，说明被您的浏览器拦截。请点击下方“手动前往”链接直接进入。入站后直接按 <span className="text-cyan-400 font-mono font-bold">Ctrl+V</span> (或 Cmd+V) 粘贴您的专属检索式即可！
               </p>
             </div>
-
+ 
             <div className="flex justify-between items-center bg-black/50 p-2.5 rounded-lg border border-white/5 gap-2 overflow-hidden">
               <span className="text-[9px] font-mono text-slate-500 uppercase shrink-0">CLIPBOARD:</span>
               <span className="text-[10px] font-mono text-cyan-300 truncate select-all">
-                {result ? (showMapped ? (result.fieldSpecificQuery || result.booleanQuery) : result.booleanQuery) : ""}
+                {result ? (showMapped ? (effectiveA.fieldSpecificQuery || effectiveA.booleanQuery) : effectiveA.booleanQuery) : ""}
               </span>
             </div>
 
@@ -1979,6 +3160,188 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Guided Search spotlight mask and popup card */}
+      {tourStep !== null && (
+        <div className="fixed inset-0 z-[990] pointer-events-none select-none">
+          <svg className="absolute inset-0 w-full h-full pointer-events-auto">
+            <defs>
+              <mask id="tour-spotlight-mask">
+                <rect width="100%" height="100%" fill="white" />
+                {tourBounds && (
+                  <rect
+                    x={tourBounds.left - 6}
+                    y={tourBounds.top - 6}
+                    width={tourBounds.width + 12}
+                    height={tourBounds.height + 12}
+                    rx={12}
+                    fill="black"
+                  />
+                )}
+              </mask>
+            </defs>
+            <rect
+              width="100%"
+              height="100%"
+              fill="#020617"
+              fillOpacity={0.78}
+              mask="url(#tour-spotlight-mask)"
+            />
+          </svg>
+
+          {/* Animated breathing highlight border overlay around the cutout bounds */}
+          {tourBounds && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: 1,
+                boxShadow: [
+                  "0 0 15px rgba(34,211,238,0.3)",
+                  "0 0 35px rgba(34,211,238,0.65)",
+                  "0 0 15px rgba(34,211,238,0.3)"
+                ],
+                borderColor: [
+                  "rgba(34,211,238,0.45)",
+                  "rgba(168,85,247,0.78)",
+                  "rgba(34,211,238,0.45)"
+                ]
+              }}
+              exit={{ opacity: 0 }}
+              className="fixed border-2 rounded-2xl pointer-events-none z-[995] transition-all duration-300"
+              style={{
+                top: tourBounds.top - 8,
+                left: tourBounds.left - 8,
+                width: tourBounds.width + 16,
+                height: tourBounds.height + 16,
+              }}
+              transition={{
+                duration: 2.2,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+          )}
+        </div>
+      )}
+
+      {tourStep !== null && (
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 15 }}
+            className="fixed z-[1000] w-96 bg-slate-900/95 border border-cyan-500/30 rounded-2xl p-5 shadow-[0_25px_60px_rgba(0,0,0,0.85),0_0_40px_rgba(6,182,212,0.15)] backdrop-blur-xl flex flex-col gap-4 text-left pointer-events-auto"
+            style={(() => {
+              if (!tourBounds) {
+                return {
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                };
+              }
+              
+              const tooltipWidth = 384; 
+              const tooltipHeight = 250;
+              const margin = 20;
+              const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+              const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 768;
+              
+              let top = tourBounds.top + tourBounds.height + margin;
+              let left = tourBounds.left + tourBounds.width / 2 - tooltipWidth / 2;
+              
+              if (left < margin) left = margin;
+              if (left + tooltipWidth > screenWidth - margin) {
+                left = screenWidth - tooltipWidth - margin;
+              }
+              
+              if (top + tooltipHeight > screenHeight - margin) {
+                top = tourBounds.top - tooltipHeight - margin;
+              }
+              if (top < margin) {
+                top = Math.max(margin, tourBounds.top + tourBounds.height / 2 - tooltipHeight / 2);
+                if (tourBounds.left > tooltipWidth + margin) {
+                  left = tourBounds.left - tooltipWidth - margin;
+                } else {
+                  left = tourBounds.left + tourBounds.width + margin;
+                }
+              }
+              
+              return {
+                top: `${top}px`,
+                left: `${left}px`,
+              };
+            })()}
+          >
+            {/* Step header */}
+            <div className="flex justify-between items-center bg-black/20 -mx-5 -mt-5 px-5 py-3 border-b border-white/5 rounded-t-2xl select-none">
+              <span className="text-[10px] uppercase font-black tracking-widest text-cyan-400 font-mono">
+                Guided Walkthrough ({tourStep + 1} / 5)
+              </span>
+              <button
+                onClick={exitTour}
+                className="text-slate-500 hover:text-white transition-colors p-1"
+                title="Exit Tour"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Step body */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-black text-white leading-tight uppercase flex items-center gap-2 select-none">
+                <span className="w-1.5 h-3 bg-cyan-500 rounded-full shrink-0"></span>
+                {TOUR_STEPS[tourStep].title}
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                {TOUR_STEPS[tourStep].desc}
+              </p>
+            </div>
+
+            {/* Progress dots & Actions */}
+            <div className="flex justify-between items-center mt-2 border-t border-white/5 pt-3 select-none">
+              <div className="flex gap-1.5">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <button
+                    key={i}
+                    onClick={() => setTourStep(i)}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      tourStep === i ? 'w-4 bg-cyan-400' : 'bg-slate-700 hover:bg-slate-500'
+                    }`}
+                  />
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                {tourStep > 0 && (
+                  <button
+                    onClick={() => setTourStep(tourStep - 1)}
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 font-bold rounded-lg text-[10px] tracking-wider uppercase transition-all border border-white/5 cursor-pointer"
+                  >
+                    {uiLang === 'zh' || i18n.language === 'mix' ? "上一步" : "Prev"}
+                  </button>
+                )}
+                
+                {tourStep < 4 ? (
+                  <button
+                    onClick={() => setTourStep(tourStep + 1)}
+                    className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-lg text-[10px] tracking-wider uppercase transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] flex items-center gap-1 group cursor-pointer"
+                  >
+                    {uiLang === 'zh' || i18n.language === 'mix' ? "下一步" : "Next"}
+                    <span className="translate-x-0 group-hover:translate-x-0.5 transition-transform">→</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={exitTour}
+                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-lg text-[10px] tracking-widest uppercase transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] cursor-pointer"
+                  >
+                    {uiLang === 'zh' || i18n.language === 'mix' ? "完成探索" : "Finish"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      )}
     </div>
   );
 }

@@ -122,7 +122,8 @@ export async function generateSearchQuery(
   languagePref: string = "双语混合",
   modelName: string = "gemini-3.5-flash",
   provider?: ProviderConfig,
-  operatorStyle: "OR" | "Space" = "OR"
+  operatorStyle: "OR" | "Space" = "OR",
+  feedback?: string
 ): Promise<SearchQueryResponse> {
   const targetDB = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请根据用户的检索词自动判断最合适的一个目标学术数据库或搜索引擎（例如：CNKI、Web of Science、PubMed、专利数据库等），并在解释中说明为何选择该库。" : targetDatabase;
   const schemaInfo = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请自行匹配该目标数据库的常用检索语法与字段代码。" : (DB_SCHEMAS[targetDatabase] || DB_SCHEMAS["通用搜索引擎 (Baidu/Bing)"]);
@@ -130,10 +131,10 @@ export async function generateSearchQuery(
   const operatorInstruct = operatorStyle === "Space" 
     ? "Strictly use Space (single whitespace character) instead of 'OR' to connect synonyms/alternative terms in booleanQuery and fieldSpecificQuery. For example, use '(A B)' instead of '(A OR B)'. No 'OR' word should appear as logical disjunction."
     : "Strictly use standard 'OR' operator to connect synonyms/alternative terms in booleanQuery and fieldSpecificQuery. For example, use '(A OR B)' instead of '(A B)'.";
-
+  
   const systemPrompt = `You are a professional search query generator. Build optimized search strings for the target DB. Output STRICTLY as JSON.\nConstraint style: ${operatorInstruct}`;
   
-  const userPrompt = `
+  let userPrompt = `
 Query: "${input}"
 Target DB: "${targetDB}"
 DB Schema: "${schemaInfo}"
@@ -147,6 +148,18 @@ Tasks:
 4. Build 'fieldSpecificQuery' applying DB Schema fields AND strictly obey the Search Operator Style (${operatorStyle}).
 5. Provide a 1-sentence 'explanation'.
 6. Provide 1-3 'suggestedUrls'. 
+`;
+
+  if (feedback) {
+    userPrompt += `
+[CRITICAL CORRECTION FEEDBACK FROM USER]:
+The user was unsatisfied with the previous version or wanted a correction based on the following feedback:
+"${feedback}"
+Please adapt your Boolean query structure, keywords, or mapping strategy to satisfy this feedback. Double-check all operator logic!
+`;
+  }
+
+  userPrompt += `
 Rules:
 - CNKI: return "https://kns.cnki.net/kns8s/AdvSearch" (no query params).
 - Wanfang: suffix encoded query: "https://s.wanfangdata.com.cn/paper?q="
@@ -352,7 +365,7 @@ Return JSON format:
     } else if (error.status === 429 || error.message?.includes("quota")) {
       details = "API 请求配额超限，请稍后再试或更换 API Key。(API request quota exceeded. Please try again later or use a different API Key.)";
     } else if (error.status === 503 || error.message?.includes("overloaded")) {
-      details = "模型服务当前不可用或过载，请稍后再试或更换模型。(The service is currently unavailable or overloaded. Please try again later or switch models.)";
+      details = "模型服务当前不可用或过载，请稍后再试或更换 model。(The service is currently unavailable or overloaded. Please try again later or switch models.)";
     } else if (error.message?.includes("fetch failed") || error.message?.includes("Failed to fetch")) {
       details = "网络请求失败，请检查您的 network 连接。(Network request failed. Please check your internet connection.)";
     } else {
