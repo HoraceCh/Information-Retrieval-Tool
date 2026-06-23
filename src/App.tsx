@@ -34,6 +34,7 @@ import { generateSearchQuery, SearchQueryResponse, ProviderConfig, testConnectio
 import OfficialWhitelist, { DEFAULT_LINKS, LinkItem, DEFAULT_CATEGORIES, extractKeywords, scoreLink } from "./components/OfficialWhitelist";
 import OfflineDownloader from "./components/OfflineDownloader";
 import FeedbackAnalytics, { UserFeedback } from "./components/FeedbackAnalytics";
+import VisualQueryTree from "./components/VisualQueryTree";
 
 const UI_STRINGS = {
   mix: {
@@ -1472,6 +1473,19 @@ export default function App() {
               </button>
             </div>
 
+            {/* Visual Query Tree */}
+            {mResp.keywords && mResp.keywords.length > 0 && (
+              <VisualQueryTree
+                keywords={mResp.keywords}
+                isModelB={!isModelA}
+                activeIndex={activeIndex}
+                selectedWords={selectedWords}
+                onToggleWord={(isB, gIdx, word) => toggleWordSelection(isB, gIdx, word)}
+                operatorStyle={operatorStyle}
+                uiLang={uiLang as "zh" | "mix"}
+              />
+            )}
+
             {/* Explanation strategy */}
             {mResp.explanation && (
               <p className="text-[11px] text-slate-400 italic line-clamp-2" title={mResp.explanation}>
@@ -2033,6 +2047,18 @@ export default function App() {
                     >
                       {result ? (showMapped ? (effectiveA.fieldSpecificQuery || effectiveA.booleanQuery) : effectiveA.booleanQuery) : "Formula will appear here..."}
                     </div>
+
+                    {!result?._isLoading && result?.keywords && (
+                      <VisualQueryTree
+                        keywords={result.keywords}
+                        isModelB={false}
+                        activeIndex={activeIndex}
+                        selectedWords={selectedWords}
+                        onToggleWord={(isB, gIdx, word) => toggleWordSelection(isB, gIdx, word)}
+                        operatorStyle={operatorStyle}
+                        uiLang={uiLang as "zh" | "mix"}
+                      />
+                    )}
 
                     {result && result._isLoading && (
                       <div className="flex-1 overflow-y-auto custom-scrollbar mt-2 space-y-2">
