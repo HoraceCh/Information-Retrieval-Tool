@@ -103,6 +103,33 @@ npm run dev
 
 ---
 
+### 🚀 Deploying to GitHub Pages via GitHub Actions / GitHub Pages 自动化部署指南
+
+This repository is configured with a automated **GitHub Actions** workflow (`.github/workflows/deploy.yml`) to automatically build and publish your application to **GitHub Pages** whenever you push code to the `main` or `master` branch.
+
+#### Step-by-Step Setup:
+
+1. **Push Code to GitHub**:
+   Push or import this codebase to your GitHub repository.
+
+2. **Enable GitHub Pages Permissions**:
+   - Go to your GitHub repository: `Settings` > `Pages`.
+   - Under **Build and deployment** > **Source**, select **GitHub Actions**.
+
+3. **Configure API Keys (Optional but Recommended)**:
+   - Go to `Settings` > `Secrets and variables` > `Actions`.
+   - Click **New repository secret**.
+   - Set **Name**: `GEMINI_API_KEY`
+   - Set **Value**: Your Google Gemini API Key.
+   - Click **Add secret**.
+   *(Note: Users can also input their API Keys in the app's settings menu at runtime).*
+
+4. **Trigger Deployment**:
+   - Every time you `git push` to `main` (or `master`), GitHub Actions will automatically run `npm run build` and deploy the built `dist/` bundle directly to your GitHub Pages site URL!
+   - You can also manually trigger a deployment from the repository's **Actions** tab by selecting **Deploy to GitHub Pages** > **Run workflow**.
+
+---
+
 <a id="中文"></a>
 ## 中文
 
@@ -199,3 +226,28 @@ npm run dev
 3. **恭喜！** 您现在已经成功在本地掌握并运行这套强大的 AI 检索系统了！
 
 > **提示**：如果您在本地运行本项目，请先点击页面底部的 `⚙️ (Settings)`，并在对应模型提供商处填入您的专属 API 密钥激活生成服务。如果您是在 AI Studio 预览环境中体验，默认的 Gemini 模型已自动配置环境密钥，可直接使用（如需使用 DeepSeek 等第三方模型仍需自行填入 Key）。
+
+---
+
+#### 🌐 使用 GitHub Actions 全自动部署到 GitHub Pages
+
+项目已内置完整的 GitHub Actions 持续集成与发布工作流文件（`.github/workflows/deploy.yml`），无需手动打包上传，即可在每次提交代码时全自动构建并发布至 GitHub Pages。
+
+**操作步骤：**
+
+1. **推送到 GitHub 仓库**：
+   将本仓库上传或导入至您的 GitHub 账号中。
+
+2. **开启 GitHub Pages 权限**：
+   - 打开 GitHub 仓库页面，点击顶部 `Settings`（设置） > 左侧 `Pages`。
+   - 在 **Build and deployment** 下的 **Source**（来源）中，选择 **GitHub Actions**。
+
+3. **配置 API 密钥（可选）**：
+   - 点击 `Settings` > `Secrets and variables` > `Actions`。
+   - 点击 **New repository secret**。
+   - 填写 **Name**: `GEMINI_API_KEY`，**Value**: 您的 Gemini API 密钥。
+   *(注：即便不配置 Secret，用户仍可在部署后的网页界面底栏 Settings 设置菜单中手动输入 Key 使用)*。
+
+4. **自动部署生效**：
+   - 每当您向 `main` 或 `master` 分支推送代码（`git push`），GitHub Actions 就会自动触发安装依赖、构建并发布项目。
+   - 您也可以随时在 GitHub 仓库的 **Actions** 选项卡中手动点击 **Deploy to GitHub Pages** -> **Run workflow** 触发一键部署。
