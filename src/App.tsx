@@ -23,6 +23,7 @@ import {
   Settings2,
   Server,
   BarChart2,
+  Key,
   ExternalLink,
   Download,
   WifiOff,
@@ -238,12 +239,66 @@ const DEFAULT_PROVIDERS: ProviderConfig[] = [
   },
   {
     id: "deepseek",
-    name: "DeepSeek",
+    name: "DeepSeek 官方",
     isGemini: false,
     endpoint: "https://api.deepseek.com",
     authType: 'Bearer',
     apiKey: "",
-    models: "deepseek-v4-flash,deepseek-v4-pro"
+    models: "deepseek-chat,deepseek-reasoner,deepseek-v4-flash,deepseek-v4-pro"
+  },
+  {
+    id: "siliconflow",
+    name: "硅基流动 (SiliconFlow)",
+    isGemini: false,
+    endpoint: "https://api.siliconflow.cn/v1",
+    authType: 'Bearer',
+    apiKey: "",
+    models: "deepseek-ai/DeepSeek-V3,deepseek-ai/DeepSeek-R1,Qwen/Qwen2.5-72B-Instruct,THUDM/glm-4-9b-chat"
+  },
+  {
+    id: "moonshot",
+    name: "月之暗面 (Kimi / Moonshot)",
+    isGemini: false,
+    endpoint: "https://api.moonshot.cn/v1",
+    authType: 'Bearer',
+    apiKey: "",
+    models: "moonshot-v1-8k,moonshot-v1-32k,moonshot-v1-128k"
+  },
+  {
+    id: "zhipu",
+    name: "智谱清言 (Zhipu GLM)",
+    isGemini: false,
+    endpoint: "https://open.bigmodel.cn/api/paas/v4",
+    authType: 'Bearer',
+    apiKey: "",
+    models: "glm-4-flash,glm-4-plus,glm-4,glm-4-long"
+  },
+  {
+    id: "dashscope",
+    name: "通义千问 (DashScope / Qwen)",
+    isGemini: false,
+    endpoint: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    authType: 'Bearer',
+    apiKey: "",
+    models: "qwen-max,qwen-plus,qwen-turbo,qwen-coder-plus"
+  },
+  {
+    id: "openai",
+    name: "OpenAI 官方",
+    isGemini: false,
+    endpoint: "https://api.openai.com/v1",
+    authType: 'Bearer',
+    apiKey: "",
+    models: "gpt-4o,gpt-4o-mini,o1,o3-mini"
+  },
+  {
+    id: "openrouter",
+    name: "OpenRouter 聚合平台",
+    isGemini: false,
+    endpoint: "https://openrouter.ai/api/v1",
+    authType: 'Bearer',
+    apiKey: "",
+    models: "anthropic/claude-3.5-sonnet,google/gemini-2.5-pro,meta-llama/llama-3.3-70b-instruct,deepseek/deepseek-r1"
   }
 ];
 
@@ -700,10 +755,10 @@ export default function App() {
     },
     {
       targetId: "guided-config-panel",
-      title: uiLang === 'zh' || i18n.language === 'mix' ? "第二步：数据库字段映射与模型偏好" : "Step 2: Database Schema & Comparing Models",
+      title: uiLang === 'zh' || i18n.language === 'mix' ? "第二步：选择模型厂商与 API Key 配置指引" : "Step 2: Model Providers & API Key Setup Guide",
       desc: uiLang === 'zh' || i18n.language === 'mix'
-        ? "配置目标引文数据库（如 CNKI、PubMed）。系统将按各库特定规则映射限定词标记（如 SU、MH）。在此开启【对比模式】还可以同时评测两个大模型，实现双端语法比对诊断！"
-        : "Select major citation databases (such as CNKI, PubMed, IEEE) to map logic query fields. Turn on 'Comparison Mode' to see results from Model A and Model B side-by-side!"
+        ? "💡 密钥配置指引：点击右下角【⚙️ 设置】按钮，您可以配置属于您的大模型 API Key。已预设支持 Google Gemini、DeepSeek、硅基流动 (SiliconFlow)、月之暗面 (Kimi)、智谱 GLM、通义千问 (DashScope)、OpenAI 及 OpenRouter 等厂商，也可添加自定义 OpenAI 兼容接口！在此开启【对比模式】还可以同时评测两个大模型双端生成效果。"
+        : "💡 API Key Setup Guide: Click the [⚙️ Settings] button in the bottom right corner to set up your API Key. Presets include Google Gemini, DeepSeek, SiliconFlow, Kimi Moonshot, Zhipu GLM, Qwen DashScope, OpenAI, OpenRouter, or any OpenAI-compatible custom endpoint! Turn on 'Comparison Mode' to evaluate two models side-by-side."
     },
     {
       targetId: "guided-output-panel",
@@ -1016,13 +1071,22 @@ export default function App() {
       try {
         const parsed = JSON.parse(savedProviders);
         if (Array.isArray(parsed)) {
-          providersToUse = parsed.map((p: any) => {
-            if (p.id === "gemini") {
-              const defaultGemini = DEFAULT_PROVIDERS.find(dp => dp.id === "gemini");
-              return { ...p, models: defaultGemini ? defaultGemini.models : p.models };
-            }
-            return p;
-          });
+          const existingIds = new Set(parsed.map((p: any) => p.id));
+          const missingDefaults = DEFAULT_PROVIDERS.filter(dp => !existingIds.has(dp.id));
+          providersToUse = [
+            ...parsed.map((p: any) => {
+              const defaultProv = DEFAULT_PROVIDERS.find(dp => dp.id === p.id);
+              if (defaultProv) {
+                return { 
+                  ...p, 
+                  models: defaultProv.models, 
+                  endpoint: (p.endpoint && p.endpoint !== "default") ? p.endpoint : defaultProv.endpoint 
+                };
+              }
+              return p;
+            }),
+            ...missingDefaults
+          ];
           setProviders(providersToUse);
         }
       } catch (e) {}
@@ -1863,57 +1927,32 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="flex items-center gap-3 overflow-hidden min-h-[46px]">
-                <AnimatePresence mode="wait">
-                  {!result ? (
-                    <motion.div
-                      key="generate-btn"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="flex items-center gap-3"
-                    >
-                      {input && (
-                        <button 
-                          onClick={reset}
-                          className="p-2.5 bg-white/5 rounded-xl text-slate-500 hover:text-white hover:bg-white/10 transition-all border border-white/5"
-                          title={t('reset')}
-                        >
-                          <RotateCcw size={18} />
-                        </button>
-                      )}
-                      <button
-                        onClick={handleGenerate}
-                        disabled={loading || !input.trim()}
-                        className="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(8,145,178,0.3)] flex items-center gap-2 group/btn disabled:opacity-30 disabled:shadow-none"
-                      >
-                        {loading ? (
-                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                          <>
-                            {t('generate')}
-                            <Search size={18} className="translate-x-0 group-hover/btn:translate-x-1 transition-transform" />
-                          </>
-                        )}
-                      </button>
-                    </motion.div>
+              <div className="flex items-center gap-3 shrink-0">
+                {input && (
+                  <button 
+                    onClick={reset}
+                    className="px-3.5 py-3 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all border border-white/10 rounded-xl flex items-center gap-2 text-xs font-bold cursor-pointer"
+                    title={t('reset')}
+                  >
+                    <RotateCcw size={15} />
+                    <span>{t('reset')}</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={handleGenerate}
+                  disabled={loading || !input.trim()}
+                  className="px-7 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(8,145,178,0.3)] flex items-center gap-2 group/btn disabled:opacity-30 disabled:shadow-none cursor-pointer text-sm"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
-                    <motion.div
-                      key="regenerate-btn"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="flex items-center gap-2"
-                    >
-                      <button 
-                        onClick={reset}
-                        className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-400 hover:text-cyan-400 transition-colors uppercase tracking-widest border border-white/5 rounded-lg hover:bg-white/5"
-                      >
-                        <RotateCcw size={14} /> {t('reset')}
-                      </button>
-                      {loading && <div className="w-4 h-4 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin ml-2" />}
-                    </motion.div>
+                    <>
+                      <span>{result ? (uiLang === 'zh' || i18n.language === 'mix' ? "重新生成检索式" : "REGENERATE_QUERY") : t('generate')}</span>
+                      <Search size={16} className="translate-x-0 group-hover/btn:translate-x-1 transition-transform" />
+                    </>
                   )}
-                </AnimatePresence>
+                </button>
               </div>
             </div>
           </section>
@@ -2744,6 +2783,20 @@ export default function App() {
 
               <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 custom-scrollbar">
                 
+                {/* User API Key Guidance Banner */}
+                <div className="bg-cyan-950/40 border border-cyan-500/30 rounded-xl p-3.5 text-xs text-cyan-200/90 leading-relaxed flex gap-3 items-start shadow-inner">
+                  <Key size={18} className="text-cyan-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <div className="font-bold text-cyan-300">🔑 API Key 指引 / Key Configuration Guide</div>
+                    <div>
+                      {uiLang === 'zh' || i18n.language === 'mix'
+                        ? "本网站在部署至 GitHub Pages 或独立部署后，由使用者自行配置 API Key。请在下方选择目标模型厂商，粘贴您在对应平台申请的 API Key（密钥加密储存在您本地浏览器中，绝不上传第三方服务器）。"
+                        : "When using this app, users provide their own API Keys. Select a provider below and enter your Key (stored locally in your browser)."
+                      }
+                    </div>
+                  </div>
+                </div>
+
                 {/* Active Provider Selection */}
                 <div>
                   <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('providerLabel')}</label>

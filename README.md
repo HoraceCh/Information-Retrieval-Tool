@@ -1,6 +1,6 @@
 # AI_RETRIEVAL_X (AI 检索力)
 
-**Intelligence Query Framework / 智慧检索式生成专家**
+> **Intelligence Query Framework / 智慧检索式生成与学术词汇扩充专家**
 
 [English](#english) | [中文](#中文)
 
@@ -9,245 +9,133 @@
 <a id="english"></a>
 ## English
 
-**AI_RETRIEVAL_X** is an advanced intelligence query framework designed to bridge the gap between natural language and complex boolean retrieval systems. By leveraging the reasoning capabilities of state-of-the-art Large Language Models (LLMs) such as Gemini and DeepSeek, it translates your everyday search intent into highly optimized, professional search queries tailored for various academic databases and general search engines.
-
-Whether you are preparing for academic research, systematic literature reviews, or simply trying to find specific industry reports, AI_RETRIEVAL_X handles the heavy lifting of keyword extraction, synonym expansion, logic assembly, and syntax adaptation.
-
-### Target Audience
-- **Researchers & Academics**: Quickly build complex Boolean queries for CNKI, Web of Science, PubMed, Ei Compendex, etc.
-- **Students**: Aids in information literacy exactly when you hit a wall finding references for papers or assignments.
-- **Corporate Intelligence**: Formulate deep search formulas to track competitors, patents, and technical standards.
-
-### Core Features
-
-- **Natural Language Parsing**: Just describe what you're looking for in plain English or Chinese. The AI will translate your intent into strict Boolean operators (`AND`, `OR`, `NOT`).
-- **Auto Match Engine**: Unsure which database to use? The auto-match engine will intelligently choose the best database/platform for your topic and assemble the query and exact syntax accordingly.
-- **Search Operator Style (New)**: Select custom logic operators to suit different database demands. Toggle between standard OR words (e.g. `(A OR B)`) or space disjunctions (e.g. `(A B)`), perfectly aligning with databases like CNIPA or traditional patent search fields that interpret space as logic disjunction.
-- **Progressive Streaming & Batch Parallelization**: Input multiple query lines to generate simultaneously. The UI renders progressive status updates line-by-line using elegant skeletal state indicators and spinner icons. Tasks run concurrently, providing instant performance without blocking the main workflow.
-- **Intellectual Target Databases**: Deep, precise integration with classic databases:
-  - **CNKI**: Generates strict academic formulas conforming faithfully to standard syntax (e.g. `SU = (A + B) AND TKA = C`).
-  - **Web of Science / Scopus / ScienceDirect**: Adheres strictly to Boolean and proximity guidelines.
-  - **CNIPA / Patent Division**: Separates classical CNIPA (using spaces as OR logic disjunctions) and 壹专利 (standard boolean rules) to eliminate syntax collision when searching patent repositories.
-- **Smart Jump URLs**: Automatically generates direct click-through URLs (`?kw=...` or `?q=...`) to immediately execute the created query on platforms like Baidu Academic, CNKI, or Bing.
-- **Topic Expansion Engine**: Automatically extracts core concepts, mapping them to field-specific schemas (e.g., `SU=` vs `TI=`), and enriches them with high-frequency synonyms to maximize recall (sensitivity) and precision.
-- **Bilingual Capabilities**: Generate synonyms and formulas in Chinese-only, English-only, or Bilingual modes based on your target database.
-- **Model Flexibility & Stats**: Switch seamlessly between official Gemini APIs and custom OpenAI-compatible API endpoints (like DeepSeek). Gain insights into your token consumption and query success rates via the **Usage Statistics** panel.
-- **History Tracking**: Automatically saves the last 50 queries locally, offering one-click restoration of historical searches.
-
-### How to Run Locally (Beginner Friendly Guide)
-
-If you have downloaded or exported this project to your local machine as a ZIP file, first **extract/unzip** it completely into a regular folder on your computer.
-
-Choose one of the two methods below to run the application:
+**AI_RETRIEVAL_X** is an AI-powered intelligence query generation and topic expansion framework designed to bridge natural language search intent with complex, database-specific Boolean retrieval rules. By leveraging state-of-the-art Large Language Models (LLMs)—including Google Gemini, DeepSeek, SiliconFlow, Kimi Moonshot, Zhipu GLM, Qwen, OpenAI, and OpenRouter—it converts everyday search requests into precision-crafted Boolean formulas for top academic databases and search engines.
 
 ---
 
-#### 🌟 Method A: One-Click Automated Launcher (Easiest & Highly Recommended!)
+### 🌐 Quick Access & Online Experience
 
-We have built smart system-specific setup scripts that will automatically handle all background configurations, Node.js installation (if missing), environment variables setting, package retrieval, and browser startup.
+You can experience the app directly in your web browser with **zero installation required**!
 
-- **For Windows Users**:
-  1. Go inside the unzipped folder.
-  2. Double-click the file named **`Windows一键自动部署配置并运行.bat`**.
-  3. The script will check and automatically download Node.js (v20 LTS), configure files, run setup, and open Safari/Chrome to start the app.
-- **For macOS / Linux Users**:
-  1. Open Terminal, change directory to your project folder, and run:
-     ```bash
-     chmod +x Mac-Linux一键自动部署配置并运行.sh
-     ./Mac-Linux一键自动部署配置并运行.sh
-     ```
-  2. It will automatically check for Node.js, install packages, and open your default browser.
+- **Web App / Live Access**: Access the web application directly in your browser.
+- **Client-Side Security**: All API keys are configured and encrypted in your browser (`⚙️ Settings` panel at the bottom right) and sent directly to model providers. No server-side storage or tracking is used.
 
 ---
 
-#### 🛠️ Method B: Manual Step-by-Step Terminal Method
+### 🎯 Key Highlights & Features
 
-**Step 1: Install Required Software**
-1. Download and install **Node.js** from [nodejs.org](https://nodejs.org/) (We recommend the "LTS" version). This provides the necessary environment to run the application.
-2. Download and install a code editor like **Visual Studio Code (VS Code)** from [code.visualstudio.com](https://code.visualstudio.com/). It makes managing files and commands much easier.
+- **💡 Multi-Model & Provider Adaptability**: Presets for **Google Gemini, DeepSeek, SiliconFlow, Kimi (Moonshot), Zhipu GLM, Qwen (DashScope), OpenAI, and OpenRouter**, plus support for custom OpenAI-compatible endpoints.
+- **🧠 Natural Language Intent Translation**: Simply describe your research topic in natural language (Chinese or English). AI extracts core concepts and builds strict Boolean queries with correct operators (`AND`, `OR`, `NOT`, proximity operators).
+- **🎓 Database-Specific Syntax Adaptations**: Tailored rules for major databases:
+  - **CNKI (知网)**: Formats standard fields (e.g. `SU = (A + B) AND TKA = C`).
+  - **Web of Science / PubMed / Scopus / ScienceDirect**: Follows exact proximity and field syntax.
+  - **Patent Search (CNIPA & 壹专利)**: Supports space-as-OR logic disjunction for CNIPA and standard Boolean rules for 壹专利.
+- **🌳 Visual Query Tree & Real-Time Syntax Highlighting**: Color-coded syntax highlighting for operators, field tags, and quotes, paired with an interactive operator tree view for structural validation.
+- **🚀 Smart Jump URLs**: One-click direct search jump links (`?kw=...` or `?q=...`) to execute formulas instantly on Baidu Academic, CNKI, or Bing.
+- **🌐 Topic Expansion & Bilingual Synonym Engine**: Automatically enriches queries with domain synonyms and technical terminology across English, Chinese, or Bilingual modes.
+- **⚡ Progressive Parallel Generation**: Process multiple search lines concurrently with real-time progress indicators and error boundaries.
+- **📊 Usage Statistics & Local History**: Monitor token usage, success rates, and restore from 50 local query history snapshots.
 
-**Step 2: Prepare the Project Files**
-1. Find the `.zip` file you downloaded and **extract/unzip** it completely into a new folder on your computer.
-2. Open **VS Code**.
-3. In VS Code, click on `File` > `Open Folder...` and select the folder where you just extracted the project files.
+---
 
-**Step 3: Open the Terminal**
-1. Inside VS Code, look at the top menu bar and click `Terminal` > `New Terminal`. 
-2. A small window will pop up at the bottom of the screen. This is where you will type commands.
+### 🔑 How API Keys Work
 
-**Step 4: Install Dependencies (Packages)**
-In the terminal window, type the following command and press Enter:
+AI_RETRIEVAL_X is designed as a privacy-first, client-driven web application. Users bring their own API Keys:
+1. Click the **`⚙️ Settings`** button in the bottom right corner of the web interface.
+2. Select your preferred provider (e.g., Gemini, DeepSeek, SiliconFlow, OpenAI).
+3. Paste your API Key and click **Test Connection** or save.
+
+---
+
+### 🚀 Running Locally & Deployment
+
+#### 1. One-Click Automated Launcher (Easiest)
+Unzip the source package and double-click the setup launcher:
+- **Windows**: Double-click `Windows一键自动部署配置并运行.bat`
+- **macOS / Linux**: Run `chmod +x Mac-Linux一键自动部署配置并运行.sh && ./Mac-Linux一键自动部署配置并运行.sh`
+
+#### 2. Manual Setup
 ```bash
+# Clone or unzip the repo, then install dependencies
 npm install
-```
-*(Wait a minute or two. The system is downloading the necessary building blocks for the app to work. You'll see a folder named `node_modules` appear.)*
 
-**Step 5: Configure Environment Variables (.env)**
-1. In the project folder, locate the file named `.env.example`.
-2. Duplicate this file and rename the copy to `.env`.
-3. Open `.env` in VS Code and fill in the required environment variables (e.g., `GEMINI_API_KEY=your_gemini_api_key`), or you can configure keys directly in the application's UI settings later.
-
-**Step 6: Start the Application**
-Once the installation is complete, type this command and press Enter:
-```bash
+# Start development server
 npm run dev
 ```
-*(This commands starts the local server. You will see some text appear indicating the server is ready).*
 
-**Step 7: Open in Your Browser**
-1. The terminal will display a local web address, usually looking like `http://localhost:3000` or `http://localhost:5173`.
-2. Hold down the `Ctrl` key (or `Cmd` on Mac) and click that link, OR copy and paste it into Chrome/Edge/Safari.
-3. The application should now be running directly on your computer!
-
-> **Note**: If you are running this app locally, you must input your own API Key (Gemini or DeepSeek) in the "Settings" menu (⚙️) located at the bottom of the page to use the AI features. (In the AI Studio preview environment, default Gemini models work out-of-the-box).
+#### 3. GitHub Pages Deployment
+This repository includes a built-in `.github/workflows/deploy.yml` workflow. Pushing to `main` will automatically build and publish static files to GitHub Pages (select *Source: GitHub Actions* under `Settings > Pages`).
 
 ---
 
-### 🚀 Deploying to GitHub Pages via GitHub Actions / GitHub Pages 自动化部署指南
+### 📄 License
 
-This repository is configured with a automated **GitHub Actions** workflow (`.github/workflows/deploy.yml`) to automatically build and publish your application to **GitHub Pages** whenever you push code to the `main` or `master` branch.
-
-#### Step-by-Step Setup:
-
-1. **Push Code to GitHub**:
-   Push or import this codebase to your GitHub repository.
-
-2. **Enable GitHub Pages Permissions**:
-   - Go to your GitHub repository: `Settings` > `Pages`.
-   - Under **Build and deployment** > **Source**, select **GitHub Actions**.
-
-3. **Configure API Keys (Optional but Recommended)**:
-   - Go to `Settings` > `Secrets and variables` > `Actions`.
-   - Click **New repository secret**.
-   - Set **Name**: `GEMINI_API_KEY`
-   - Set **Value**: Your Google Gemini API Key.
-   - Click **Add secret**.
-   *(Note: Users can also input their API Keys in the app's settings menu at runtime).*
-
-4. **Trigger Deployment**:
-   - Every time you `git push` to `main` (or `master`), GitHub Actions will automatically run `npm run build` and deploy the built `dist/` bundle directly to your GitHub Pages site URL!
-   - You can also manually trigger a deployment from the repository's **Actions** tab by selecting **Deploy to GitHub Pages** > **Run workflow**.
+Licensed under the [GNU General Public License v3.0](LICENSE).
 
 ---
 
 <a id="中文"></a>
 ## 中文
 
-**AI_RETRIEVAL_X (AI 检索力)** 是一款前沿的智慧检索式生成框架，致力于打破自然语言与复杂布尔逻辑检索系统之间的壁垒。借助于最先进的大语言模型（如 Gemini 和 DeepSeek）强大的推理能力，它能将您日常的大白话检索意图，精准翻译为适用于各大核心学术数据库及通用搜索引擎的专业优化检索式。
-
-无论您是要进行学术研究、系统性文献综述（Systematic Review），还是寻找特定的行业研报，AI_RETRIEVAL_X 都能自动帮您完成“提取核心主旨 -> 扩充高质量同义词 -> 拼装布尔逻辑 -> 适配特定平台语法规则”的繁重任务。
-
-### 靶向受众
-- **科研工作者及学者**：为 CNKI 知网、Web of Science、Ei Compendex 等平台快速构建能够发表系统性综述级别的复杂布尔检索式。
-- **高校学生**：“AI + 信息素养”赛事利器，更是搞定期刊论文与毕业设计查阅资料的得力助手。
-- **企业情报与专利人员**：制定深度检索策略，精准追踪竞品动态、核心专利及技术标准。
-
-### 核心功能与亮点
-
-- **自然语言无缝解析**：只需用您最习惯的语言描述需求，AI 将为您处理严谨的布尔逻辑（`*`, `+`, `-`, `AND`, `OR`, `NOT`）。
-- **智能自动匹配引擎**：不知道该去哪个库检索？自动智能匹配引擎会根据您的研究课题，自动预测并选择最合适的数据库/平台，并遵循该平台的语法生成表达式。
-- **检索逻辑算符风格（新）**：自主指定同义词/交并逻辑之间的算符风格。可在“标准 OR 词连接 (`A OR B`)”与“空格代替 OR 连接 (`A B`)”之间任意切换，无缝适配 CNIPA 专利局、外文商业专利等对空格具有严苛逻辑定义的检索系统。
-- **渐进式感知渲染与并行生成**：支持多行输入一键并行触发。极速并行请求的同时，UI 采用动态渐进式渐显渲染，各主题独立解析。内置高保真骨架屏骨骼动效、实时转圈等待标示和彻底的单行错误防崩盾，彻底消除批量处理时的黑盒枯燥感。
-- **学术级精细数据库适配**：对多个权威学术/专利数据库的指令特征进行极致优化：
-  - **知网 (CNKI)**：严格采用 `SU = ('人工' + 'AI') AND TKA = '智能'` 标准检索字段规范拼装，并使用标准的逻辑拼接字。
-  - **Springer Nature Link**：精准去除不必要/易错的语法括号及逗号符号标记（支持 `AND (&)` 和 `OR`），完全防范查询语法报错。
-  - **专利双库双轨保障**：专门拆分为“CNIPA (中国专利)”（高级检索纯空格表逻辑或(OR)风格）和“壹专利 (中文专利)”（标准 Bool 大写逻辑规则），防止检索不同源引发解析冲突。
-- **一键直达跳转 (Smart Jump URLs)**：AI 动态猜想并生成带有真实 URL 参数（如 `?kw=` 或 `?q=`）的检索直达链接，极大简化了“复制黏贴”流程，直接点击即可一键发起真实引擎检索。
-- **学术级主题扩充引擎**：自动识别并抽离核心概念模块，精准映射至各数据库的字段代码（例如 知网的 `SU=` 与 `TI=`），利用大模型庞大的知识库补齐高频同义词与相关学术词汇，大幅提升检索的**查全率 (Recall)**与**查准率 (Precision)**。
-- **多语种无缝切换**：可根据需求强制引擎仅使用中文词、仅使用英文词，或中英双语混合。完美应对外文专利库（纯英文）或国内中文刊物检索。
-- **无缝接入多模型与可视化统计**：支持内置 Gemini 官方 API 及任意兼容 OpenAI 格式的第三方接口（例如 DeepSeek）。内置“Usage Statistics (使用统计)” 面板，实时追踪 Token 消耗量、查询次数与成功率。
-- **云端历史快照**：自动在本地保存最近 50 条检索快照，一键提取历史复杂的查询式及灵感。
-
-### 本地运行详细图文指南 (零基础小白向)
-
-如果您从 AI Studio 导出了此项目的 ZIP 压缩包，并希望在自己的个人电脑上运行，请首先**彻底解压**该 `.zip` 压缩文件到一个普通文件夹中（切勿直接在压缩包里双击打开）。
-
-我们提供了以下两种本地运行方案。对于零编程基础的小白，强烈推荐使用**快捷方案 A**：
+**AI_RETRIEVAL_X (AI 检索力)** 是一款前沿的智慧检索式生成与学术词汇扩充框架。旨在打破自然语言与复杂布尔逻辑检索系统之间的壁垒，借助于 Google Gemini、DeepSeek、硅基流动 (SiliconFlow)、月之暗面 (Kimi)、智谱 GLM、通义千问 (Qwen)、OpenAI 及 OpenRouter 等主流大语言模型的强大推理能力，将日常自然语言需求精准翻译为学术数据库和搜索引擎认可的高精布尔表达式。
 
 ---
 
-#### 🌟 方案 A：双击一键自动部署启动（最简畅快，强烈推荐！）
+### 🌐 在线体验与免部署访问
 
-我们为不熟悉命令行、也未曾配置过 Node 环境的用户，量身定制了全自动自启部署工具。双击即用，会自动在后台帮您完成：Node 探测、环境静默安装（若本地缺失）、复制参数配置、自动补全依赖以及拉起浏览器打开网页。
+用户无需繁琐安装，即可直接通过网页端体验全部功能：
 
-- **Windows 系统用户**：
-  1. 打开您解压得到的项目代码根目录文件夹。
-  2. 鼠标双击打开里面的：**`Windows一键自动部署配置并运行.bat`**。
-  3. 此时会弹出浅绿色的自启动控制台。如电脑没有 Node.js，脚本将全自动在后台极速安全地为您安装好 official LTS 稳定版。
-  4. 随后脚本会自动帮您在浏览器拉起打开 `http://localhost:3000` 并完美进入检索控制台！
-
-- **macOS / Linux 系统用户**：
-  1. 在终端（Terminal）中切换到本解压目录下，运行以下赋权和启动命令：
-     ```bash
-     chmod +x Mac-Linux一键自动部署配置并运行.sh
-     ./Mac-Linux一键自动部署配置并运行.sh
-     ```
-  2. 系统会自动完成 Homebrew 检查和环境安装，并自动在浏览器拉起。
+- **网页端直接使用**：直接在浏览器打开即可开始生成专业检索式。
+- **隐私安全的 API 配置**：本应用为纯前端驱动/云端直连模式，所有 API Key 均存储在您本地浏览器（通过右下角 `⚙️ Settings` 设置菜单配置），直接与模型厂商交互，绝不上报或存储至第三方服务器。
 
 ---
 
-#### 🛠️ 方案 B：手动多步骤终端指令（开发调试向）
+### 🎯 核心功能与特色
 
-**第 1 步：安装必备的运行环境**
-1. 去官网下载并安装 **Node.js** ([nodejs.org](https://nodejs.org/))。建议下载写着 "LTS (长期维护版)" 的版本。一路点击“下一步”默认安装即可。这是运行本软件的环境依赖基石。
-2. （强烈建议）去官网下载并安装代码编辑器 **Visual Studio Code (简称 VS Code)** ([code.visualstudio.com](https://code.visualstudio.com/))，这会极大简化接下来的操作。
+- **💡 全主流大模型厂商适配**：预设集成 **Google Gemini、DeepSeek 官方、硅基流动 (SiliconFlow)、月之暗面 (Kimi)、智谱 GLM、通义千问 (DashScope)、OpenAI 官方以及 OpenRouter 聚合平台**，并支持自定义 OpenAI 兼容接口。
+- **🧠 自然语言智能解析**：只需输入常规文本描述，系统自动提取核心概念模块，构建严谨的逻辑关系 (`AND`, `OR`, `NOT` 及位置算符)。
+- **🎓 深度适配各大数据库语法**：
+  - **知网 (CNKI)**：严格使用标准的字段限定代码（如 `SU = ('概念A' + '概念B') AND TKA = '概念C'`）。
+  - **Web of Science / PubMed / Scopus / ScienceDirect**：精准匹配各自领域的规范逻辑符及字段标签。
+  - **专利数据库双轨适配**：区分中国专利局 CNIPA（空格代表逻辑或 OR）与 壹专利（标准 Boolean 大写逻辑），彻底解决语法冲突。
+- **🌳 语法高亮与布尔逻辑树**：实时彩色高亮逻辑算符、字段标签与限定引用，同步渲染交互式逻辑节点树，直观校验复杂公式结构。
+- **🚀 检索一键直达 (Smart Jump)**：自动匹配生成带有真实搜索参数的直达 URL，一键在 CNKI、百度学术、Google Scholar 等平台拉起结果。
+- **🌐 主题扩充与中英双语同义词**：结合 AI 知识库自动补齐高频同义词与相关专业术语，支持仅中文、仅英文或中英双语混合模式。
+- **⚡ 渐进式并行生成与错误防崩盾**：支持多行需求一键并行解析，配有实时进度指示器与异常隔离保护。
+- **📊 用量统计与本地历史快照**：内置 Token 用量与成功率统计面板，自动保存最近 50 条检索历史。
 
-**第 2 步：解压并打开项目文件**
-1. 找到您刚刚下载的 `.zip` 压缩包，一定要**将其完全解压**到一个普通的文件夹中（切勿直接在压缩包里双击打开）。
-2. 打开安装好的 **VS Code** 软件。
-3. 点击 VS Code 左上角的 `文件 (File)` -> `打开文件夹 (Open Folder...)`，选中您刚刚解压出来的那个文件夹。
+---
 
-**第 3 步：打开终端（命令行）**
-1. 在 VS Code 的顶部菜单栏中，点击 `终端 (Terminal)` -> `新建终端 (New Terminal)`。
-2. 此时在软件的底部会弹出一个代码输入框，这就相当于一个“指挥中心”。
+### 🔑 如何配置 API 密钥
 
-**第 4 步：安装项目依赖（下载所需的积木）**
-在底部的终端光标处，输入以下代码并按下回车键 (Enter)：
+AI_RETRIEVAL_X 采用**用户自行配置 API Key** 模式：
+1. 打开网页后，点击右下角的 **`⚙️ Settings (设置)`** 按钮。
+2. 在提供商下拉列表中选择您拥有的 API 厂商（如 DeepSeek、硅基流动、Gemini 等）。
+3. 填入您获取的 API Key，点击“测试连接”验证无误后即可开始使用。
+
+---
+
+### 🚀 本地运行与部署
+
+#### 1. 一键脚本启动（适合零基础用户）
+解压源代码后直接运行自启脚本：
+- **Windows 用户**：双击运行 `Windows一键自动部署配置并运行.bat`
+- **macOS / Linux 用户**：终端运行 `chmod +x Mac-Linux一键自动部署配置并运行.sh && ./Mac-Linux一键自动部署配置并运行.sh`
+
+#### 2. 手动开发模式
 ```bash
+# 安装项目依赖
 npm install
-```
-*(请耐心等待一两分钟。电脑会自动连网为您下载程序运行需要的各种开源组件。界面上出现一堆滚动的文字和进度条是正常现象。)*
 
-**第 5 步：配置环境变量 (.env)**
-1. 在项目文件夹中，找到名为 `.env.example` 的文件。
-2. 复制该文件，并将复制出的新文件重命名为 `.env`（注意前面有个点）。
-3. 在 VS Code 中打开 `.env` 文件，填入所需的环境变量（例如 `GEMINI_API_KEY=您的Gemini密钥`）。您也可以选择跳过此步，直接在网页界面的设置中填写密钥。
-
-**第 6 步：启动项目服务**
-当上述命令跑完，并且底部重新出现等待输入的闪烁光标后，继续输入以下代码并按回车键：
-```bash
+# 启动本地开发服务 (http://localhost:3000)
 npm run dev
 ```
-*(这条命令会把软件服务在你本地电脑正式跑起来。)*
 
-**第 7 步：在浏览器中开始使用**
-1. 稍等几秒钟，当你在终端里看到类似 `http://localhost:3000` 或 `http://localhost:5173` 的链接时，说明启动成功了。
-2. 按住键盘上的 `Ctrl` 键 (苹果 Mac 电脑按 `Cmd` 键) 的同时，用鼠标左键点击那个链接；或者直接把它长按复制，粘贴到你的浏览器（如 Chrome, Edge）地址栏并回车。
-3. **恭喜！** 您现在已经成功在本地掌握并运行这套强大的 AI 检索系统了！
-
-> **提示**：如果您在本地运行本项目，请先点击页面底部的 `⚙️ (Settings)`，并在对应模型提供商处填入您的专属 API 密钥激活生成服务。如果您是在 AI Studio 预览环境中体验，默认的 Gemini 模型已自动配置环境密钥，可直接使用（如需使用 DeepSeek 等第三方模型仍需自行填入 Key）。
+#### 3. GitHub Pages 一键部署
+项目内置 `.github/workflows/deploy.yml` 脚本。将代码推送到 GitHub 仓库主分支后，在仓库 `Settings > Pages` 中选择 *Source: GitHub Actions* 即可全自动构建上线。
 
 ---
 
-#### 🌐 使用 GitHub Actions 全自动部署到 GitHub Pages
+### 📄 开源协议 (License)
 
-项目已内置完整的 GitHub Actions 持续集成与发布工作流文件（`.github/workflows/deploy.yml`），无需手动打包上传，即可在每次提交代码时全自动构建并发布至 GitHub Pages。
-
-**操作步骤：**
-
-1. **推送到 GitHub 仓库**：
-   将本仓库上传或导入至您的 GitHub 账号中。
-
-2. **开启 GitHub Pages 权限**：
-   - 打开 GitHub 仓库页面，点击顶部 `Settings`（设置） > 左侧 `Pages`。
-   - 在 **Build and deployment** 下的 **Source**（来源）中，选择 **GitHub Actions**。
-
-3. **配置 API 密钥（可选）**：
-   - 点击 `Settings` > `Secrets and variables` > `Actions`。
-   - 点击 **New repository secret**。
-   - 填写 **Name**: `GEMINI_API_KEY`，**Value**: 您的 Gemini API 密钥。
-   *(注：即便不配置 Secret，用户仍可在部署后的网页界面底栏 Settings 设置菜单中手动输入 Key 使用)*。
-
-4. **自动部署生效**：
-   - 每当您向 `main` 或 `master` 分支推送代码（`git push`），GitHub Actions 就会自动触发安装依赖、构建并发布项目。
-   - 您也可以随时在 GitHub 仓库的 **Actions** 选项卡中手动点击 **Deploy to GitHub Pages** -> **Run workflow** 触发一键部署。
+本项目遵循 [GNU General Public License v3.0 (GPL-3.0)](LICENSE) 开源协议。
