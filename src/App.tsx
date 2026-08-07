@@ -35,6 +35,7 @@ import OfficialWhitelist, { DEFAULT_LINKS, LinkItem, DEFAULT_CATEGORIES, extract
 import OfflineDownloader from "./components/OfflineDownloader";
 import FeedbackAnalytics, { UserFeedback } from "./components/FeedbackAnalytics";
 import VisualQueryTree from "./components/VisualQueryTree";
+import HighlightedBooleanQuery from "./components/HighlightedBooleanQuery";
 
 const UI_STRINGS = {
   mix: {
@@ -1460,7 +1461,7 @@ export default function App() {
                 }}
                 className="font-mono text-cyan-100 text-xs leading-relaxed overflow-y-auto custom-scrollbar select-all flex-1 p-3 bg-black/45 rounded-lg border border-white/5"
               >
-                {queryStr}
+                <HighlightedBooleanQuery query={queryStr} />
               </div>
               
               {/* Copy Overlay Button */}
@@ -1992,6 +1993,19 @@ export default function App() {
                 )}
               </div>
               
+              {/* Syntax Highlight Legend */}
+              {result && !result._isLoading && (
+                <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono select-none mb-2.5 px-2.5 py-1 bg-black/30 rounded-lg border border-cyan-500/10">
+                  <span className="text-slate-400 font-bold mr-1">🎨 {uiLang === 'zh' || i18n.language === 'mix' ? "语法高亮图例:" : "Syntax Legend:"}</span>
+                  <span className="inline-flex items-center gap-1 text-amber-300 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>AND</span>
+                  <span className="inline-flex items-center gap-1 text-cyan-300 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>OR</span>
+                  <span className="inline-flex items-center gap-1 text-rose-400 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>NOT</span>
+                  <span className="inline-flex items-center gap-1 text-fuchsia-300 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400"></span>NEAR/ADJ</span>
+                  <span className="inline-flex items-center gap-1 text-violet-300 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-violet-400"></span>{uiLang === 'zh' || i18n.language === 'mix' ? "字段标签" : "Fields"}</span>
+                  <span className="inline-flex items-center gap-1 text-emerald-300 font-medium"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>{uiLang === 'zh' || i18n.language === 'mix' ? '"精确词组"' : '"Phrases"'}</span>
+                </div>
+              )}
+              
               {!result ? (
                 <div className="flex-1 flex flex-col justify-center items-center text-slate-600 text-xs gap-3">
                   <span className="font-mono tracking-widest uppercase">
@@ -2045,7 +2059,13 @@ export default function App() {
                       }}
                       className={`font-mono text-cyan-100 text-sm md:text-base leading-relaxed overflow-y-auto custom-scrollbar select-all p-4 bg-black/25 rounded-lg border border-cyan-500/15 w-full block ${result?._isLoading ? 'animate-pulse text-cyan-500/50' : ''}`}
                     >
-                      {result ? (showMapped ? (effectiveA.fieldSpecificQuery || effectiveA.booleanQuery) : effectiveA.booleanQuery) : "Formula will appear here..."}
+                      {result ? (
+                        <HighlightedBooleanQuery
+                          query={showMapped ? (effectiveA.fieldSpecificQuery || effectiveA.booleanQuery) : effectiveA.booleanQuery}
+                        />
+                      ) : (
+                        "Formula will appear here..."
+                      )}
                     </div>
 
                     {!result?._isLoading && result?.keywords && (
