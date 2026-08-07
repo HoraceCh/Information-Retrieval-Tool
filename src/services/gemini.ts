@@ -1,6 +1,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+function getGeminiClient(key?: string): GoogleGenAI {
+  const apiKey = key || (typeof process !== "undefined" && process.env?.GEMINI_API_KEY) || "";
+  if (!apiKey) {
+    throw new Error(JSON.stringify({
+      title: "Missing Gemini API Key",
+      details: "未配置 Gemini API Key。请在页面右下角设置 ⚙️ Settings 中填入您的密钥。(Gemini API Key is missing. Please configure it in Settings.)"
+    }));
+  }
+  return new GoogleGenAI({ apiKey });
+}
 
 export interface KeywordGroup {
   original: string;
@@ -103,7 +112,7 @@ export async function testConnection(provider: ProviderConfig, modelName: string
       return true;
     } else {
       const geminiKey = provider.apiKey || "";
-      const currentAi = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
+      const currentAi = getGeminiClient(geminiKey);
       const response = await currentAi.models.generateContent({
         model: modelName || "gemini-3.5-flash",
         contents: "Hi",
@@ -274,7 +283,7 @@ Return JSON format:
     } else {
       // Gemini API
       const geminiKey = provider?.apiKey || "";
-      const currentAi = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
+      const currentAi = getGeminiClient(geminiKey);
       const response = await currentAi.models.generateContent({
         model: modelName,
         contents: userPrompt,
