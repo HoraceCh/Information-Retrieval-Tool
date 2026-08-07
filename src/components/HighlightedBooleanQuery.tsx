@@ -25,36 +25,12 @@ interface Token {
 export function tokenizeBooleanQuery(queryStr: string): Token[] {
   if (!queryStr) return [];
 
-  const masterRegex = new RegExp(
-    [
-      // 1. Quoted strings: "..." or '...'
-      `(?<STRING>"[^"\\\\]*(?:\\\\.[^"\\\\]*)*"|'[^'\\\\]*(?:\\\\.[^'\\]*)*')`,
-      // 2. Field brackets (e.g. [Mesh], [tiab], [Title/Abstract], [tw], [mh])
-      `(?<FIELD_BRACKET>\\[[^\\]]+\\])`,
-      // 3. Known Field Prefix functions / tags: TITLE-ABS-KEY, TI=, AB=, TS=, KY=, ALL=, MH:, TW:, etc.
-      `(?<FIELD_PREFIX>\\b(?:TITLE-ABS-KEY|TITLE-ABS|AUTH|AFFIL|KEY|DOI|PUBYEAR|AFFILCOUNTRY|DOCTYPE|INDEXTERMS|TIAB|TI|AB|TS|KY|ALL|MH|TW)(?=\\s*\\(|\\s*=|\\s*:))`,
-      // 4. Combined Operators (AND NOT, OR NOT)
-      `(?<OP_AND_NOT>\\b(?:AND\\s+NOT|OR\\s+NOT)\\b)`,
-      // 5. Individual Operators (AND, OR, NOT)
-      `(?<OP_AND>\\bAND\\b)`,
-      `(?<OP_OR>\\bOR\\b)`,
-      `(?<OP_NOT>\\bNOT\\b)`,
-      // 6. Proximity / Distance operators (NEAR, NEAR/n, ADJ, ADJ/n, WITHIN, WITHIN/n, SAME, ONEAR, PRE/n, W/n)
-      `(?<OP_PROX>\\b(?:NEAR(?:\\/\\d+|\\d+)?|ADJ(?:\\/\\d+|\\d+)?|WITHIN(?:\\/\\d+|\\d+)?|SAME|ONEAR|PRE(?:\\/\\d+|\\d+)?|W\\/\\d+)\\b)`,
-      // 7. Parentheses
-      `(?<PAREN>[\\(\\)])`,
-      // 8. Punctuation (=, :)
-      `(?<PUNCT>[=:])`,
-      // 9. Whitespace
-      `(?<WHITESPACE>\\s+)`,
-      // 10. Default terms
-      `(?<TERM>[^\\s\\(\\)\\[\\]"':=]+)`
-    ].join("|"),
-    "gi"
-  );
+  try {
+    const masterRegex =
+      /(?<STRING>"[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*')|(?<FIELD_BRACKET>\[[^\]]+\])|(?<FIELD_PREFIX>\b(?:TITLE-ABS-KEY|TITLE-ABS|AUTH|AFFIL|KEY|DOI|PUBYEAR|AFFILCOUNTRY|DOCTYPE|INDEXTERMS|TIAB|TI|AB|TS|KY|ALL|MH|TW)(?=\s*\(|\s*=|\s*:))|(?<OP_AND_NOT>\b(?:AND\s+NOT|OR\s+NOT)\b)|(?<OP_AND>\bAND\b)|(?<OP_OR>\bOR\b)|(?<OP_NOT>\bNOT\b)|(?<OP_PROX>\b(?:NEAR(?:\/\d+|\d+)?|ADJ(?:\/\d+|\d+)?|WITHIN(?:\/\d+|\d+)?|SAME|ONEAR|PRE(?:\/\d+|\d+)?|W\/\d+)\b)|(?<PAREN>[\(\)])|(?<PUNCT>[=:])|(?<WHITESPACE>\s+)|(?<TERM>[^\s\(\)\[\]"':=]+)/gi;
 
-  const tokens: Token[] = [];
-  let match: RegExpExecArray | null;
+    const tokens: Token[] = [];
+    let match: RegExpExecArray | null;
 
   while ((match = masterRegex.exec(queryStr)) !== null) {
     const groups = match.groups;
@@ -87,7 +63,11 @@ export function tokenizeBooleanQuery(queryStr: string): Token[] {
     }
   }
 
-  return tokens;
+    return tokens;
+  } catch (e) {
+    console.error("Error tokenizing boolean query:", e);
+    return [{ type: "TERM", text: queryStr }];
+  }
 }
 
 export default function HighlightedBooleanQuery({
