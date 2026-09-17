@@ -62,7 +62,17 @@ export const resources = {
       statsNoData: "No usage data available / 暂无使用数据",
       directSearch: "DIRECT_SEARCH / 一键检索",
       basicWeb: "BASIC (WEB) / 基础(网页)",
-      advancedFormula: "ADVANCED (FORMULA) / 高级(式)"
+      advancedFormula: "ADVANCED (FORMULA) / 高级(式)",
+      transcribeAudio: "VOICE_INPUT / 语音输入",
+      recording: "RECORDING... / 录音中...",
+      transcribing: "TRANSCRIBING... (gemini-3.5-transcribe) / 转文字中...",
+      stopRecord: "DONE / 完成",
+      cancelRecord: "CANCEL / 取消",
+      templateLibrary: "检索式模板库 Template Library",
+      templateTab: "检索式模板库 / Templates",
+      apiTab: "模型与接口 / API & Models",
+      activeTemplateLabel: "生效框架约束 / Active Template",
+      manageTemplates: "管理模板库 / Manage"
     }
   },
   zh: {
@@ -125,7 +135,17 @@ export const resources = {
       statsNoData: "暂无使用数据",
       directSearch: "一键检索",
       basicWeb: "基础 (网页搜索版)",
-      advancedFormula: "高级 (学术架构版)"
+      advancedFormula: "高级 (学术架构版)",
+      transcribeAudio: "语音输入",
+      recording: "录音中...",
+      transcribing: "正在通过 gemini-3.5-transcribe 转写中...",
+      stopRecord: "完成",
+      cancelRecord: "取消",
+      templateLibrary: "检索式模板库",
+      templateTab: "检索式模板库",
+      apiTab: "模型与接口配置",
+      activeTemplateLabel: "生效框架约束",
+      manageTemplates: "管理模板库"
     }
   },
   en: {
@@ -188,7 +208,17 @@ export const resources = {
       statsNoData: "No usage data available",
       directSearch: "DIRECT SEARCH",
       basicWeb: "BASIC (WEB)",
-      advancedFormula: "ADVANCED (FORMULA)"
+      advancedFormula: "ADVANCED (FORMULA)",
+      transcribeAudio: "Voice Input",
+      recording: "Recording...",
+      transcribing: "Transcribing with gemini-3.5-transcribe...",
+      stopRecord: "Done",
+      cancelRecord: "Cancel",
+      templateLibrary: "Search Formula Template Library",
+      templateTab: "Template Library",
+      apiTab: "API & Models",
+      activeTemplateLabel: "Active Framework Constraint",
+      manageTemplates: "Manage Templates"
     }
   }
 };

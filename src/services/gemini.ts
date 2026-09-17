@@ -29,6 +29,13 @@ export interface TokenUsage {
   totalTokens: number;
 }
 
+export interface SearchTemplateConstraint {
+  id?: string;
+  name: string;
+  framework: string;
+  constraintPrompt: string;
+}
+
 export interface SearchQueryResponse {
   keywords: KeywordGroup[];
   booleanQuery: string;
@@ -38,6 +45,11 @@ export interface SearchQueryResponse {
   suggestedUrls?: { name: string; url: string; }[];
   _usage?: TokenUsage;
   _reasoning?: string;
+  _appliedTemplate?: string;
+  _latencyMs?: number;
+  _modelUsed?: string;
+  _providerUsed?: string;
+  _fromCache?: boolean;
 }
 
 export interface ProviderConfig {
@@ -132,7 +144,8 @@ export async function generateSearchQuery(
   modelName: string = "gemini-3.5-flash",
   provider?: ProviderConfig,
   operatorStyle: "OR" | "Space" = "OR",
-  feedback?: string
+  feedback?: string,
+  templateConstraint?: SearchTemplateConstraint | null
 ): Promise<SearchQueryResponse> {
   const targetDB = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请根据用户的检索词自动判断最合适的一个目标学术数据库或搜索引擎（例如：CNKI、Web of Science、PubMed、专利数据库等），并在解释中说明为何选择该库。" : targetDatabase;
   const schemaInfo = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请自行匹配该目标数据库的常用检索语法与字段代码。" : (DB_SCHEMAS[targetDatabase] || DB_SCHEMAS["通用搜索引擎 (Baidu/Bing)"]);
@@ -158,6 +171,21 @@ Tasks:
 5. Provide a 1-sentence 'explanation'.
 6. Provide 1-3 'suggestedUrls'. 
 `;
+
+  if (templateConstraint) {
+    userPrompt += `
+[CRITICAL SEARCH FORMULA TEMPLATE / BOOLEAN FRAMEWORK CONSTRAINT]:
+The user has enforced a strict search query logic template framework: "${templateConstraint.name}".
+- Target Framework Structure:
+${templateConstraint.framework}
+- Structural Instructions & Logical Rules:
+${templateConstraint.constraintPrompt}
+
+Strict Execution Requirements:
+1. When extracting and grouping core concepts, you MUST align and map them directly into the facets/blocks defined in this framework.
+2. The generated 'booleanQuery' and 'fieldSpecificQuery' MUST strictly conform to this logical framework structure (combining synonyms with OR/Space within each facet block, and chaining the facet blocks with AND/specified operators).
+`;
+  }
 
   if (feedback) {
     userPrompt += `
@@ -199,6 +227,7 @@ Return JSON format:
 }
 `;
 
+  const startTime = performance.now();
   try {
     let resultText = "";
     let usageInfo: TokenUsage | undefined;
@@ -347,12 +376,29 @@ Return JSON format:
       }
     }
 
+    const latencyMs = Math.round(performance.now() - startTime);
     const result = JSON.parse(resultText);
-    if (usageInfo) {
-      result._usage = usageInfo;
+    
+    if (!usageInfo) {
+      const estPrompt = Math.round((systemPrompt.length + userPrompt.length) / 3.5);
+      const estComp = Math.round(resultText.length / 3.5);
+      usageInfo = {
+        promptTokens: estPrompt,
+        completionTokens: estComp,
+        totalTokens: estPrompt + estComp
+      };
     }
+
+    result._latencyMs = latencyMs;
+    result._modelUsed = modelName;
+    result._providerUsed = provider?.name || (isGeminiSDK ? "Google Gemini" : "OpenAI Compatible");
+    result._usage = usageInfo;
+
     if (reasoningContent) {
       result._reasoning = reasoningContent;
+    }
+    if (templateConstraint) {
+      result._appliedTemplate = templateConstraint.name;
     }
     return result as SearchQueryResponse;
   } catch (error: any) {
@@ -381,6 +427,75 @@ Return JSON format:
       details = `内部错误/Internal Error: ${error.message || "Unknown error"}`;
     }
     
+    throw new Error(JSON.stringify({ title, details }));
+  }
+}
+
+/**
+ * Transcribes audio recording into text using model `gemini-3.5-transcribe`
+ */
+export async function transcribeAudio(
+  audioBlob: Blob,
+  geminiKey?: string
+): Promise<string> {
+  try {
+    const currentAi = getGeminiClient(geminiKey);
+
+    // Convert blob to base64
+    const base64Data = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        const base64 = result.split(',')[1] || "";
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(audioBlob);
+    });
+
+    // Clean MIME type (strip codecs parameters for clean format, default to audio/webm)
+    let rawMime = audioBlob.type || "audio/webm";
+    let mimeType = rawMime.split(';')[0].trim();
+    if (!mimeType.startsWith("audio/")) {
+      mimeType = "audio/webm";
+    }
+
+    const response = await currentAi.models.generateContent({
+      model: "gemini-3.5-transcribe",
+      contents: [
+        {
+          inlineData: {
+            mimeType,
+            data: base64Data,
+          },
+        },
+        "Transcribe this spoken audio into text accurately. Output only the verbatim transcribed speech text without commentary, conversational preamble, quotation marks, or markdown code blocks."
+      ],
+    });
+
+    const transcript = (response.text || "").trim();
+    return transcript;
+  } catch (error: any) {
+    console.error("Transcription Error:", error);
+
+    try {
+      const parsed = JSON.parse(error.message);
+      if (parsed.title && parsed.details) throw error;
+    } catch (_) {}
+
+    let title = "语音转文字失败 / Audio Transcription Failed";
+    let details = "请检查麦克风录音及 Gemini API 配置。(Please check microphone audio and Gemini API configuration.)";
+
+    if (error.status === 401 || error.message?.includes("API key not valid")) {
+      details = "Gemini API Key 无效或未授权。请在设置 ⚙️ Settings 中配置有效的 Gemini API Key。(Invalid Gemini API Key.)";
+    } else if (error.message?.includes("Missing Gemini API Key")) {
+      details = "未配置 Gemini API Key。请在页面右下角设置 ⚙️ Settings 中填入 Gemini API 密钥。(Gemini API Key missing.)";
+    } else if (error.status === 429 || error.message?.includes("quota")) {
+      details = "Gemini API 配额已超限，请稍后再试。(Gemini API quota exceeded.)";
+    } else if (error.message) {
+      details = error.message;
+    }
+
     throw new Error(JSON.stringify({ title, details }));
   }
 }

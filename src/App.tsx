@@ -27,16 +27,39 @@ import {
   ExternalLink,
   Download,
   WifiOff,
-  Star
+  Star,
+  Sun,
+  Moon,
+  Layers,
+  Maximize2,
+  Minimize2,
+  WrapText,
+  AlignLeft,
+  TrendingUp,
+  GitCommit,
+  ShieldAlert,
+  CheckCircle2,
+  Wrench,
+  Cpu,
+  Zap
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import { generateSearchQuery, SearchQueryResponse, ProviderConfig, testConnection } from "./services/gemini";
+import { SearchTemplate, SearchTemplateConstraint, RefinementTrajectoryItem } from "./types";
+import { DEFAULT_SEARCH_TEMPLATES } from "./data/searchTemplates";
+import { TemplateLibrary } from "./components/TemplateLibrary";
+import OptimizationTrajectoryViewer from "./components/OptimizationTrajectoryViewer";
 import OfficialWhitelist, { DEFAULT_LINKS, LinkItem, DEFAULT_CATEGORIES, extractKeywords, scoreLink } from "./components/OfficialWhitelist";
 import OfflineDownloader from "./components/OfflineDownloader";
 import FeedbackAnalytics, { UserFeedback } from "./components/FeedbackAnalytics";
 import VisualQueryTree from "./components/VisualQueryTree";
 import HighlightedBooleanQuery from "./components/HighlightedBooleanQuery";
+import SyntaxValidationAlert from "./components/SyntaxValidationAlert";
+import { validateBooleanQuery, autoFixBooleanQuery } from "./utils/booleanSyntaxValidator";
+import { AudioTranscriber } from "./components/AudioTranscriber";
+import { ComparisonKeywordChart } from "./components/ComparisonKeywordChart";
+import { PerformanceMetricsPanel } from "./components/PerformanceMetricsPanel";
 
 const UI_STRINGS = {
   mix: {
@@ -342,12 +365,13 @@ export interface ModelUsageStats {
 export type UsageStatsRegistry = Record<string, Record<string, ModelUsageStats>>; // providerId -> model -> stats
 
 // Custom local query Cache for instant local performance
-const getLocalCache = (line: string, dbType: string, langPref: string, model: string, providerId: string, operatorStyle: string) => {
+const getLocalCache = (line: string, dbType: string, langPref: string, model: string, providerId: string, operatorStyle: string, templateId?: string | null) => {
   try {
     const cacheStr = localStorage.getItem("ai_retrieval_v2_cache");
     if (!cacheStr) return null;
     const cache = JSON.parse(cacheStr);
-    const key = `${providerId}_${model}_${dbType}_${langPref}_${operatorStyle}_${line.trim()}`;
+    const tplKey = templateId || "default";
+    const key = `${providerId}_${model}_${dbType}_${langPref}_${operatorStyle}_${tplKey}_${line.trim()}`;
     const item = cache[key];
     if (item && Date.now() - item.timestamp < 3600000 * 24) { // Valid for 24 hours
       return item.result;
@@ -356,11 +380,12 @@ const getLocalCache = (line: string, dbType: string, langPref: string, model: st
   return null;
 };
 
-const setLocalCache = (line: string, dbType: string, langPref: string, model: string, providerId: string, operatorStyle: string, result: any) => {
+const setLocalCache = (line: string, dbType: string, langPref: string, model: string, providerId: string, operatorStyle: string, templateId: string | null | undefined, result: any) => {
   try {
     const cacheStr = localStorage.getItem("ai_retrieval_v2_cache") || "{}";
     const cache = JSON.parse(cacheStr);
-    const key = `${providerId}_${model}_${dbType}_${langPref}_${operatorStyle}_${line.trim()}`;
+    const tplKey = templateId || "default";
+    const key = `${providerId}_${model}_${dbType}_${langPref}_${operatorStyle}_${tplKey}_${line.trim()}`;
     cache[key] = {
       timestamp: Date.now(),
       result
@@ -374,6 +399,31 @@ const setLocalCache = (line: string, dbType: string, langPref: string, model: st
 };
 
 export default function App() {
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    try {
+      const saved = localStorage.getItem('ai_retrieval_theme');
+      if (saved === 'light' || saved === 'dark') return saved;
+    } catch (e) {}
+    return 'dark';
+  });
+
+  useEffect(() => {
+    try {
+      if (theme === 'light') {
+        document.documentElement.classList.add('theme-light');
+        document.documentElement.classList.remove('theme-dark');
+      } else {
+        document.documentElement.classList.remove('theme-light');
+        document.documentElement.classList.add('theme-dark');
+      }
+      localStorage.setItem('ai_retrieval_theme', theme);
+    } catch (e) {}
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   const [input, setInput] = useState("");
   const [activeTab, setActiveTab] = useState<'ai' | 'whitelist'>('ai');
   const [showInstallerModal, setShowInstallerModal] = useState(false);
@@ -562,6 +612,63 @@ export default function App() {
   const [showMapped, setShowMapped] = useState(false);
   const [isQuickWhitelistOpen, setIsQuickWhitelistOpen] = useState(false);
   const [quickSearchKw, setQuickSearchKw] = useState("");
+  const [isFormulaExpanded, setIsFormulaExpanded] = useState(false);
+  const [isWrapFormula, setIsWrapFormula] = useState(true);
+  const [formulaFontSize, setFormulaFontSize] = useState<'sm' | 'base' | 'lg'>('base');
+  const [expandedCardStrategies, setExpandedCardStrategies] = useState<Record<string, boolean>>({});
+  const [expandedReasoning, setExpandedReasoning] = useState(false);
+  const [isSystemMenuOpen, setIsSystemMenuOpen] = useState(false);
+
+  // Current active Boolean search query in single-model display
+  const activeFormulaQuery = useMemo(() => {
+    if (!result) return "";
+    return showMapped 
+      ? (effectiveA.fieldSpecificQuery || effectiveA.booleanQuery) 
+      : effectiveA.booleanQuery;
+  }, [result, showMapped, effectiveA]);
+
+  // Real-time syntax validation status
+  const syntaxValidation = useMemo(() => {
+    if (!result || result._isLoading || !activeFormulaQuery) return null;
+    return validateBooleanQuery(activeFormulaQuery);
+  }, [result, activeFormulaQuery]);
+
+  // Handle applying automatic syntax fix for primary query
+  const handleApplySyntaxFix = (fixedQuery: string) => {
+    if (!result) return;
+    setResults(prev => {
+      const next = [...prev];
+      const cur = next[activeIndex];
+      if (cur) {
+        next[activeIndex] = {
+          ...cur,
+          booleanQuery: showMapped ? cur.booleanQuery : fixedQuery,
+          fieldSpecificQuery: showMapped ? fixedQuery : cur.fieldSpecificQuery
+        };
+      }
+      return next;
+    });
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Helper to inject a syntax error sample to verify real-time alert UI
+  const handleInjectSampleSyntaxError = () => {
+    if (!result) return;
+    setResults(prev => {
+      const next = [...prev];
+      const cur = next[activeIndex];
+      if (cur) {
+        const corrupted = `（${cur.booleanQuery.trim()} AND ） AND "未闭合短语`;
+        next[activeIndex] = {
+          ...cur,
+          booleanQuery: corrupted,
+          fieldSpecificQuery: corrupted
+        };
+      }
+      return next;
+    });
+  };
 
   const [screenHeight, setScreenHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 800);
 
@@ -619,6 +726,124 @@ export default function App() {
   const { t, i18n } = useTranslation();
   const uiLang = i18n.language;
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<'api' | 'templates' | 'trajectories'>('api');
+
+  // AI Optimization Trajectories state
+  const [trajectories, setTrajectories] = useState<RefinementTrajectoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem("retrieval_ai_trajectories");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
+
+  const saveTrajectoriesLocally = (items: RefinementTrajectoryItem[]) => {
+    setTrajectories(items);
+    try {
+      localStorage.setItem("retrieval_ai_trajectories", JSON.stringify(items.slice(0, 50)));
+    } catch (e) {
+      console.warn("Failed to persist trajectories", e);
+    }
+  };
+
+  const handleLoadSampleTrajectory = () => {
+    const sample: RefinementTrajectoryItem = {
+      id: Date.now().toString(),
+      timestamp: Date.now() - 3600000,
+      inputLine: "大语言模型在多模态医疗影像诊断中的应用与评估",
+      dbType: "Web of Science (WOS)",
+      langPref: "双语混合 (Bilingual)",
+      modelName: activeModel || "gemini-2.5-flash",
+      providerId: activeProviderId || "google-gemini",
+      templateName: "主题 + 限制 + 字段",
+      rating: 2,
+      feedbackTags: ["漏掉同义词", "算符优先级混乱", "限定字段过宽"],
+      feedbackWritten: "初始检索式漏掉了视觉语言模型(VLM)与多模态大模型(MLLM)的高频专业缩写，未限定TS主题字段，导致查全率与查准率受限。",
+      before: {
+        booleanQuery: "大语言模型 AND 医疗影像 AND 诊断 AND 评估",
+        explanation: "基于初步自然语言需求提取核心主题词，但缺乏领域缩写与学术库专属字段标识。"
+      },
+      after: {
+        booleanQuery: 'TS=(("large language model*" OR "LLM" OR "multimodal LLM" OR "MLLM" OR "vision-language model*" OR "VLM" OR "多模态大模型" OR "大语言模型") AND ("medical imag*" OR "radiolog*" OR "CT" OR "MRI" OR "ultrasound" OR "医疗影像" OR "医学图像") AND ("diagnos*" OR "detection" OR "segmentation" OR "诊断" OR "检测") AND ("evaluat*" OR "benchmark*" OR "validation" OR "评估" OR "基准评测"))',
+        explanation: "扩展了多模态大模型的专用同义词与缩写簇（MLLM, VLM），补全放射影像细分术语（CT, MRI, ultrasound, radiolog*），并使用 WOS 规范的主题字段标签 TS= 进行四维嵌套布尔组配，极大提升了学术查全率与查准率。",
+        reasoning: "【AI 双向重构路径】\n1. 词表扩展：补齐多模态前沿文献中高频出现的 'VLM'、'MLLM'、'vision-language model*'；\n2. 算符嵌套：将宽泛的单层 AND 拆分为四个独立的同义词 OR 集合，并以外层 AND 交叉约束；\n3. 字段适配：注入 WOS 主题检索 TS=() 规范语法，防止检索范围溢出到作者或出版物名称。"
+      }
+    };
+    saveTrajectoriesLocally([sample, ...trajectories]);
+  };
+
+  const handleApplyTrajectory = (item: RefinementTrajectoryItem) => {
+    setInput(item.inputLine);
+    setDbType(item.dbType);
+    setLangPref(item.langPref);
+    setResults([{
+      keywords: item.after.keywords || [],
+      booleanQuery: item.after.booleanQuery,
+      fieldSpecificQuery: item.after.fieldSpecificQuery || item.after.booleanQuery,
+      schemaMapping: [],
+      explanation: item.after.explanation || '',
+      _reasoning: item.after.reasoning,
+      _inputLine: item.inputLine,
+      _appliedTemplate: item.templateName
+    }]);
+    setActiveIndex(0);
+    setIsConfigOpen(false);
+    setFeedbackNotice(uiLang === 'zh' || i18n.language === 'mix' ? "✓ 已成功将优化轨迹中的检索式应用至工作区！" : "✓ Applied trajectory query to workspace!");
+  };
+
+  // Search Formula Template Library state
+  const [templates, setTemplates] = useState<SearchTemplate[]>(() => {
+    try {
+      const saved = localStorage.getItem("ai_retrieval_templates");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return DEFAULT_SEARCH_TEMPLATES;
+  });
+
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(() => {
+    try {
+      const saved = localStorage.getItem("ai_retrieval_active_template_id");
+      if (saved !== null) {
+        return saved === "" || saved === "none" ? null : saved;
+      }
+    } catch (e) {}
+    return "preset-topic-constraint-field";
+  });
+
+  const handleSaveTemplates = (newTemplates: SearchTemplate[]) => {
+    setTemplates(newTemplates);
+    try {
+      localStorage.setItem("ai_retrieval_templates", JSON.stringify(newTemplates));
+    } catch (e) {}
+  };
+
+  const handleSelectTemplate = (templateId: string | null) => {
+    setActiveTemplateId(templateId);
+    try {
+      localStorage.setItem("ai_retrieval_active_template_id", templateId || "none");
+    } catch (e) {}
+  };
+
+  const activeTemplate = useMemo(() => {
+    if (!activeTemplateId) return null;
+    return templates.find(t => t.id === activeTemplateId) || null;
+  }, [templates, activeTemplateId]);
+
+  const activeTemplateConstraint = useMemo((): SearchTemplateConstraint | null => {
+    if (!activeTemplate) return null;
+    return {
+      id: activeTemplate.id,
+      name: activeTemplate.name,
+      framework: activeTemplate.framework,
+      constraintPrompt: activeTemplate.constraintPrompt
+    };
+  }, [activeTemplate]);
 
   const [tourStep, setTourStep] = useState<number | null>(null);
   const [tourBounds, setTourBounds] = useState<{ top: number; left: number; width: number; height: number; } | null>(null);
@@ -748,10 +973,10 @@ export default function App() {
   const TOUR_STEPS = useMemo(() => [
     {
       targetId: "guided-input-panel",
-      title: uiLang === 'zh' || i18n.language === 'mix' ? "第一步：输入学术主题 / 检索意图" : "Step 1: Enter Academic Topic / Search Intent",
+      title: uiLang === 'zh' || i18n.language === 'mix' ? "第一步：输入学术主题 / 语音口述意图" : "Step 1: Enter Academic Topic / Voice Input",
       desc: uiLang === 'zh' || i18n.language === 'mix'
-        ? "在这里直接输入以人类自然语言描述的学术课题、科学探究。系统能够精准识别核心概念与逻辑因果并转化为最优布尔检索式。"
-        : "Type your academic research topic in standard, everyday natural language. The analyzer engine will map core concepts and operators automatically."
+        ? "在这里直接输入以自然语言描述的学术课题。支持键盘文本输入，也支持点击【语音输入】(基于专用 gemini-3.5-transcribe 语音大模型) 通过麦克风直接口述需求，系统将精准识别并生成最优布尔检索式！"
+        : "Type your academic research topic in natural language, or click 'Voice Input' (powered by model gemini-3.5-transcribe) to dictate your search intent via microphone!"
     },
     {
       targetId: "guided-config-panel",
@@ -786,6 +1011,11 @@ export default function App() {
   const [providers, setProviders] = useState<ProviderConfig[]>(DEFAULT_PROVIDERS);
   const [activeProviderId, setActiveProviderId] = useState<string>("gemini");
   const [activeModel, setActiveModel] = useState<string>("gemini-3.5-flash");
+
+  const geminiApiKey = useMemo(() => {
+    const geminiProv = providers.find(p => p.id === 'gemini' || p.isGemini);
+    return geminiProv?.apiKey || (typeof process !== "undefined" ? (process.env as any)?.GEMINI_API_KEY : "") || "";
+  }, [providers]);
 
   const saveOperatorStyle = (style: "OR" | "Space") => {
     setOperatorStyle(style);
@@ -918,6 +1148,12 @@ export default function App() {
   const handleFeedbackRefine = async () => {
     if (!result || isRefiningAI) return;
     
+    // Capture before state for trajectory log
+    const beforeBooleanQuery = result.booleanQuery;
+    const beforeFieldQuery = result.fieldSpecificQuery;
+    const beforeExplanation = result.explanation;
+    const beforeKeywords = result.keywords;
+
     // Fallback if empty feedback submitted
     const finalFeedbackText = `[Tags: ${feedbackTags.join(', ')}] ${feedbackWritten.trim()}`;
     if (!feedbackWritten.trim() && feedbackTags.length === 0) {
@@ -949,7 +1185,8 @@ export default function App() {
         activeModel,
         provider,
         operatorStyle,
-        finalFeedbackText
+        finalFeedbackText,
+        activeTemplateConstraint
       );
 
       const finalResp = { ...resp, _inputLine: result._inputLine, _isLoading: false };
@@ -959,6 +1196,35 @@ export default function App() {
         next[activeIndex] = finalResp;
         return next;
       });
+
+      // Save AI optimization trajectory
+      const newTrajectoryItem: RefinementTrajectoryItem = {
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        inputLine: result._inputLine || input,
+        dbType,
+        langPref,
+        modelName: activeModel,
+        providerId: activeProviderId,
+        templateName: activeTemplateConstraint?.name || undefined,
+        rating: feedbackRating || 2,
+        feedbackTags: [...feedbackTags],
+        feedbackWritten: feedbackWritten.trim(),
+        before: {
+          booleanQuery: beforeBooleanQuery,
+          fieldSpecificQuery: beforeFieldQuery,
+          explanation: beforeExplanation,
+          keywords: beforeKeywords
+        },
+        after: {
+          booleanQuery: finalResp.booleanQuery,
+          fieldSpecificQuery: finalResp.fieldSpecificQuery,
+          explanation: finalResp.explanation,
+          keywords: finalResp.keywords,
+          reasoning: finalResp._reasoning
+        }
+      };
+      saveTrajectoriesLocally([newTrajectoryItem, ...trajectories]);
 
       // Log feedback metrics loop
       const feedbackItem: UserFeedback = {
@@ -977,7 +1243,7 @@ export default function App() {
       const updatedFeedbacks = [feedbackItem, ...feedbacks];
       saveFeedbacksLocally(updatedFeedbacks);
 
-      setFeedbackNotice(uiLang === 'zh' || i18n.language === 'mix' ? "✨ 检索算式已重构完毕！" : "✨ Query restructured successfully!");
+      setFeedbackNotice(uiLang === 'zh' || i18n.language === 'mix' ? "✨ 检索算式已重构完毕！已记录至【AI 优化轨迹查看器】。" : "✨ Query restructured successfully! Logged to Optimization Trajectory Viewer.");
       setFeedbackRating(0);
       setFeedbackWritten("");
       setFeedbackTags([]);
@@ -1226,12 +1492,18 @@ export default function App() {
 
         // Model A runner
         try {
-          const cachedResultA = getLocalCache(line, dbType, langPref, activeModel, activeProviderId, operatorStyle);
+          const cachedResultA = getLocalCache(line, dbType, langPref, activeModel, activeProviderId, operatorStyle, activeTemplateId);
           if (cachedResultA) {
-            respA = { ...cachedResultA, _fromCache: true };
+            respA = { 
+              ...cachedResultA, 
+              _fromCache: true, 
+              _latencyMs: 0,
+              _modelUsed: activeModel,
+              _providerUsed: providerA?.name || "Local Cache"
+            };
           } else {
-            respA = await generateSearchQuery(line, dbType, langPref, activeModel, providerA, operatorStyle);
-            setLocalCache(line, dbType, langPref, activeModel, activeProviderId, operatorStyle, respA);
+            respA = await generateSearchQuery(line, dbType, langPref, activeModel, providerA, operatorStyle, undefined, activeTemplateConstraint);
+            setLocalCache(line, dbType, langPref, activeModel, activeProviderId, operatorStyle, activeTemplateId, respA);
           }
           totalTokensA += (respA._usage?.totalTokens || 0);
           totalSuccessesA++;
@@ -1259,12 +1531,19 @@ export default function App() {
         // Model B runner if in compare mode
         if (isCompareMode) {
           try {
-            const cachedResultB = getLocalCache(line, dbType, langPref, compareModel, compareProviderId, operatorStyle);
+            const cachedResultB = getLocalCache(line, dbType, langPref, compareModel, compareProviderId, operatorStyle, activeTemplateId);
             if (cachedResultB) {
-              respB = { ...cachedResultB, _fromCache: true };
+              respB = { 
+                ...cachedResultB, 
+                _fromCache: true, 
+                _latencyMs: 0,
+                modelName: compareModel,
+                _modelUsed: compareModel,
+                _providerUsed: providerB?.name || "Local Cache"
+              };
             } else {
-              respB = await generateSearchQuery(line, dbType, langPref, compareModel, providerB, operatorStyle);
-              setLocalCache(line, dbType, langPref, compareModel, compareProviderId, operatorStyle, respB);
+              respB = await generateSearchQuery(line, dbType, langPref, compareModel, providerB, operatorStyle, undefined, activeTemplateConstraint);
+              setLocalCache(line, dbType, langPref, compareModel, compareProviderId, operatorStyle, activeTemplateId, respB);
             }
             totalTokensB += (respB._usage?.totalTokens || 0);
             totalSuccessesB++;
@@ -1426,6 +1705,41 @@ export default function App() {
     const effQueries = getEffectiveQueries(mResp, !isModelA);
     const queryStr = mResp ? (showMapped ? (effQueries.fieldSpecificQuery || effQueries.booleanQuery) : effQueries.booleanQuery) : "";
 
+    // Real-time syntax validation for compare card
+    const cardValidation = (queryStr && !isLoading && !isErr) ? validateBooleanQuery(queryStr) : null;
+
+    const handleApplyCompareFix = (fixedQuery: string) => {
+      setResults(prev => {
+        const next = [...prev];
+        const cur = next[activeIndex];
+        if (!cur) return next;
+
+        if (isModelA) {
+          next[activeIndex] = {
+            ...cur,
+            booleanQuery: showMapped ? cur.booleanQuery : fixedQuery,
+            fieldSpecificQuery: showMapped ? fixedQuery : cur.fieldSpecificQuery
+          };
+        } else if (cur._compareResult) {
+          next[activeIndex] = {
+            ...cur,
+            _compareResult: {
+              ...cur._compareResult,
+              booleanQuery: showMapped ? cur._compareResult.booleanQuery : fixedQuery,
+              fieldSpecificQuery: showMapped ? fixedQuery : cur._compareResult.fieldSpecificQuery
+            }
+          };
+        }
+        return next;
+      });
+      setCopied(true);
+      setCopyTarget(isModelA ? 'A' : 'B');
+      setTimeout(() => {
+        setCopied(false);
+        setCopyTarget(null);
+      }, 2000);
+    };
+
     const cardCopied = copied && copyTarget === (isModelA ? 'A' : 'B');
 
     const handleCardCopy = () => {
@@ -1439,13 +1753,17 @@ export default function App() {
       }, 2000);
     };
 
+    const isStrategyExpanded = !!expandedCardStrategies[isModelA ? 'A' : 'B'];
+
     return (
       <div 
         style={{
           minHeight: screenHeight < 700 ? '250px' : screenHeight < 800 ? '300px' : '350px'
         }}
-        className={`flex flex-col bg-slate-900/30 border rounded-xl p-4 overflow-hidden relative flex-1 text-left ${
-          isModelA ? 'border-cyan-500/15 hover:border-cyan-500/25 bg-cyan-950/5' : 'border-purple-500/15 hover:border-purple-500/25 bg-purple-950/5'
+        className={`flex flex-col border rounded-2xl p-4 sm:p-5 relative flex-1 text-left min-w-0 transition-all ${
+          isModelA 
+            ? 'border-cyan-500/20 bg-cyan-950/10 hover:border-cyan-500/30 [.theme-light_&]:bg-sky-50/60 [.theme-light_&]:border-sky-200' 
+            : 'border-purple-500/20 bg-purple-950/10 hover:border-purple-500/30 [.theme-light_&]:bg-purple-50/60 [.theme-light_&]:border-purple-200'
         }`}
       >
         {/* Card Header */}
@@ -1455,7 +1773,7 @@ export default function App() {
             <span className={`text-[10px] font-extrabold uppercase tracking-wider ${isModelA ? 'text-cyan-300' : 'text-purple-300'}`}>
               {title}
             </span>
-            <span className="text-[10px] text-slate-500 font-mono truncate max-w-[120px]" title={modelName}>
+            <span className="text-[10px] text-slate-400 font-mono" title={modelName}>
               ({modelName})
             </span>
           </div>
@@ -1494,9 +1812,26 @@ export default function App() {
                 ⚡️ CACHED
               </span>
             )}
+            {mResp?._latencyMs !== undefined && (
+              <span className="inline-flex items-center px-1.5 py-0.5 bg-white/5 border border-white/10 text-slate-300 text-[8px] rounded-md font-bold font-mono">
+                ⚡ {mResp._fromCache ? '0ms' : `${mResp._latencyMs}ms`}
+              </span>
+            )}
             {mResp?._usage?.totalTokens && (
               <span className="inline-flex items-center px-1.5 py-0.5 bg-white/5 border border-white/10 text-slate-400 text-[8px] rounded-md font-bold font-mono">
                 {mResp._usage.totalTokens} Tokens
+              </span>
+            )}
+            {mResp?._appliedTemplate && (
+              <span 
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[8px] rounded-md font-bold uppercase tracking-wider font-mono cursor-pointer hover:bg-amber-500/20 transition-colors"
+                onClick={() => {
+                  setSettingsTab('templates');
+                  setIsConfigOpen(true);
+                }}
+                title={`逻辑框架约束: ${mResp._appliedTemplate} (点击打开检索式模板库)`}
+              >
+                📐 {mResp._appliedTemplate}
               </span>
             )}
           </div>
@@ -1517,13 +1852,17 @@ export default function App() {
         ) : (
           <div className="flex-1 flex flex-col gap-3 min-h-0">
             {/* Query Formula Code box */}
-            <div className="flex-1 flex flex-col relative" style={{ minHeight: screenHeight < 700 ? '90px' : '130px' }}>
+            <div className="flex-1 flex flex-col relative" style={{ minHeight: '110px' }}>
               <div 
                 style={{
-                  height: screenHeight < 700 ? '90px' : screenHeight < 800 ? '110px' : '140px',
-                  minHeight: '80px'
+                  minHeight: '110px',
+                  maxHeight: '260px'
                 }}
-                className="font-mono text-cyan-100 text-xs leading-relaxed overflow-y-auto custom-scrollbar select-all flex-1 p-3 bg-black/45 rounded-lg border border-white/5"
+                className={`formula-code-box font-mono text-xs leading-relaxed tracking-normal overflow-y-auto custom-scrollbar select-all flex-1 p-3.5 sm:p-4 rounded-xl border whitespace-pre-wrap break-words transition-all ${
+                  cardValidation && !cardValidation.isValid
+                    ? 'border-rose-500/60 shadow-[0_0_12px_rgba(244,63,94,0.2)] ring-1 ring-rose-500/30'
+                    : 'border-white/10 [.theme-light_&]:border-slate-300'
+                }`}
               >
                 <HighlightedBooleanQuery query={queryStr} />
               </div>
@@ -1531,12 +1870,22 @@ export default function App() {
               {/* Copy Overlay Button */}
               <button 
                 onClick={handleCardCopy}
-                className="absolute right-2 text-slate-400 hover:text-white bottom-2 p-1.5 bg-slate-800/80 hover:bg-slate-750 border border-white/10 rounded-lg transition-all cursor-pointer"
+                className="absolute right-2 text-slate-400 hover:text-white bottom-2 p-1.5 bg-slate-800/80 hover:bg-slate-750 border border-white/10 rounded-lg transition-all cursor-pointer shadow"
                 title="Copy code"
               >
                 {cardCopied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
               </button>
             </div>
+
+            {/* Real-time Syntax Validation for Compare Card */}
+            {cardValidation && (
+              <SyntaxValidationAlert
+                validation={cardValidation}
+                onApplyFix={handleApplyCompareFix}
+                uiLang={uiLang}
+                className="my-0.5"
+              />
+            )}
 
             {/* Visual Query Tree */}
             {mResp.keywords && mResp.keywords.length > 0 && (
@@ -1553,22 +1902,35 @@ export default function App() {
 
             {/* Explanation strategy */}
             {mResp.explanation && (
-              <p className="text-[11px] text-slate-400 italic line-clamp-2" title={mResp.explanation}>
-                <span className="text-[9px] font-bold text-slate-500 uppercase mr-1 select-none font-mono">STRATEGY:</span> 
-                {mResp.explanation}
-              </p>
+              <div className="bg-black/25 rounded-lg p-2.5 border border-white/5 flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase select-none font-mono">
+                    STRATEGY / 检索逻辑策略:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedCardStrategies(prev => ({ ...prev, [isModelA ? 'A' : 'B']: !prev[isModelA ? 'A' : 'B'] }))}
+                    className="text-[9px] text-cyan-400 hover:text-cyan-300 font-medium hover:underline cursor-pointer"
+                  >
+                    {isStrategyExpanded ? (uiLang === 'zh' || i18n.language === 'mix' ? "收起" : "Less") : (uiLang === 'zh' || i18n.language === 'mix' ? "展开全部" : "More")}
+                  </button>
+                </div>
+                <p className={`text-[11px] text-slate-300 leading-relaxed italic ${isStrategyExpanded ? '' : 'line-clamp-2'}`} title={mResp.explanation}>
+                  {mResp.explanation}
+                </p>
+              </div>
             )}
 
             {/* Field Mappings */}
             {hasMapping && (
-              <div className="flex flex-col gap-1.5 mt-1 border-t border-white/5 pt-2 custom-scrollbar overflow-y-auto max-h-[100px] sm:max-h-[120px]">
-                <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Field mappings:</span>
-                <div className="space-y-1">
+              <div className="flex flex-col gap-1.5 mt-1 border-t border-white/5 pt-2 custom-scrollbar overflow-y-auto max-h-[220px]">
+                <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Field mappings / 字段对应映射:</span>
+                <div className="space-y-1.5">
                   {mResp.schemaMapping.map((map: any, i: number) => (
-                    <div key={i} className="flex items-center gap-1.5 text-[10px] bg-white/5 px-2 py-1 rounded">
-                      <span className="text-[8px] text-emerald-400 font-mono bg-emerald-400/5 border border-emerald-500/10 px-1 py-0.2 rounded shrink-0">[{map.field}]</span>
-                      <span className="text-slate-300 font-medium truncate max-w-[100px]">"{map.mappedConcept}"</span>
-                      <span className="text-slate-500 text-[9px] truncate flex-1 block">({map.reason})</span>
+                    <div key={i} className="flex flex-wrap items-start gap-1.5 text-[10px] bg-white/5 px-2.5 py-1.5 rounded">
+                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-400/10 border border-emerald-500/20 px-1.5 py-0.5 rounded shrink-0">[{map.field}]</span>
+                      <span className="text-slate-200 font-medium shrink-0">"{map.mappedConcept}"</span>
+                      <span className="text-slate-400 text-[9px] flex-1 break-words">({map.reason})</span>
                     </div>
                   ))}
                 </div>
@@ -1620,202 +1982,521 @@ export default function App() {
   const isOfflineMode = !isOnline || consecutiveFailures >= 2;
 
   return (
-    <div className="min-h-screen h-screen flex flex-col bg-[#05070A] text-slate-100 font-sans overflow-hidden">
+    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 overflow-x-hidden ${theme === 'light' ? 'theme-light bg-[#f8fafc] text-slate-900' : 'bg-[#05070A] text-slate-100'}`}>
       {/* Header Section */}
-      <header className="flex items-center justify-between border-b border-white/10 px-8 py-4 shrink-0 bg-[#05070A]/80 backdrop-blur-sm z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center border border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-            <Sparkles className="w-6 h-6 text-cyan-400" />
+      <header className="flex items-center justify-between border-b border-white/10 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 shrink-0 bg-[#05070A]/80 backdrop-blur-sm z-50 gap-2 sm:gap-4 transition-colors relative">
+        {/* Brand Logo & Title */}
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center border border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.3)] shrink-0">
+            <Sparkles className="w-4 h-4 sm:w-6 sm:h-6 text-cyan-400" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-white uppercase flex items-center">
-              {t('appTitle')} <span className="text-cyan-500 text-[10px] font-mono ml-2 opacity-70">v2.4.0</span>
+          <div className="min-w-0">
+            <h1 className="text-sm sm:text-base md:text-xl font-bold tracking-tight text-white uppercase flex items-center flex-wrap gap-1 sm:gap-1.5 truncate">
+              <span className="truncate">{t('appTitle')}</span>
+              <span className="text-cyan-500 text-[9px] sm:text-[10px] font-mono opacity-70 shrink-0">v2.4.0</span>
             </h1>
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest leading-none">{t('appSubtitle')}</p>
+            <p className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-widest leading-none hidden xs:block truncate">
+              {t('appSubtitle')}
+            </p>
           </div>
         </div>
         
-        <div className="flex gap-4 items-center">
-          <div 
-            className="flex items-center gap-2 bg-slate-800/40 hover:bg-slate-700/60 px-3 py-1.5 rounded-xl border border-white/5 hover:border-cyan-500/30 transition-all cursor-pointer relative group"
-            onClick={(e) => {
-              e.currentTarget.querySelector('.dropdown-menu')?.classList.toggle('hidden');
-              e.currentTarget.querySelector('.dropdown-menu')?.classList.toggle('opacity-0');
-              e.currentTarget.querySelector('.dropdown-menu')?.classList.toggle('-translate-y-2');
-            }}
-            tabIndex={0}
-            onBlur={(e) => {
-              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                e.currentTarget.querySelector('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
-              }
-            }}
-          >
-            <Languages size={14} className="text-slate-400 group-hover:text-cyan-400 transition-colors" />
-            <div className="text-xs font-bold text-slate-300 group-hover:text-white pr-5 select-none relative z-10 pointer-events-none">
-              {uiLang === 'mix' ? '中文/EN (Mix)' : uiLang === 'zh' ? '简体中文' : 'English'}
-            </div>
-            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity">
-              <ChevronDown size={12} className="text-cyan-400" />
-            </div>
-
-            {/* Custom Dropdown Menu */}
-            <div className="dropdown-menu hidden opacity-0 -translate-y-2 transition-all duration-200 absolute top-full right-0 mt-3 bg-[#0a0f18] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] min-w-full w-max">
-              <div className="flex flex-col py-1">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    i18n.changeLanguage("mix");
-                    e.currentTarget.closest('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
-                  }}
-                  className={`px-4 py-2.5 text-xs font-bold text-left transition-colors flex items-center justify-between ${uiLang === 'mix' ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
-                >
-                  中文/EN (Mix)
-                  {uiLang === 'mix' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 ml-3"></span>}
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    i18n.changeLanguage("zh");
-                    e.currentTarget.closest('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
-                  }}
-                  className={`px-4 py-2.5 text-xs font-bold text-left transition-colors flex items-center justify-between ${uiLang === 'zh' ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
-                >
-                  简体中文
-                  {uiLang === 'zh' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 ml-3"></span>}
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    i18n.changeLanguage("en");
-                    e.currentTarget.closest('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
-                  }}
-                  className={`px-4 py-2.5 text-xs font-bold text-left transition-colors flex items-center justify-between ${uiLang === 'en' ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
-                >
-                  English
-                  {uiLang === 'en' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 ml-3"></span>}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Global Offline/Failure Banner Action */}
+        {/* Right Section Actions */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 justify-end shrink-0">
+          {/* Global Offline/Failure Banner Action (Visible on large screens) */}
           {isOfflineMode && (
-            <div className="hidden md:flex items-center gap-3 bg-red-500/10 border border-red-500/30 px-3.5 py-1.5 rounded-xl text-red-400 animate-fade-in shadow-[0_0_15px_rgba(239,68,68,0.1)]">
-              <WifiOff size={14} className="animate-pulse shrink-0" />
+            <div className="hidden lg:flex items-center gap-2.5 bg-red-500/10 border border-red-500/30 px-3 py-1.5 rounded-xl text-red-400 animate-fade-in shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+              <WifiOff size={13} className="animate-pulse shrink-0" />
               <div className="flex flex-col text-left">
                 <span className="text-[10px] font-bold text-red-300 leading-tight">
-                  {!isOnline ? "已断开外网连接" : "API 连续连接失败"} (Offline Mode Active)
-                </span>
-                <span className="text-[9px] text-rose-400/80 leading-none">
-                  推荐切换至【官方网址速查】进行无流离线工作
+                  {!isOnline ? "已断开外网连接" : "API 连续连接失败"}
                 </span>
               </div>
               <button
                 onClick={() => setActiveTab('whitelist')}
-                className="text-[10px] bg-red-500/20 hover:bg-red-500/35 text-white px-2.5 py-1 rounded border border-red-500/40 transition-all font-black select-none uppercase cursor-pointer flex items-center gap-1 shrink-0 hover:scale-105 active:scale-95"
+                className="text-[9px] bg-red-500/20 hover:bg-red-500/35 text-white px-2 py-0.5 rounded border border-red-500/40 transition-all font-black uppercase cursor-pointer"
               >
-                立即切换 ➜
+                速查 ➜
               </button>
             </div>
           )}
 
-          {/* Guided Search Walkthrough Button */}
-          <button
-            onClick={startTour}
-            className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 hover:from-cyan-500/20 hover:to-indigo-500/20 text-cyan-400 hover:text-cyan-300 border border-cyan-500/25 hover:border-cyan-500/45 rounded-xl transition-all cursor-pointer relative group shrink-0"
-            title="交互式检索学步引导 (Interactive Search Walkthrough)"
-          >
-            <Sparkles size={13} className="text-cyan-400 animate-pulse" />
-            <span className="text-xs font-extrabold tracking-wider uppercase font-mono">
-              {uiLang === 'zh' || i18n.language === 'mix' ? "新手引导" : "Tour 👋"}
-            </span>
-            <span className="absolute top-full mt-2.5 right-0 bg-[#0a0f18] border border-white/10 text-slate-200 text-[10px] px-2.5 py-1 rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-[110]">
-              💡 {uiLang === 'zh' || i18n.language === 'mix' ? "检索学步车：3分钟掌握智能公式生成与校准" : "Onboarding: Learn to generate & refine boolean query"}
-            </span>
-          </button>
+          {/* ========================================================= */}
+          {/* DESKTOP HEADER ACTIONS (md:flex, hidden on small screens) */}
+          {/* ========================================================= */}
+          <div className="hidden md:flex items-center gap-2 lg:gap-2.5">
+            {/* Multi-language Dropdown */}
+            <div 
+              className="flex items-center gap-1.5 bg-slate-800/40 hover:bg-slate-700/60 px-2.5 py-1.5 rounded-xl border border-white/5 hover:border-cyan-500/30 transition-all cursor-pointer relative group shrink-0"
+              onClick={(e) => {
+                e.currentTarget.querySelector('.dropdown-menu')?.classList.toggle('hidden');
+                e.currentTarget.querySelector('.dropdown-menu')?.classList.toggle('opacity-0');
+                e.currentTarget.querySelector('.dropdown-menu')?.classList.toggle('-translate-y-2');
+              }}
+              tabIndex={0}
+              onBlur={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  e.currentTarget.querySelector('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
+                }
+              }}
+            >
+              <Languages size={13} className="text-slate-400 group-hover:text-cyan-400 transition-colors" />
+              <div className="text-xs font-bold text-slate-300 group-hover:text-white pr-4 select-none relative z-10 pointer-events-none">
+                {uiLang === 'mix' ? '中文/EN' : uiLang === 'zh' ? '简体中文' : 'English'}
+              </div>
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity">
+                <ChevronDown size={11} className="text-cyan-400" />
+              </div>
 
-          {/* Quick Help/Offline Installer Corner Button */}
-          <button
-            onClick={() => setShowInstallerModal(true)}
-            className="p-2.5 bg-slate-850/60 hover:bg-cyan-500/10 text-slate-400 hover:text-cyan-400 border border-white/5 hover:border-cyan-500/30 rounded-xl transition-all relative group flex items-center justify-center shrink-0 cursor-pointer"
-            title="一键离线安装与本地部署说明 (Offline & Installer)"
-          >
-            <Info size={15} className="animate-pulse" />
-            <span className="absolute top-full mt-2.5 right-0 bg-[#0a0f18] border border-white/10 text-slate-200 text-[10px] px-2 py-1 rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-[110]">
-              💡 离线版生成与极速安装包 (Offline & Install)
-            </span>
-          </button>
+              {/* Custom Dropdown Menu */}
+              <div className="dropdown-menu hidden opacity-0 -translate-y-2 transition-all duration-200 absolute top-full right-0 mt-2.5 bg-[#0a0f18] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] min-w-full w-max">
+                <div className="flex flex-col py-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      i18n.changeLanguage("mix");
+                      e.currentTarget.closest('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
+                    }}
+                    className={`px-3.5 py-2 text-xs font-bold text-left transition-colors flex items-center justify-between ${uiLang === 'mix' ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+                  >
+                    中文/EN (Mix)
+                    {uiLang === 'mix' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 ml-3"></span>}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      i18n.changeLanguage("zh");
+                      e.currentTarget.closest('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
+                    }}
+                    className={`px-3.5 py-2 text-xs font-bold text-left transition-colors flex items-center justify-between ${uiLang === 'zh' ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+                  >
+                    简体中文
+                    {uiLang === 'zh' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 ml-3"></span>}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      i18n.changeLanguage("en");
+                      e.currentTarget.closest('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
+                    }}
+                    className={`px-3.5 py-2 text-xs font-bold text-left transition-colors flex items-center justify-between ${uiLang === 'en' ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+                  >
+                    English
+                    {uiLang === 'en' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 ml-3"></span>}
+                  </button>
+                </div>
+              </div>
+            </div>
 
-          <div className="hidden sm:block text-right">
-            <span className="text-[9px] text-slate-500 uppercase block leading-none mb-1">
-              {isOfflineMode ? "服务状态 (Service)" : t('engineStatus')}
-            </span>
-            {isOfflineMode ? (
-              <span className="text-xs text-rose-500 flex items-center gap-1.5 font-bold uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-                {!isOnline ? "离线形态 (Offline)" : "服务阻断 (Blocked)"}
+            {/* Guided Search Walkthrough Button */}
+            <button
+              onClick={startTour}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 hover:from-cyan-500/20 hover:to-indigo-500/20 text-cyan-400 hover:text-cyan-300 border border-cyan-500/25 hover:border-cyan-500/45 rounded-xl transition-all cursor-pointer relative group shrink-0"
+              title="交互式检索学步引导 (Interactive Search Walkthrough)"
+            >
+              <Sparkles size={13} className="text-cyan-400 animate-pulse" />
+              <span className="text-xs font-extrabold tracking-wider uppercase font-mono">
+                {uiLang === 'zh' || i18n.language === 'mix' ? "新手引导" : "Tour"}
               </span>
-            ) : (
-              <span className="text-xs text-emerald-400 flex items-center gap-1.5 font-bold uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> {t('operational')}
+            </button>
+
+            {/* Quick Help/Offline Installer Corner Button */}
+            <button
+              onClick={() => setShowInstallerModal(true)}
+              className="p-2 bg-slate-800/40 hover:bg-cyan-500/10 text-slate-400 hover:text-cyan-400 border border-white/5 hover:border-cyan-500/30 rounded-xl transition-all relative group flex items-center justify-center shrink-0 cursor-pointer"
+              title="一键离线安装与本地部署说明 (Offline & Installer)"
+            >
+              <Info size={14} />
+            </button>
+
+            {/* Direct Settings Entry Point (Formerly missing from Header!) */}
+            <button
+              onClick={() => {
+                setSettingsTab('models');
+                setIsConfigOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800/40 hover:bg-slate-700/60 text-slate-300 hover:text-cyan-300 border border-white/5 hover:border-cyan-500/30 rounded-xl transition-all cursor-pointer shrink-0 font-mono text-xs font-bold"
+              title="大模型API配置、检索模板管理与AI优化轨迹"
+            >
+              <Settings size={13} className="text-cyan-400" />
+              <span className="hidden lg:inline">{t('settings')}</span>
+            </button>
+
+            {/* Direct History Entry Point */}
+            <button
+              onClick={() => setIsHistoryOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800/40 hover:bg-slate-700/60 text-slate-300 hover:text-cyan-300 border border-white/5 hover:border-cyan-500/30 rounded-xl transition-all cursor-pointer shrink-0 font-mono text-xs font-bold"
+              title="查看历史检索式生成记录"
+            >
+              <History size={13} className="text-cyan-400" />
+              <span className="hidden xl:inline">{t('historyButton')}</span>
+            </button>
+
+            {/* Top System Information Bar, Performance Metrics & Theme Switcher */}
+            <div className="flex items-center gap-2 bg-slate-800/40 border border-white/10 px-2.5 py-1.5 rounded-xl shrink-0">
+              {/* Real-time Performance Metrics Panel */}
+              <PerformanceMetricsPanel
+                result={results[activeIndex] || null}
+                loading={loading}
+                activeModel={activeModel}
+                activeProviderName={activeProvider.name}
+                isCompareMode={isCompareMode}
+                compareModel={compareModel}
+                uiLang={uiLang}
+                onOpenSettings={() => {
+                  setSettingsTab('models');
+                  setIsConfigOpen(true);
+                }}
+              />
+
+              <div className="h-3.5 w-px bg-white/10 hidden sm:block"></div>
+
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer select-none border ${
+                  theme === 'light'
+                    ? 'bg-amber-500/20 text-amber-800 border-amber-500/40 hover:bg-amber-500/30 shadow-sm'
+                    : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/25'
+                }`}
+                title={
+                  theme === 'dark'
+                    ? (uiLang === 'zh' || i18n.language === 'mix' ? "切换至高对比度浅色主题" : "Switch to Light Theme")
+                    : (uiLang === 'zh' || i18n.language === 'mix' ? "切换至深色科技主题" : "Switch to Dark Theme")
+                }
+              >
+                {theme === 'light' ? (
+                  <>
+                    <Sun size={13} className="text-amber-600" />
+                    <span className="text-[10px] font-mono">{uiLang === 'zh' || i18n.language === 'mix' ? "浅色" : "Light"}</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon size={13} className="text-cyan-300" />
+                    <span className="text-[10px] font-mono">{uiLang === 'zh' || i18n.language === 'mix' ? "深色" : "Dark"}</span>
+                  </>
+                )}
+              </button>
+
+              <div className="h-3.5 w-px bg-white/10 hidden xl:block"></div>
+
+              {/* Service & Engine Status */}
+              <div className="text-right hidden xl:block">
+                {isOfflineMode ? (
+                  <span className="text-[10px] text-rose-500 flex items-center gap-1 font-bold uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                    <span>{!isOnline ? "离线" : "阻断"}</span>
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-bold uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>{t('operational')}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* MOBILE / SMALL SCREEN STREAMLINED SYSTEM MENU (md:hidden)                  */}
+          {/* Merges Multi-language, Theme switch, Settings & History into a single hub  */}
+          {/* ========================================================================= */}
+          <div className="flex md:hidden items-center gap-1.5 relative">
+            {/* Quick History Button on Mobile for Fast Access */}
+            <button
+              onClick={() => setIsHistoryOpen(true)}
+              className="p-2 bg-slate-850/70 hover:bg-slate-700/80 text-slate-300 hover:text-cyan-300 border border-white/10 rounded-xl transition-all cursor-pointer"
+              title="历史检索记录"
+              aria-label="History"
+            >
+              <History size={15} className="text-cyan-400" />
+            </button>
+
+            {/* Quick Tour Button on Mobile */}
+            <button
+              onClick={startTour}
+              className="p-2 bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 text-cyan-400 border border-cyan-500/25 rounded-xl transition-all cursor-pointer"
+              title="新手引导"
+              aria-label="Tour"
+            >
+              <Sparkles size={15} />
+            </button>
+
+            {/* Streamlined System Menu Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setIsSystemMenuOpen(prev => !prev)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer font-mono font-bold text-xs select-none ${
+                isSystemMenuOpen
+                  ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                  : 'bg-slate-850/80 hover:bg-slate-700/80 text-slate-200 border-white/10 hover:border-cyan-500/30'
+              }`}
+              aria-label="System Settings Menu"
+              aria-expanded={isSystemMenuOpen}
+            >
+              {theme === 'light' ? (
+                <Sun size={13} className="text-amber-500" />
+              ) : (
+                <Moon size={13} className="text-cyan-400" />
+              )}
+              <span className="text-[11px] uppercase tracking-wider">
+                {uiLang === 'mix' ? '系统' : uiLang === 'zh' ? '设置' : 'Menu'}
               </span>
+              <ChevronDown 
+                size={11} 
+                className={`transition-transform duration-200 text-cyan-400 ${isSystemMenuOpen ? 'rotate-180' : ''}`} 
+              />
+            </button>
+
+            {/* Backdrop for closing system menu */}
+            {isSystemMenuOpen && (
+              <div 
+                className="fixed inset-0 z-[120] bg-black/40 backdrop-blur-[2px]" 
+                onClick={() => setIsSystemMenuOpen(false)}
+              />
+            )}
+
+            {/* Streamlined System Menu Popover */}
+            {isSystemMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-[#0a0f18] border border-cyan-500/30 rounded-2xl shadow-2xl overflow-hidden z-[130] animate-in fade-in slide-in-from-top-2 duration-150 p-3 flex flex-col gap-3 font-sans">
+                {/* Header within popover */}
+                <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                  <div className="flex items-center gap-1.5">
+                    <Settings size={14} className="text-cyan-400" />
+                    <span className="text-xs font-bold text-white uppercase tracking-wider">
+                      {uiLang === 'zh' || i18n.language === 'mix' ? "系统偏好与设置" : "Preferences & Setup"}
+                    </span>
+                  </div>
+                  {/* Status Indicator inside menu */}
+                  <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                    isOfflineMode 
+                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' 
+                      : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isOfflineMode ? 'bg-rose-400' : 'bg-emerald-400 animate-pulse'}`}></span>
+                    {isOfflineMode ? "离线状态" : t('operational')}
+                  </span>
+                </div>
+
+                {/* Section 1: Appearance Theme Switcher */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-mono uppercase font-bold text-slate-400">
+                    {uiLang === 'zh' || i18n.language === 'mix' ? "🎨 主题外观 (Theme)" : "🎨 Appearance"}
+                  </span>
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-black/40 rounded-xl border border-white/5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (theme !== 'dark') toggleTheme();
+                      }}
+                      className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        theme === 'dark'
+                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                          : 'text-slate-400 hover:text-white border border-transparent'
+                      }`}
+                    >
+                      <Moon size={13} className={theme === 'dark' ? 'text-cyan-400' : 'text-slate-500'} />
+                      <span>{uiLang === 'zh' || i18n.language === 'mix' ? "深色科技" : "Dark"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (theme !== 'light') toggleTheme();
+                      }}
+                      className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        theme === 'light'
+                          ? 'bg-amber-500/25 text-amber-300 border border-amber-500/50 shadow-sm'
+                          : 'text-slate-400 hover:text-white border border-transparent'
+                      }`}
+                    >
+                      <Sun size={13} className={theme === 'light' ? 'text-amber-400' : 'text-slate-500'} />
+                      <span>{uiLang === 'zh' || i18n.language === 'mix' ? "浅色高亮" : "Light"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Section 2: Interface Language Selection */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-mono uppercase font-bold text-slate-400">
+                    {uiLang === 'zh' || i18n.language === 'mix' ? "🌐 界面语言 (Language)" : "🌐 Language"}
+                  </span>
+                  <div className="flex flex-col gap-1 bg-black/40 rounded-xl p-1 border border-white/5">
+                    {[
+                      { code: 'mix', label: '中文/EN (Mix 双语混合)' },
+                      { code: 'zh', label: '简体中文 (Chinese)' },
+                      { code: 'en', label: 'English (US)' }
+                    ].map(item => (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={() => {
+                          i18n.changeLanguage(item.code);
+                        }}
+                        className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-left ${
+                          uiLang === item.code
+                            ? 'bg-cyan-500/15 text-cyan-300 font-bold'
+                            : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                        }`}
+                      >
+                        <span>{item.label}</span>
+                        {uiLang === item.code && (
+                          <Check size={13} className="text-cyan-400 font-bold" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Section: Real-time Performance Metrics Overview */}
+                <div className="flex flex-col gap-1.5 pt-1 border-t border-white/10">
+                  <span className="text-[10px] font-mono uppercase font-bold text-slate-400 flex items-center justify-between">
+                    <span>⚡ 实时性能指标 (Metrics)</span>
+                    {results[activeIndex] && (
+                      <span className="text-[9px] text-cyan-400 font-mono">
+                        {results[activeIndex]._fromCache ? '0ms 缓存' : `${results[activeIndex]._latencyMs || 0}ms`}
+                      </span>
+                    )}
+                  </span>
+                  <div className="p-2.5 bg-black/40 rounded-xl border border-white/5 flex flex-col gap-1.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400 text-[10px]">生效模型:</span>
+                      <span className="text-white font-mono font-bold text-[11px]">{results[activeIndex]?._modelUsed || activeModel}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400 text-[10px]">响应耗时 / Tokens:</span>
+                      <span className="text-cyan-300 font-mono font-bold text-[11px]">
+                        {results[activeIndex] ? (
+                          results[activeIndex]._fromCache 
+                            ? "0ms · 0 消耗" 
+                            : `${results[activeIndex]._latencyMs || 0}ms · ${results[activeIndex]._usage?.totalTokens || 0} tok`
+                        ) : "尚未生成"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 3: Core Functional Hub & Tools */}
+                <div className="flex flex-col gap-1 pt-1 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSettingsTab('models');
+                      setIsConfigOpen(true);
+                      setIsSystemMenuOpen(false);
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-200 hover:bg-cyan-500/10 hover:text-cyan-300 transition-colors text-left"
+                  >
+                    <Settings size={14} className="text-cyan-400 shrink-0" />
+                    <div className="flex flex-col">
+                      <span>{t('settings')} / API配置</span>
+                      <span className="text-[9px] text-slate-400 font-normal">模型提供商、自定义API与模板库</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsHistoryOpen(true);
+                      setIsSystemMenuOpen(false);
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-200 hover:bg-cyan-500/10 hover:text-cyan-300 transition-colors text-left"
+                  >
+                    <History size={14} className="text-cyan-400 shrink-0" />
+                    <div className="flex flex-col">
+                      <span>{t('historyButton')}</span>
+                      <span className="text-[9px] text-slate-400 font-normal">浏览与恢复近期生成的布尔检索式</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowInstallerModal(true);
+                      setIsSystemMenuOpen(false);
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-200 hover:bg-cyan-500/10 hover:text-cyan-300 transition-colors text-left"
+                  >
+                    <Info size={14} className="text-cyan-400 shrink-0" />
+                    <div className="flex flex-col">
+                      <span>离线安装与本地部署</span>
+                      <span className="text-[9px] text-slate-400 font-normal">单文件离线生成与离线运行指引</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>
       </header>
 
       {/* Interface Tab Selector */}
-      <div className="flex border-b border-white/5 bg-[#05070A]/90 px-8 py-2 gap-4 shrink-0 justify-start items-center z-40">
+      <div className="flex border-b border-white/10 bg-[#05070A]/95 px-3 sm:px-6 lg:px-8 py-2.5 gap-2 sm:gap-3 shrink-0 justify-start items-center z-40 overflow-x-auto scrollbar-hide">
         <button
           onClick={() => setActiveTab('ai')}
-          className={`px-4 py-2 text-xs font-black tracking-widest uppercase transition-all rounded-lg flex items-center gap-2 border ${
+          className={`px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all rounded-lg flex items-center gap-2 border shrink-0 cursor-pointer ${
             activeTab === 'ai' 
-              ? 'text-cyan-400 bg-cyan-950/20 border-cyan-500/20 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
-              : 'text-slate-500 hover:text-slate-300 border-transparent hover:bg-white/5'
+              ? 'text-cyan-400 bg-cyan-950/25 border-cyan-500/30' 
+              : 'text-slate-400 hover:text-slate-200 border-transparent hover:bg-white/5'
           }`}
         >
-          <Sparkles size={14} className={activeTab === 'ai' ? 'text-cyan-400' : 'text-slate-500'} />
-          AI 智能检索式生成 (AI Query Builder)
+          <Sparkles size={14} className={activeTab === 'ai' ? 'text-cyan-400' : 'text-slate-400'} />
+          <span>AI 智能检索式生成 (AI Query Builder)</span>
         </button>
         <button
           onClick={() => setActiveTab('whitelist')}
-          className={`px-4 py-2 text-xs font-black tracking-widest uppercase transition-all rounded-lg flex items-center gap-2 border ${
+          className={`px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all rounded-lg flex items-center gap-2 border shrink-0 cursor-pointer ${
             activeTab === 'whitelist' 
-              ? 'text-cyan-400 bg-cyan-950/20 border-cyan-500/20 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
-              : 'text-slate-500 hover:text-slate-300 border-transparent hover:bg-white/5'
+              ? 'text-cyan-400 bg-cyan-950/25 border-cyan-500/30' 
+              : 'text-slate-400 hover:text-slate-200 border-transparent hover:bg-white/5'
           }`}
         >
-          <Globe size={14} className={activeTab === 'whitelist' ? 'text-cyan-400' : 'text-slate-500'} />
-          官方网址速查 (Official Whitelist)
+          <Globe size={14} className={activeTab === 'whitelist' ? 'text-cyan-400' : 'text-slate-400'} />
+          <span>官方网址速查 (Official Whitelist)</span>
         </button>
       </div>
 
       {activeTab === 'ai' ? (
-        <main className="flex-1 flex gap-6 p-6 overflow-hidden min-h-0 container mx-auto max-w-[1440px]">
+        <main className="flex-1 flex flex-col xl:flex-row gap-4 sm:gap-6 p-3 sm:p-4 lg:p-6 min-h-0 overflow-y-auto container mx-auto max-w-[1680px]">
         
         {/* Left Column: Input & Formula Result */}
-        <div className="flex-1 flex flex-col gap-6 overflow-hidden">
+        <div className="flex-1 flex flex-col gap-4 sm:gap-6 min-w-0">
           {/* Input Block */}
-          <section id="guided-input-panel" className="flex-1 max-h-[290px] bg-slate-900/40 rounded-2xl border border-white/5 p-6 flex flex-col relative group transition-all hover:border-white/10 shadow-lg select-none">
-            <div className="absolute top-4 right-4 text-[10px] text-slate-500 font-mono tracking-tighter opacity-50">INPUT_NATURAL_LANGUAGE</div>
-            <label className="text-[11px] text-cyan-400/80 mb-2 uppercase font-bold tracking-[0.2em]">{t('inputLabel')}</label>
+          <section id="guided-input-panel" className="bg-slate-900/40 rounded-2xl border border-white/5 p-4 sm:p-6 flex flex-col relative group transition-all hover:border-white/10 shadow-sm shrink-0">
+            <div className="flex justify-between items-center mb-2.5">
+              <label className="text-[11px] text-cyan-400 uppercase font-bold tracking-[0.15em] flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                {t('inputLabel')}
+              </label>
+              <div className="flex items-center gap-3">
+                <AudioTranscriber
+                  geminiKey={geminiApiKey}
+                  onTranscribe={(transcribedText) => {
+                    setInput((prev) => prev ? `${prev} ${transcribedText}` : transcribedText);
+                  }}
+                  uiLang={uiLang}
+                  disabled={loading}
+                />
+                <span className="text-[10px] text-slate-500 font-mono tracking-tighter opacity-60 hidden sm:inline">INPUT_NATURAL_LANGUAGE</span>
+              </div>
+            </div>
             
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={t('inputPlaceholder')}
-              className="flex-1 bg-transparent border-none outline-none resize-none text-xl text-slate-200 placeholder:text-slate-700 leading-relaxed font-medium custom-scrollbar overflow-y-auto min-h-[50px]"
+              className="flex-1 bg-transparent border-none outline-none resize-none text-base sm:text-lg md:text-xl text-slate-100 placeholder:text-slate-600 leading-relaxed font-normal custom-scrollbar overflow-y-auto min-h-[56px]"
             />
 
             {/* Comparison Mode Configuration Bar */}
-            <div id="guided-config-panel" className="flex flex-wrap items-center gap-4 mt-2 py-2 px-1 border-t border-white/5">
+            <div id="guided-config-panel" className="flex flex-wrap items-center gap-3 mt-2 py-2 px-1 border-t border-white/5">
               {/* Checkbox Toggle Button */}
               <button
                 type="button"
                 onClick={() => saveCompareMode(!isCompareMode)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all text-xs font-bold leading-none cursor-pointer select-none ${
                   isCompareMode 
-                    ? "bg-purple-500/10 border-purple-500/30 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.15)] hover:bg-purple-500/20" 
+                    ? "bg-purple-500/10 border-purple-500/30 text-purple-300 hover:bg-purple-500/20" 
                     : "bg-white/5 border-white/5 text-slate-400 hover:text-slate-300 hover:bg-white/10"
                 }`}
               >
@@ -1826,10 +2507,10 @@ export default function App() {
               </button>
 
               {/* Model Selectors */}
-              <div className="flex items-center gap-4 flex-wrap text-xs">
+              <div className="flex items-center gap-3 flex-wrap text-xs">
                 {/* Model A Dropdown */}
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] uppercase font-bold text-slate-500">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">
                     {uiLang === 'zh' || i18n.language === 'mix' ? "大模型 A:" : "Model A:"}
                   </span>
                   <select
@@ -1845,7 +2526,7 @@ export default function App() {
                       const mods = p.models.split(',').map(m => m.trim()).filter(Boolean);
                       return mods.map(m => (
                         <option key={`${p.id}:${m}`} value={`${p.id}:${m}`} className="bg-[#05070A]">
-                          {p.name.substring(0, 10)} - {m}
+                          {p.name} · {m}
                         </option>
                       ));
                     })}
@@ -1859,7 +2540,7 @@ export default function App() {
                     className="flex items-center gap-1.5"
                   >
                     <span className="font-extrabold text-purple-400 text-xs select-none">VS</span>
-                    <span className="text-[10px] uppercase font-bold text-slate-500">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">
                       {uiLang === 'zh' || i18n.language === 'mix' ? "大模型 B:" : "Model B:"}
                     </span>
                     <select
@@ -1875,7 +2556,7 @@ export default function App() {
                         const mods = p.models.split(',').map(m => m.trim()).filter(Boolean);
                         return mods.map(m => (
                           <option key={`${p.id}:${m}`} value={`${p.id}:${m}`} className="bg-[#05070A]">
-                            {p.name.substring(0, 10)} - {m}
+                            {p.name} · {m}
                           </option>
                         ));
                       })}
@@ -1885,41 +2566,87 @@ export default function App() {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap justify-between items-center pt-4 border-t border-white/5 gap-4">
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2" title={t('dbTypesLabel')}>
-                  <Database size={16} className="text-cyan-500/50" />
+            <div className="mt-4 flex flex-wrap justify-between items-center pt-4 border-t border-white/5 gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Database Selector Pill */}
+                <div 
+                  className="flex items-center gap-2 bg-black/30 border border-white/10 hover:border-cyan-500/30 rounded-xl px-3 py-1.5 transition-all" 
+                  title={`目标数据库平台: ${dbType}`}
+                >
+                  <Database size={14} className="text-cyan-400 shrink-0" />
                   <select
                     value={dbType}
                     onChange={(e) => setDbType(e.target.value)}
-                    className="bg-transparent border-none text-xs font-mono text-slate-400 focus:ring-0 cursor-pointer hover:text-cyan-400 transition-colors uppercase tracking-widest p-0 pl-1 max-w-[200px] truncate"
+                    className="bg-transparent border-none text-xs font-mono text-slate-300 focus:ring-0 cursor-pointer hover:text-cyan-300 transition-colors uppercase tracking-wider p-0 pr-1 max-w-[260px] truncate"
                   >
                     {DB_TYPES.map(type => (
-                      <option key={type} value={type} className="bg-[#05070A]">{type}</option>
+                      <option key={type} value={type} className="bg-[#05070A] text-slate-200">{type}</option>
                     ))}
                   </select>
                 </div>
 
-                <div className="flex items-center gap-2" title={t('langPrefLabel')}>
-                  <Languages size={16} className="text-cyan-500/50" />
+                {/* Language Preference Pill */}
+                <div 
+                  className="flex items-center gap-2 bg-black/30 border border-white/10 hover:border-cyan-500/30 rounded-xl px-3 py-1.5 transition-all" 
+                  title={`语言偏好: ${langPref}`}
+                >
+                  <Languages size={14} className="text-cyan-400 shrink-0" />
                   <select
                     value={langPref}
                     onChange={(e) => setLangPref(e.target.value)}
-                    className="bg-transparent border-none text-xs font-mono text-slate-400 focus:ring-0 cursor-pointer hover:text-cyan-400 transition-colors uppercase tracking-widest p-0 pl-1"
+                    className="bg-transparent border-none text-xs font-mono text-slate-300 focus:ring-0 cursor-pointer hover:text-cyan-300 transition-colors uppercase tracking-wider p-0 pr-1"
                   >
-                    <option value="双语混合 (Bilingual)" className="bg-[#05070A]">Bilingual</option>
-                    <option value="仅中文 (Chinese Only)" className="bg-[#05070A]">ZH Only</option>
-                    <option value="仅英文 (English Only)" className="bg-[#05070A]">EN Only</option>
+                    <option value="双语混合 (Bilingual)" className="bg-[#05070A] text-slate-200">Bilingual (双语混合)</option>
+                    <option value="仅中文 (Chinese Only)" className="bg-[#05070A] text-slate-200">ZH Only (仅中文)</option>
+                    <option value="仅英文 (English Only)" className="bg-[#05070A] text-slate-200">EN Only (仅英文)</option>
                   </select>
                 </div>
 
+                {/* Template Selector Pill */}
+                <div 
+                  className={`flex items-center gap-2 rounded-xl px-3 py-1.5 transition-all border ${
+                    activeTemplateId 
+                      ? 'bg-amber-500/10 border-amber-500/30' 
+                      : 'bg-black/30 border-white/10 hover:border-cyan-500/30'
+                  }`}
+                  title="检索式逻辑框架模板约束 / Search Formula Framework Template"
+                >
+                  <Layers size={14} className={activeTemplateId ? "text-amber-400 shrink-0" : "text-cyan-400/70 shrink-0"} />
+                  <select
+                    value={activeTemplateId || ""}
+                    onChange={(e) => handleSelectTemplate(e.target.value ? e.target.value : null)}
+                    className={`bg-transparent border-none text-xs font-mono focus:ring-0 cursor-pointer transition-colors uppercase tracking-wider p-0 pr-1 max-w-[240px] sm:max-w-[300px] truncate ${
+                      activeTemplateId ? 'text-amber-300 font-bold' : 'text-slate-300 hover:text-cyan-300'
+                    }`}
+                  >
+                    <option value="" className="bg-[#05070A] text-slate-200">框架: 智能组配 (自由)</option>
+                    {templates.map(tpl => (
+                      <option key={tpl.id} value={tpl.id} className="bg-[#05070A] text-slate-200">
+                        框架: {tpl.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSettingsTab('templates');
+                      setIsConfigOpen(true);
+                    }}
+                    title="打开检索式模板库管理面板"
+                    className="text-[10px] text-cyan-400 hover:text-cyan-200 bg-cyan-950/40 border border-cyan-500/30 hover:border-cyan-400 px-1.5 py-0.5 rounded cursor-pointer font-bold transition-all ml-0.5"
+                  >
+                    模板库
+                  </button>
+                </div>
+
+                {/* Official Whitelist Quick Access */}
                 <button
                   type="button"
                   onClick={() => {
                     setQuickSearchKw(input.trim());
                     setIsQuickWhitelistOpen(true);
                   }}
-                  className="px-3 py-1.5 bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-400 hover:text-cyan-300 text-[10px] font-black rounded-lg border border-cyan-500/20 hover:border-cyan-500/40 transition-all flex items-center gap-1.5 uppercase tracking-widest cursor-pointer ml-3 shrink-0"
+                  className="px-3 py-1.5 bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-400 hover:text-cyan-300 text-[10px] font-bold rounded-xl border border-cyan-500/20 hover:border-cyan-500/40 transition-all flex items-center gap-1.5 uppercase tracking-widest cursor-pointer shrink-0"
                   title="速查官方白名单数据库"
                 >
                   <Globe size={12} className="text-cyan-400" />
@@ -1927,14 +2654,14 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-2.5 shrink-0">
                 {input && (
                   <button 
                     onClick={reset}
-                    className="px-3.5 py-3 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all border border-white/10 rounded-xl flex items-center gap-2 text-xs font-bold cursor-pointer"
+                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all border border-white/10 rounded-xl flex items-center gap-2 text-xs font-bold cursor-pointer"
                     title={t('reset')}
                   >
-                    <RotateCcw size={15} />
+                    <RotateCcw size={14} />
                     <span>{t('reset')}</span>
                   </button>
                 )}
@@ -1942,7 +2669,7 @@ export default function App() {
                 <button
                   onClick={handleGenerate}
                   disabled={loading || !input.trim()}
-                  className="px-7 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(8,145,178,0.3)] flex items-center gap-2 group/btn disabled:opacity-30 disabled:shadow-none cursor-pointer text-sm"
+                  className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-sm hover:shadow-cyan-500/20 active:scale-[0.98] flex items-center gap-2 group/btn disabled:opacity-30 disabled:shadow-none cursor-pointer text-sm"
                 >
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1955,6 +2682,43 @@ export default function App() {
                 </button>
               </div>
             </div>
+
+            {/* Active Template Constraint Banner */}
+            {activeTemplate && (
+              <div className="mt-3 px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs flex items-center justify-between gap-3 shadow-inner">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold font-mono uppercase tracking-wider shrink-0">
+                    逻辑框架约束
+                  </span>
+                  <span className="font-semibold text-amber-300 truncate">
+                    {activeTemplate.name}
+                  </span>
+                  <span className="text-[11px] text-amber-400/70 font-mono hidden md:inline truncate">
+                    {activeTemplate.framework}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSettingsTab('templates');
+                      setIsConfigOpen(true);
+                    }}
+                    className="text-[11px] text-cyan-400 hover:text-cyan-300 font-bold hover:underline cursor-pointer"
+                  >
+                    配置 / 切换
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectTemplate(null)}
+                    className="text-[11px] text-slate-400 hover:text-white cursor-pointer px-1 py-0.5 rounded hover:bg-white/10 transition-colors"
+                    title="清除模板约束"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Batch Task Selector */}
@@ -1969,10 +2733,11 @@ export default function App() {
                       ? 'bg-cyan-500 text-white border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]' 
                       : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
                   }`}
+                  title={r._inputLine}
                 >
                   {r._isLoading && <div className="w-2.5 h-2.5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin shrink-0" />}
                   <span className="opacity-50">T{idx + 1}:</span>
-                  <span>{r._inputLine.length > 15 ? r._inputLine.substring(0, 15) + '...' : r._inputLine}</span>
+                  <span className="max-w-[280px] truncate">{r._inputLine.length > 32 ? r._inputLine.substring(0, 32) + '...' : r._inputLine}</span>
                 </button>
               ))}
             </div>
@@ -1984,7 +2749,7 @@ export default function App() {
             style={{ 
               minHeight: screenHeight < 700 ? '220px' : screenHeight < 800 ? '260px' : '300px'
             }}
-            className={`flex flex-col flex-1 rounded-2xl border transition-all duration-700 relative overflow-hidden shadow-inner ${
+            className={`flex flex-col flex-1 rounded-2xl border transition-all duration-700 relative shadow-inner ${
               result ? 'bg-cyan-950/20 border-cyan-500/30' : 'bg-slate-900/20 border-white/5 grayscale pointer-events-none'
             }`}
           >
@@ -1998,8 +2763,8 @@ export default function App() {
               )}
             </AnimatePresence>
             
-            <div className="p-4 md:p-5 flex-1 flex flex-col min-h-0 relative z-10 font-sans">
-              <div className="flex justify-between items-start mb-3">
+            <div className="p-4 sm:p-5 lg:p-6 flex-1 flex flex-col min-h-0 relative z-10 font-sans">
+              <div className="flex flex-wrap justify-between items-center mb-3.5 gap-2.5">
                 <div className="flex items-center gap-2">
                   <label className="text-[11px] text-cyan-400/80 uppercase font-bold tracking-[0.2em]">
                     {isCompareMode ? (uiLang === 'zh' || i18n.language === 'mix' ? "大模型双语语义比对诊断" : "AI MODEL COMPARISON DIAGNOSIS") : t('formulaTitle')}
@@ -2009,39 +2774,141 @@ export default function App() {
                       <Sparkles size={11} className="text-emerald-400" /> ⚡️ {uiLang === 'zh' || i18n.language === 'mix' ? '缓存加速' : 'CACHE ACTIVE'}
                     </span>
                   )}
+                  {result && !result._isLoading && (
+                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/10 text-cyan-300 border border-cyan-500/25" title="端到端请求响应耗时">
+                      <Zap size={10} className="text-cyan-400" />
+                      {result._fromCache ? '0ms' : `${result._latencyMs || 0}ms`}
+                    </span>
+                  )}
                 </div>
                 {result && (
-                  <div className="flex bg-black/40 rounded-lg p-1 border border-cyan-500/20">
-                    <button
-                      onClick={() => setShowMapped(false)}
-                      className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1.5 rounded transition-all cursor-pointer ${
-                        !showMapped ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      {t('basicWeb')}
-                    </button>
-                    <button
-                      onClick={() => setShowMapped(true)}
-                      className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1.5 rounded transition-all cursor-pointer ${
-                        showMapped ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      {t('schemaMapped')}
-                    </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* View Display Modes Toolbar */}
+                    <div className="flex items-center gap-1.5 bg-black/40 rounded-lg p-1 border border-cyan-500/20">
+                      {/* Line wrap toggle */}
+                      <button
+                        type="button"
+                        onClick={() => setIsWrapFormula(!isWrapFormula)}
+                        className={`text-[10px] font-mono font-bold px-2 py-1 rounded flex items-center gap-1 transition-all cursor-pointer ${
+                          isWrapFormula ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                        title={isWrapFormula ? "切换为单行横向滚动模式（方便整行复制）" : "切换为自动折行模式（方便分行阅读）"}
+                      >
+                        {isWrapFormula ? <WrapText size={11} /> : <AlignLeft size={11} />}
+                        <span className="hidden sm:inline">{isWrapFormula ? "折行" : "单行"}</span>
+                      </button>
+
+                      {/* Font size adjustments */}
+                      <div className="flex items-center border-l border-white/10 pl-1.5 text-[10px] font-mono">
+                        <button
+                          type="button"
+                          onClick={() => setFormulaFontSize('sm')}
+                          className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${formulaFontSize === 'sm' ? 'text-cyan-300 font-bold bg-white/10' : 'text-slate-400 hover:text-white'}`}
+                          title="小号字体"
+                        >
+                          A-
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormulaFontSize('base')}
+                          className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${formulaFontSize === 'base' ? 'text-cyan-300 font-bold bg-white/10' : 'text-slate-400 hover:text-white'}`}
+                          title="标准字体"
+                        >
+                          A
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormulaFontSize('lg')}
+                          className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${formulaFontSize === 'lg' ? 'text-cyan-300 font-bold bg-white/10' : 'text-slate-400 hover:text-white'}`}
+                          title="大号字体"
+                        >
+                          A+
+                        </button>
+                      </div>
+
+                      {/* Full View Expand */}
+                      <button
+                        type="button"
+                        onClick={() => setIsFormulaExpanded(!isFormulaExpanded)}
+                        className={`text-[10px] font-mono font-bold px-2 py-1 rounded flex items-center gap-1 border-l border-white/10 pl-1.5 transition-all cursor-pointer ${
+                          isFormulaExpanded ? 'bg-amber-500/20 text-amber-300' : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                        title={isFormulaExpanded ? "收起全览" : "展开完整显示（解除高度限制）"}
+                      >
+                        {isFormulaExpanded ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
+                        <span className="hidden sm:inline">{isFormulaExpanded ? "收起" : "全览"}</span>
+                      </button>
+                    </div>
+
+                    {/* Basic / Mapped toggle */}
+                    <div className="flex bg-black/40 rounded-lg p-1 border border-cyan-500/20">
+                      <button
+                        onClick={() => setShowMapped(false)}
+                        className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1.5 rounded transition-all cursor-pointer ${
+                          !showMapped ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'
+                        }`}
+                      >
+                        {t('basicWeb')}
+                      </button>
+                      <button
+                        onClick={() => setShowMapped(true)}
+                        className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1.5 rounded transition-all cursor-pointer ${
+                          showMapped ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'
+                        }`}
+                      >
+                        {t('schemaMapped')}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
               
-              {/* Syntax Highlight Legend */}
+              {/* Syntax Highlight Legend & Real-time Validation Status */}
               {result && !result._isLoading && (
-                <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono select-none mb-2.5 px-2.5 py-1 bg-black/30 rounded-lg border border-cyan-500/10">
-                  <span className="text-slate-400 font-bold mr-1">🎨 {uiLang === 'zh' || i18n.language === 'mix' ? "语法高亮图例:" : "Syntax Legend:"}</span>
-                  <span className="inline-flex items-center gap-1 text-amber-300 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>AND</span>
-                  <span className="inline-flex items-center gap-1 text-cyan-300 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>OR</span>
-                  <span className="inline-flex items-center gap-1 text-rose-400 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>NOT</span>
-                  <span className="inline-flex items-center gap-1 text-fuchsia-300 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400"></span>NEAR/ADJ</span>
-                  <span className="inline-flex items-center gap-1 text-violet-300 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-violet-400"></span>{uiLang === 'zh' || i18n.language === 'mix' ? "字段标签" : "Fields"}</span>
-                  <span className="inline-flex items-center gap-1 text-emerald-300 font-medium"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>{uiLang === 'zh' || i18n.language === 'mix' ? '"精确词组"' : '"Phrases"'}</span>
+                <div className="syntax-legend-bar flex flex-wrap items-center justify-between gap-2.5 text-[10px] font-mono select-none mb-3 px-3 py-2 bg-black/30 rounded-xl border border-cyan-500/10 transition-colors">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <span className="text-slate-400 [.theme-light_&]:text-slate-600 font-bold mr-0.5">🎨 {uiLang === 'zh' || i18n.language === 'mix' ? "语法图例:" : "Syntax Legend:"}</span>
+                    <span className="legend-and inline-flex items-center gap-1 text-amber-300 [.theme-light_&]:text-amber-800 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-amber-400 [.theme-light_&]:bg-amber-600"></span>AND</span>
+                    <span className="legend-or inline-flex items-center gap-1 text-cyan-300 [.theme-light_&]:text-sky-700 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400 [.theme-light_&]:bg-sky-600"></span>OR</span>
+                    <span className="legend-not inline-flex items-center gap-1 text-rose-400 [.theme-light_&]:text-red-700 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-rose-400 [.theme-light_&]:bg-red-600"></span>NOT</span>
+                    <span className="legend-prox inline-flex items-center gap-1 text-fuchsia-300 [.theme-light_&]:text-fuchsia-800 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400 [.theme-light_&]:bg-fuchsia-600"></span>NEAR/ADJ</span>
+                    <span className="legend-field inline-flex items-center gap-1 text-violet-300 [.theme-light_&]:text-purple-900 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-violet-400 [.theme-light_&]:bg-purple-600"></span>{uiLang === 'zh' || i18n.language === 'mix' ? "字段标签" : "Fields"}</span>
+                    <span className="legend-phrase inline-flex items-center gap-1 text-emerald-300 [.theme-light_&]:text-green-800 font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 [.theme-light_&]:bg-green-600"></span>{uiLang === 'zh' || i18n.language === 'mix' ? '"精确词组"' : '"Phrases"'}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Real-time Syntax Validation Indicator */}
+                    {syntaxValidation && (
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider font-mono ${
+                        syntaxValidation.isValid
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/50 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.3)]'
+                      }`}>
+                        {syntaxValidation.isValid ? (
+                          <>
+                            <CheckCircle2 size={11} className="text-emerald-400" />
+                            <span>{uiLang === 'zh' || i18n.language === 'mix' ? "实时语法验证通过" : "Syntax Valid"}</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShieldAlert size={11} className="text-rose-400" />
+                            <span>{uiLang === 'zh' || i18n.language === 'mix' ? `语法警示 (${syntaxValidation.errors.length}处错误)` : `Syntax Alert (${syntaxValidation.errors.length})`}</span>
+                          </>
+                        )}
+                      </span>
+                    )}
+
+                    {/* Quick test button */}
+                    <button
+                      type="button"
+                      onClick={handleInjectSampleSyntaxError}
+                      className="text-[9px] text-slate-500 hover:text-amber-300 transition-colors font-mono cursor-pointer flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5"
+                      title={uiLang === 'zh' || i18n.language === 'mix' ? "注入全角字符/悬空算符示例，快速检验红色高亮提示与一键修复" : "Test error detection & auto-fix"}
+                    >
+                      <Wrench size={10} />
+                      <span>{uiLang === 'zh' || i18n.language === 'mix' ? "测试检测" : "Test Check"}</span>
+                    </button>
+                  </div>
                 </div>
               )}
               
@@ -2053,8 +2920,18 @@ export default function App() {
                 </div>
               ) : isCompareMode ? (
                 /* COMPARISON MODE SIDE BY SIDE CARDS */
-                <div className="flex-1 flex flex-col gap-3 overflow-hidden min-h-0 mb-2">
-                  <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0 overflow-y-auto custom-scrollbar">
+                <div className="flex-1 flex flex-col gap-3 min-h-0 mb-2">
+                  {/* Recharts Core Keyword Coverage Comparison Chart */}
+                  <ComparisonKeywordChart
+                    modelAResult={result}
+                    modelBResult={result._compareResult}
+                    modelAName={activeModel}
+                    modelBName={compareModel}
+                    uiLang={uiLang}
+                    theme={theme}
+                  />
+
+                  <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0">
                     {renderCompareCard(
                       uiLang === 'zh' || i18n.language === 'mix' ? "大模型 A (主流模型)" : "Model A (Active)", 
                       result, 
@@ -2091,12 +2968,19 @@ export default function App() {
                     )}
                     <div 
                       style={{
-                        height: feedbackRating > 0
-                          ? (screenHeight < 700 ? '90px' : '110px')
-                          : (screenHeight < 700 ? '110px' : screenHeight < 850 ? '140px' : '170px'),
-                        minHeight: '80px'
+                        minHeight: '130px',
+                        maxHeight: isFormulaExpanded ? 'none' : (screenHeight < 700 ? '220px' : screenHeight < 850 ? '320px' : '420px'),
+                        height: isFormulaExpanded ? 'auto' : undefined
                       }}
-                      className={`font-mono text-cyan-100 text-sm md:text-base leading-relaxed overflow-y-auto custom-scrollbar select-all p-4 bg-black/25 rounded-lg border border-cyan-500/15 w-full block ${result?._isLoading ? 'animate-pulse text-cyan-500/50' : ''}`}
+                      className={`formula-code-box font-mono ${
+                        formulaFontSize === 'sm' ? 'text-xs' : formulaFontSize === 'lg' ? 'text-base md:text-lg' : 'text-sm md:text-base'
+                      } leading-relaxed tracking-normal overflow-y-auto custom-scrollbar select-all p-4 sm:p-5 rounded-xl border ${
+                        syntaxValidation && !syntaxValidation.isValid
+                          ? 'border-rose-500/70 shadow-[0_0_16px_rgba(244,63,94,0.2)] ring-1 ring-rose-500/40'
+                          : 'border-cyan-500/20 shadow-inner'
+                      } w-full block transition-all ${
+                        isWrapFormula ? 'whitespace-pre-wrap break-words' : 'whitespace-pre overflow-x-auto'
+                      } ${result?._isLoading ? 'animate-pulse text-cyan-500/50' : ''}`}
                     >
                       {result ? (
                         <HighlightedBooleanQuery
@@ -2106,6 +2990,16 @@ export default function App() {
                         "Formula will appear here..."
                       )}
                     </div>
+
+                    {/* 实时语法验证警示与自动纠错提示 (醒目红色波浪/线条与修复指引) */}
+                    {result && !result._isLoading && syntaxValidation && (
+                      <SyntaxValidationAlert
+                        validation={syntaxValidation}
+                        onApplyFix={handleApplySyntaxFix}
+                        uiLang={uiLang}
+                        className="mt-1"
+                      />
+                    )}
 
                     {!result?._isLoading && result?.keywords && (
                       <VisualQueryTree
@@ -2148,7 +3042,7 @@ export default function App() {
                   </div>
 
                   {result && !result._isLoading && (
-                    <div className="mt-3.5 pt-2.5 border-t border-cyan-500/15 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2.5 w-full shrink-0">
+                    <div className="mt-4 pt-3 border-t border-cyan-500/15 [.theme-light_&]:border-slate-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 w-full shrink-0">
                       <span className="text-[10px] text-cyan-500/60 font-mono italic flex items-center gap-2 shrink-0">
                         <Check size={10} className="text-emerald-500" /> {t('processedWith')}
                       </span>
@@ -2369,9 +3263,20 @@ export default function App() {
                         <motion.div 
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
-                          className="text-[11px] font-bold text-center text-cyan-400 py-1 bg-cyan-950/20 rounded border border-cyan-500/10 px-3 block font-mono text-left"
+                          className="text-[11px] font-bold text-cyan-300 py-1.5 bg-cyan-950/40 rounded-lg border border-cyan-500/25 px-3 flex flex-wrap items-center justify-between gap-2 font-mono text-left"
                         >
-                          {feedbackNotice}
+                          <span>{feedbackNotice}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSettingsTab('trajectories');
+                              setIsConfigOpen(true);
+                            }}
+                            className="text-[10px] text-amber-300 hover:text-amber-200 underline font-bold cursor-pointer shrink-0 ml-auto flex items-center gap-1"
+                          >
+                            <TrendingUp size={11} />
+                            <span>{uiLang === 'zh' || i18n.language === 'mix' ? "查看优化轨迹与修正日志 →" : "View Trajectory Log →"}</span>
+                          </button>
                         </motion.div>
                       )}
                     </div>
@@ -2383,7 +3288,7 @@ export default function App() {
         </div>
 
         {/* Right Column: Semantics & Explanation */}
-        <aside className="w-80 flex flex-col gap-6 overflow-hidden">
+        <aside className="w-full xl:w-96 2xl:w-[420px] flex flex-col gap-4 sm:gap-6 shrink-0">
           {/* Keywords panel */}
           <div id="guided-refinement-panel" className="flex-1 bg-slate-900/60 rounded-2xl border border-white/5 flex flex-col overflow-hidden shadow-2xl">
             <div className="p-6 border-b border-white/5">
@@ -2586,14 +3491,25 @@ export default function App() {
                   <>
                     {result?._reasoning && (
                       <div className="p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-xl">
-                        <span className="text-[9px] text-cyan-400 uppercase font-black block mb-2 tracking-widest">Reasoning Path</span>
-                        <p className="text-[10px] text-cyan-100/60 leading-relaxed italic line-clamp-6 overflow-y-auto custom-scrollbar max-h-32">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] text-cyan-400 uppercase font-black tracking-widest flex items-center gap-1">
+                            <Sparkles size={11} className="text-cyan-400" /> Reasoning Path / 推理路径
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setExpandedReasoning(!expandedReasoning)}
+                            className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold cursor-pointer hover:underline"
+                          >
+                            {expandedReasoning ? (uiLang === 'zh' || i18n.language === 'mix' ? "收起" : "Less") : (uiLang === 'zh' || i18n.language === 'mix' ? "展开全部" : "Expand")}
+                          </button>
+                        </div>
+                        <p className={`text-[11px] text-cyan-100/70 leading-relaxed italic ${expandedReasoning ? '' : 'line-clamp-6'} overflow-y-auto custom-scrollbar max-h-56`}>
                           {result._reasoning}
                         </p>
                       </div>
                     )}
                     
-                    <p className="text-[11px] text-slate-400 leading-relaxed italic">
+                    <p className="text-xs text-slate-300 leading-relaxed italic">
                       {result ? result.explanation : t('insightDesc')}
                     </p>
                   </>
@@ -2615,19 +3531,19 @@ export default function App() {
         </aside>
       </main>
       ) : (
-        <main className="flex-1 flex gap-6 p-6 overflow-hidden min-h-0 container mx-auto max-w-[1440px]">
+        <main className="flex-1 flex flex-col gap-6 p-3 sm:p-6 overflow-y-auto min-h-0 container mx-auto max-w-[1680px]">
           <OfficialWhitelist />
         </main>
       )}
 
       {/* Footer System Bar */}
-      <footer className="shrink-0 h-10 border-t border-white/5 flex items-center justify-between px-8 bg-[#05070A]">
-        <div className="flex gap-8">
+      <footer className="shrink-0 min-h-10 border-t border-white/5 flex flex-wrap items-center justify-between px-4 sm:px-8 py-2 sm:py-0 bg-[#05070A] gap-2 text-center sm:text-left transition-colors">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-8">
           <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span>
             {t('sysOpt')}
           </div>
-          <div className="flex items-center gap-4 text-[10px] text-slate-500 font-mono tracking-tighter">
+          <div className="flex items-center gap-3 sm:gap-4 text-[10px] text-slate-500 font-mono tracking-tighter flex-wrap">
             <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsHistoryOpen(true)}>
               <History size={12} className="mr-1" /> {t('historyButton')}
             </span>
@@ -2637,10 +3553,10 @@ export default function App() {
             <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsStatsOpen(true)}>
               <BarChart2 size={12} className="mr-1" /> {t('statsButton')}
             </span>
-            <span className="hover:text-cyan-400 cursor-pointer transition-colors">DB_STATUS: OK</span>
+            <span className="hover:text-cyan-400 cursor-pointer transition-colors hidden sm:inline">DB_STATUS: OK</span>
           </div>
         </div>
-        <div className="text-[10px] text-slate-600 font-mono uppercase tracking-tighter">
+        <div className="text-[10px] text-slate-600 font-mono uppercase tracking-tighter hidden md:block">
           CTX_ID: {loading ? t('processing') : (result ? t('genComplete') : t('waitInit'))} // BUILD_HASH: 0x55F2A
         </div>
       </footer>
@@ -2769,19 +3685,82 @@ export default function App() {
           >
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
+              className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-4xl xl:max-w-5xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
             >
               <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/5 shrink-0">
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
                   <Settings size={16} className="text-cyan-400" />
                   {t('configTitle')}
                 </h3>
-                <button onClick={() => setIsConfigOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                <button onClick={() => setIsConfigOpen(false)} className="text-slate-400 hover:text-white transition-colors cursor-pointer">
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 custom-scrollbar">
+              {/* Settings Sub-Tabs */}
+              <div className="px-6 py-0 border-b border-white/5 bg-slate-900/40 flex justify-start shrink-0 select-none gap-4">
+                <button
+                  type="button"
+                  onClick={() => setSettingsTab('api')}
+                  className={`text-[11px] font-bold uppercase tracking-widest py-2.5 border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                    settingsTab === 'api' ? 'text-cyan-300 border-cyan-500' : 'text-slate-500 border-transparent hover:text-slate-300'
+                  }`}
+                >
+                  <Key size={13} />
+                  <span>{t('apiTab')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsTab('templates')}
+                  className={`text-[11px] font-bold uppercase tracking-widest py-2.5 border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+                    settingsTab === 'templates' ? 'text-amber-300 border-amber-500' : 'text-slate-500 border-transparent hover:text-slate-300'
+                  }`}
+                >
+                  <Layers size={13} />
+                  <span>{t('templateTab')}</span>
+                  <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-300 text-[9px] rounded-full scale-90 font-black">
+                    {templates.length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsTab('trajectories')}
+                  className={`text-[11px] font-bold uppercase tracking-widest py-2.5 border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+                    settingsTab === 'trajectories' ? 'text-cyan-300 border-cyan-500' : 'text-slate-500 border-transparent hover:text-slate-300'
+                  }`}
+                >
+                  <TrendingUp size={13} />
+                  <span>{uiLang === 'zh' || i18n.language === 'mix' ? "AI 优化轨迹查看器" : "Optimization Trajectories"}</span>
+                  {trajectories.length > 0 && (
+                    <span className="px-1.5 py-0.2 bg-cyan-500/20 text-cyan-300 text-[9px] rounded-full scale-90 font-black">
+                      {trajectories.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {settingsTab === 'templates' ? (
+                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-slate-900/50">
+                  <TemplateLibrary
+                    templates={templates}
+                    activeTemplateId={activeTemplateId}
+                    onSaveTemplates={handleSaveTemplates}
+                    onSelectTemplate={handleSelectTemplate}
+                  />
+                </div>
+              ) : settingsTab === 'trajectories' ? (
+                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-slate-900/50">
+                  <OptimizationTrajectoryViewer
+                    trajectories={trajectories}
+                    onClearAll={() => saveTrajectoriesLocally([])}
+                    onDeleteOne={(id) => saveTrajectoriesLocally(trajectories.filter(t => t.id !== id))}
+                    onApplyTrajectory={handleApplyTrajectory}
+                    onLoadSample={handleLoadSampleTrajectory}
+                    uiLang={uiLang}
+                  />
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 custom-scrollbar">
                 
                 {/* User API Key Guidance Banner */}
                 <div className="bg-cyan-950/40 border border-cyan-500/30 rounded-xl p-3.5 text-xs text-cyan-200/90 leading-relaxed flex gap-3 items-start shadow-inner">
@@ -2988,25 +3967,46 @@ export default function App() {
                   </div>
                 )}
               </div>
+              )}
 
               <div className="shrink-0 px-6 py-4 border-t border-white/5 bg-black/20 flex items-center justify-between z-10">
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={handleTestConnection}
-                    disabled={testConnStatus === 'testing'}
-                    className="px-4 py-2 rounded-lg text-xs font-bold border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-colors uppercase tracking-widest disabled:opacity-50"
-                  >
-                    {t('testConnectionBtn')}
-                  </button>
-                  {testConnStatus !== 'idle' && (
-                    <span className={`text-xs ${testConnStatus === 'success' ? 'text-emerald-400' : testConnStatus === 'error' ? 'text-red-400' : 'text-slate-400'}`}>
-                      {testConnMessage}
+                {settingsTab === 'templates' ? (
+                  <div className="text-xs text-slate-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block"></span>
+                    {activeTemplate ? (
+                      <span>已启用: <strong className="text-amber-300 font-mono">{activeTemplate.name}</strong></span>
+                    ) : (
+                      <span>未指定特定模板 (智能组配模式)</span>
+                    )}
+                  </div>
+                ) : settingsTab === 'trajectories' ? (
+                  <div className="text-xs text-slate-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse inline-block"></span>
+                    <span>
+                      {uiLang === 'zh' || i18n.language === 'mix' 
+                        ? <>已沉淀 <strong className="text-cyan-300 font-mono">{trajectories.length}</strong> 条 AI 双向重构演进轨迹日志</>
+                        : <>Recorded <strong className="text-cyan-300 font-mono">{trajectories.length}</strong> AI refinement trajectory logs</>}
                     </span>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={handleTestConnection}
+                      disabled={testConnStatus === 'testing'}
+                      className="px-4 py-2 rounded-lg text-xs font-bold border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-colors uppercase tracking-widest disabled:opacity-50"
+                    >
+                      {t('testConnectionBtn')}
+                    </button>
+                    {testConnStatus !== 'idle' && (
+                      <span className={`text-xs ${testConnStatus === 'success' ? 'text-emerald-400' : testConnStatus === 'error' ? 'text-red-400' : 'text-slate-400'}`}>
+                        {testConnMessage}
+                      </span>
+                    )}
+                  </div>
+                )}
                 <button 
                   onClick={() => setIsConfigOpen(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(8,145,178,0.2)]"
+                  className="px-4 py-2 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(8,145,178,0.2)] cursor-pointer"
                 >
                   {t('saveConfig')}
                 </button>
