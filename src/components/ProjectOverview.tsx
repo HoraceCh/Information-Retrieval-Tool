@@ -414,6 +414,56 @@ export default function ProjectOverview({
         </div>
       </section>
 
+
+      <section id="learning-guides" aria-labelledby="learning-guides-title" className="space-y-4">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">Research Guides</p>
+          <h3 id="learning-guides-title" className={"mt-1 text-xl font-bold " + headingClass}>
+            {copy("检索知识专题", "Explore search guides")}
+          </h3>
+          <p className={"mt-2 max-w-3xl " + bodyClass}>
+            {copy(
+              "从具体问题出发，了解学术文献检索、布尔逻辑和关键词扩展。每篇专题都提供方法说明、示例和使用边界。",
+              "Practical guides to academic literature search, Boolean logic and keyword expansion, with examples and clear limitations."
+            )}
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          {[
+            {
+              title: "Academic Literature Search",
+              subtitle: copy("学术文献检索工作流", "From research question to a reproducible strategy"),
+              description: copy("学习如何拆分研究问题、建立概念组、选择数据库并迭代检索。", "Build a reviewable search workflow from a research question."),
+              href: "https://horacech.github.io/Information-Retrieval-Tool/guides/academic-literature-search/",
+            },
+            {
+              title: "Boolean Search",
+              subtitle: copy("布尔检索式构建", "AND · OR · NOT · Parentheses"),
+              description: copy("理解布尔算符、括号、短语检索、截词和字段限定。", "Understand Boolean operators and database-dependent query syntax."),
+              href: "https://horacech.github.io/Information-Retrieval-Tool/guides/boolean-search/",
+            },
+            {
+              title: "Keyword Expansion",
+              subtitle: copy("关键词与同义词扩展", "Synonyms · Variants · Terminology"),
+              description: copy("建立中英文关键词、缩写、词形变体与专业术语集合。", "Expand concepts into useful, reviewable search terms."),
+              href: "https://horacech.github.io/Information-Retrieval-Tool/guides/keyword-expansion/",
+            },
+          ].map((guide) => (
+            <article key={guide.title} className={cardClass}>
+              <div className="mb-3 inline-flex rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-2.5 text-cyan-400">
+                <BookOpen size={18} />
+              </div>
+              <h4 className={"mb-1 font-bold " + headingClass}>{guide.title}</h4>
+              <p className="mb-2 text-xs font-semibold text-cyan-400">{guide.subtitle}</p>
+              <p className={bodyClass}>{guide.description}</p>
+              <a href={guide.href} className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-cyan-400 hover:text-cyan-300">
+                {copy("阅读专题", "Read guide")} <ArrowRight size={13} />
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section id="workflow" className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <div className={cardClass}>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">How it works</p>

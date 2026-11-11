@@ -107,7 +107,26 @@ No provider API key is required at build time. Users configure their own keys in
 4. Open a pull request with a summary, screenshots for UI changes and verification notes.
 5. Merge only after reviewing the diff and deployment implications.
 
-## 8. Search discoverability and SEO
+## 9. Static research guide pages
+
+Standalone, crawlable topic guides live under `public/guides/<slug>/index.html` and are copied directly into the Vite build output. They intentionally use static HTML rather than relying on the React SPA route so that each page has its own title, description, canonical URL, visible article content and structured data in the initial HTML response.
+
+Current guide pages:
+
+- `/guides/academic-literature-search/`
+- `/guides/boolean-search/`
+- `/guides/keyword-expansion/`
+
+When adding or editing a guide:
+
+1. Keep the article genuinely useful and distinct; do not create near-duplicate keyword landing pages.
+2. Verify all examples and clearly label generic query syntax as illustrative where database behavior differs.
+3. Add a canonical URL, concise meta description, Open Graph/Twitter metadata and appropriate `TechArticle` JSON-LD.
+4. Link related guides and the main app using the GitHub Pages repository subpath.
+5. Update `public/sitemap.xml` and the guide links in `ProjectOverview.tsx` and `README.md`.
+6. Run `npm run lint` and `npm run build`, then verify the built HTML files under `dist/guides/`.
+
+## 10. Search discoverability and SEO
 
 The public GitHub Pages app includes a small SEO baseline:
 
@@ -120,7 +139,7 @@ The public GitHub Pages app includes a small SEO baseline:
 
 When features, database coverage or the product's deployment URL change, update the overview page, README, metadata and JSON-LD together. Never claim that the app retrieves full-text papers or supports a database syntax feature unless the implementation has been verified.
 
-## 9. Known boundaries
+## 11. Known boundaries
 
 - Query generation is model-assisted and may contain incorrect terms or syntax.
 - Built-in database rules are guidance, not a guarantee of compatibility with every current database feature.

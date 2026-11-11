@@ -50,6 +50,16 @@
 | 官方网址速查 | 快速访问内置的学术数据库、专利与标准平台入口 |
 | 本地历史与统计 | 在当前浏览器保存历史记录、调用统计和优化轨迹 |
 
+## 专题指南 / Search Guides
+
+这些专题页提供独立、可直接访问的检索知识内容：
+
+- [Academic Literature Search：学术文献检索工作流](https://horacech.github.io/Information-Retrieval-Tool/guides/academic-literature-search/)
+- [Boolean Search：布尔检索式构建](https://horacech.github.io/Information-Retrieval-Tool/guides/boolean-search/)
+- [Keyword Expansion：中英文关键词与同义词扩展](https://horacech.github.io/Information-Retrieval-Tool/guides/keyword-expansion/)
+
+专题内容用于解释检索方法和示例；数据库语法可能随平台变化，正式检索前请核对官方文档。
+
 ## 关键词索引与项目特征词
 
 为了便于研究者、开发者和开源项目目录理解本项目，下面按真实功能整理了中英文主题词：

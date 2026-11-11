@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080d16">
+<meta name="robots" content="index,follow">
+<title>Boolean Search Generator Guide | AND OR NOT | AI 检索力</title>
+<meta name="description" content="Understand Boolean search operators AND, OR and NOT, parentheses, phrase searching and field limits. Learn how to build a clear academic Boolean search query.">
+<meta name="keywords" content="Boolean Search, Boolean Search Generator, Boolean Query Builder, AND OR NOT, 布尔检索式, 学术检索式生成器">
+<link rel="canonical" href="https://horacech.github.io/Information-Retrieval-Tool/guides/boolean-search/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="AI 检索力 · AI Retrieval Tool">
+<meta property="og:title" content="Boolean Search Generator Guide | AND OR NOT | AI 检索力">
+<meta property="og:description" content="Understand Boolean search operators AND, OR and NOT, parentheses, phrase searching and field limits. Learn how to build a clear academic Boolean search query.">
+<meta property="og:url" content="https://horacech.github.io/Information-Retrieval-Tool/guides/boolean-search/">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Boolean Search Generator Guide | AND OR NOT | AI 检索力">
+<meta name="twitter:description" content="Understand Boolean search operators AND, OR and NOT, parentheses, phrase searching and field limits. Learn how to build a clear academic Boolean search query.">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Boolean Search: Build Better Academic Queries","description":"Understand Boolean search operators AND, OR and NOT, parentheses, phrase searching and field limits. Learn how to build a clear academic Boolean search query.","inLanguage":"zh-CN","datePublished":"2026-11-11","dateModified":"2026-11-11","mainEntityOfPage":"https://horacech.github.io/Information-Retrieval-Tool/guides/boolean-search/","keywords":["Boolean Search","Boolean Search Generator","Boolean Query Builder","AND OR NOT","布尔检索式","学术检索式生成器"],"isPartOf":{"@type":"WebSite","name":"AI 检索力 · AI Retrieval Tool","url":"https://horacech.github.io/Information-Retrieval-Tool/"},"about":["Boolean Search","Boolean Search Generator","Boolean Query Builder","AND OR NOT","布尔检索式","学术检索式生成器"]}</script>
+<style>
+:root{color-scheme:dark;--bg:#080d16;--panel:#101a2a;--panel2:#0c1421;--line:#26354a;--text:#edf4ff;--muted:#a7b6ca;--cyan:#67e8f9;--blue:#7dd3fc;--green:#86efac}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 80% 0%,#12304a 0,transparent 36%),var(--bg);color:var(--text);font:16px/1.75 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}header,main,footer{width:min(1080px,calc(100% - 40px));margin-inline:auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px 0;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:12px;color:var(--text);font-weight:750}.mark{display:grid;place-items:center;width:38px;height:38px;border:1px solid #2d6477;border-radius:12px;background:#103144;color:var(--cyan);font-size:18px}
+.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:.16em;font-weight:650}
+nav{display:flex;align-items:center;gap:18px;font-size:13px;color:var(--muted)}nav a{color:var(--muted)}
+main{padding:56px 0 72px}.eyebrow{color:var(--cyan);font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:800}
+.hero{max-width:850px;padding:28px 0 34px}h1{font-size:clamp(34px,6vw,58px);line-height:1.12;letter-spacing:-.045em;margin:14px 0 18px}h1 span{display:block;color:var(--cyan);font-size:.58em;letter-spacing:-.02em;margin-top:12px}.lead{font-size:18px;line-height:1.8;color:#c5d3e5;max-width:780px}
+.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}.button{display:inline-flex;align-items:center;justify-content:center;padding:11px 17px;border-radius:12px;background:#a5f3fc;color:#08202b;font-size:14px;font-weight:800}.button.secondary{background:#14263a;color:var(--text);border:1px solid var(--line)}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}.tag{border:1px solid #31536a;background:#102235;color:#b8e9f5;border-radius:999px;padding:4px 10px;font-size:11px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:28px;align-items:start}.article,.sidecard,.related-card{border:1px solid var(--line);background:linear-gradient(145deg,rgba(18,31,49,.95),rgba(11,19,31,.96));border-radius:18px}
+.article{padding:clamp(22px,4vw,42px)}.article h2{font-size:23px;line-height:1.3;margin:42px 0 14px;letter-spacing:-.025em}.article h2:first-child{margin-top:0}.article h3{font-size:17px;margin:24px 0 8px}.article p,.article li{color:#c3d0e0}.article strong{color:#f2f7ff}.article ul,.article ol{padding-left:22px}.article li{padding:4px 0}.article code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:#a5f3fc;background:#0b1726;border:1px solid #23384c;border-radius:6px;padding:2px 5px;font-size:.9em}
+pre{overflow:auto;padding:18px;border:1px solid #2a4158;border-radius:12px;background:#07111e;color:#b8f3ff;line-height:1.65;font-size:13px}
+.note{border-left:3px solid var(--cyan);padding:14px 17px;background:#0d2030;border-radius:0 12px 12px 0;color:#c4d8e8;margin:20px 0}
+.side{position:sticky;top:20px;display:grid;gap:14px}.sidecard{padding:20px}.sidecard h2{font-size:14px;margin:0 0 12px}.sidecard ol{margin:0;padding-left:20px;color:var(--muted);font-size:13px}.sidecard li{padding:4px 0}.sidecard p{font-size:13px;color:var(--muted);margin:8px 0}
+.related{margin-top:42px}.related h2{font-size:22px}.related-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.related-card{padding:18px}.related-card h3{margin:0 0 8px;font-size:16px}.related-card p{margin:0 0 12px;color:var(--muted);font-size:13px}.related-card a{font-size:13px;font-weight:750}
+footer{border-top:1px solid var(--line);padding:25px 0 40px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+@media(max-width:800px){.layout{grid-template-columns:1fr}.side{position:static;grid-row:1}.sidecard ol{columns:2}.related-grid{grid-template-columns:1fr}}@media(max-width:560px){header{align-items:flex-start;flex-direction:column}nav{flex-wrap:wrap}.lead{font-size:16px}.sidecard ol{columns:1}}
+</style>
+</head>
+<body>
+<header>
+<a class="brand" href="../../"><span class="mark">检</span><span>AI 检索力<small>AI RETRIEVAL TOOL · RESEARCH GUIDES</small></span></a>
+<nav aria-label="主导航"><a href="../../">项目首页</a><a href="../../#keyword-index">关键词索引</a><a href="https://github.com/HoraceCh/Information-Retrieval-Tool">GitHub</a></nav>
+</header>
+<main>
+<div class="hero">
+<div class="eyebrow">Research guide · boolean search</div>
+<h1>Boolean Search<span>布尔检索式：用 AND、OR、NOT 组织学术搜索</span></h1>
+<p class="lead">布尔检索不是把关键词简单拼在一起，而是用明确的逻辑关系表达哪些概念必须同时出现、哪些表达可以互相替代，以及哪些内容需要谨慎排除。</p>
+<div class="tags"><span class="tag">Boolean Search</span><span class="tag">Boolean Search Generator</span><span class="tag">Boolean Query Builder</span><span class="tag">AND OR NOT</span><span class="tag">布尔检索式</span><span class="tag">学术检索式生成器</span></div>
+<div class="actions"><a class="button" href="../../">打开 AI 检索力应用 ↗</a><a class="button secondary" href="https://github.com/HoraceCh/Information-Retrieval-Tool">查看开源仓库</a></div>
+</div>
+<div class="layout">
+<article class="article">
+<h2 id="operators">三个核心布尔算符</h2>
+<h3><code>OR</code>：扩大同一概念组</h3>
+<p><code>OR</code> 表示满足任意一个表达即可。它适合连接同义词、缩写和拼写变体，通常能提高召回率。</p>
+<pre><code>robot OR robotics OR "autonomous robot"</code></pre>
+<h3><code>AND</code>：连接不同概念组</h3>
+<p><code>AND</code> 要求结果同时满足两侧条件。它常用于连接研究对象、研究任务和技术方法等不同概念维度。</p>
+<pre><code>photovoltaic AND cleaning AND robotics</code></pre>
+<h3><code>NOT</code>：排除不需要的主题</h3>
+<p><code>NOT</code> 排除包含特定概念的记录，但风险也最大：一个词可能同时出现在相关研究的背景、方法或比较对象中。应先检查结果，再决定是否排除。</p>
+<pre><code>solar AND cleaning NOT household</code></pre>
+<div class="note">记忆方式：同一概念的不同表达通常用 <strong>OR</strong>；不同概念之间通常用 <strong>AND</strong>；只有在确认误检主题明确且不会误伤相关结果时才使用 <strong>NOT</strong>。</div>
+<h2 id="parentheses">括号与逻辑优先级</h2>
+<p>括号用于明确概念组边界，避免逻辑含义被误读。构建复杂检索式时，应显式写出括号，而不是依赖不同平台可能存在差异的默认优先级。</p>
+<pre><code>(robot OR robotics OR "autonomous system")
+AND
+(cleaning OR "dust removal")
+AND
+(photovoltaic OR "solar panel")</code></pre>
+<p>上例中，每组内部用 <code>OR</code> 表示同一概念的替代表达，三个概念组之间用 <code>AND</code> 表示主题交集。</p>
+<h2 id="syntax">短语、截词与字段限定</h2>
+<ul>
+<li><strong>短语检索：</strong>引号常用于检索固定词组，例如 <code>"solar panel"</code>。具体引号规则需查看数据库说明。</li>
+<li><strong>截词（Truncation）：</strong>部分数据库支持 <code>*</code> 等符号，例如 <code>robot*</code> 可能匹配 robot、robots 或 robotics。截词符及其位置规则因平台而异。</li>
+<li><strong>字段限定：</strong>可将检索限制在标题、摘要、主题词或关键词字段，减少不相关命中。字段代码并非跨数据库通用。</li>
+<li><strong>邻近算符：</strong>某些平台支持指定词语之间距离或顺序的邻近检索，算符名称和语法差异较大。</li>
+</ul>
+<h2 id="build">从概念组构建检索式</h2>
+<ol>
+<li>先写出研究问题，不急于使用算符。</li>
+<li>圈出核心概念，并为每个概念建立独立词表。</li>
+<li>在每个词表内用 <code>OR</code> 连接同义表达。</li>
+<li>用括号包住每个概念组。</li>
+<li>用 <code>AND</code> 连接概念组。</li>
+<li>针对目标数据库补充字段、短语、截词或邻近规则。</li>
+<li>用试检索结果检查逻辑是否过窄或过宽。</li>
+</ol>
+<h2 id="mistakes">常见错误</h2>
+<ul>
+<li>把所有关键词都用 <code>AND</code> 连接，要求记录同时出现大量近义词。</li>
+<li>把不同概念的所有词都放在同一个 <code>OR</code> 组，导致检索范围过宽。</li>
+<li>复杂表达式不加括号，导致逻辑结构难以复核。</li>
+<li>把某个数据库的字段代码、截词符或邻近算符直接复制到另一个平台。</li>
+<li>不检查 <code>NOT</code> 排除的记录是否包含重要研究。</li>
+</ul>
+<h2 id="assistant">AI 检索力如何辅助构建布尔检索式</h2>
+<p>AI 检索力可以根据研究意图辅助整理关键词、构建布尔表达式，并通过逻辑结构视图帮助检查概念组和算符关系。生成结果仍然需要人工复核，尤其是数据库字段、截词和邻近语法。</p>
+<h2 id="english">English summary</h2>
+<p>Boolean search uses <code>OR</code> to connect alternative terms within a concept, <code>AND</code> to combine distinct concepts, and <code>NOT</code> to exclude unwanted records. Parentheses make the logic explicit. Phrase searching, truncation, field codes and proximity operators are database-dependent, so validate the syntax before running a query. A Boolean query builder can help draft the structure, but researchers should review both the logic and the returned records.</p>
+</article>
+<aside class="side">
+<section class="sidecard"><h2>本页内容</h2><ol><li><a href="#meaning">三个核心布尔算符</a></li><li><a href="#workflow">括号与逻辑优先级</a></li><li><a href="#example">短语、截词与字段</a></li><li><a href="#database">从概念组构建检索式</a></li><li><a href="#pitfalls">常见错误</a></li><li><a href="#assistant">AI 检索力如何辅助</a></li></ol></section>
+<section class="sidecard"><h2>使用 AI 检索力</h2><p>把研究问题转化为概念组、关键词和可编辑的布尔检索策略。生成结果请结合目标数据库语法人工检查。</p><a href="../../">开始构建检索式 →</a></section>
+<section class="sidecard"><h2>项目说明</h2><p>本工具辅助检索策略构建，不是文献数据库、爬虫或全文下载服务。</p><a href="https://github.com/HoraceCh/Information-Retrieval-Tool/blob/main/README.md">阅读项目 README →</a></section>
+</aside>
+</div>
+<section class="related"><h2>继续阅读 · Related guides</h2><div class="related-grid"><article class="related-card"><h3>Academic Literature Search</h3><p>学术文献检索工作流 · 从研究问题、概念拆分到数据库执行，建立可复核的文献检索流程。</p><a href="../academic-literature-search/">阅读专题指南 →</a></article><article class="related-card"><h3>Keyword Expansion</h3><p>关键词与同义词扩展 · 构建中英文关键词、同义词、缩写和专业术语集合。</p><a href="../keyword-expansion/">阅读专题指南 →</a></article></div></section>
+</main>
+<footer><span>© AI 检索力 · AI Retrieval Tool</span><span><a href="../../">应用首页</a> · <a href="https://github.com/HoraceCh/Information-Retrieval-Tool">GitHub</a> · GPL-3.0</span></footer>
+</body>
+</html>
