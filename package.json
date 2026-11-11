@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "validate:guides": "node scripts/validate-guides.mjs"
+    "validate:guides": "python3 scripts/validate-guides.py"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
