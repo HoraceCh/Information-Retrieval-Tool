@@ -107,7 +107,20 @@ No provider API key is required at build time. Users configure their own keys in
 4. Open a pull request with a summary, screenshots for UI changes and verification notes.
 5. Merge only after reviewing the diff and deployment implications.
 
-## 7. Known boundaries
+## 8. Search discoverability and SEO
+
+The public GitHub Pages app includes a small SEO baseline:
+
+- Keep the HTML title, meta description, canonical URL and Open Graph metadata accurate and aligned with the product's real scope.
+- Keep the JSON-LD `SoftwareApplication` data consistent with implemented features and supported languages.
+- Maintain the visible keyword index in `ProjectOverview.tsx`; use descriptive, user-facing terms rather than repeating keywords unnaturally.
+- The Vite `public/sitemap.xml` is copied to the deployed site. If the site is submitted to Google Search Console or Bing Webmaster Tools, submit the sitemap URL: `https://horacech.github.io/Information-Retrieval-Tool/sitemap.xml`.
+- Search engines may need time to crawl and render a client-side React application. Metadata and structured data improve interpretation but do not guarantee indexing or ranking.
+- Suggested GitHub repository topics are documented in the README. Apply them in the repository's About settings when repository metadata editing is available.
+
+When features, database coverage or the product's deployment URL change, update the overview page, README, metadata and JSON-LD together. Never claim that the app retrieves full-text papers or supports a database syntax feature unless the implementation has been verified.
+
+## 9. Known boundaries
 
 - Query generation is model-assisted and may contain incorrect terms or syntax.
 - Built-in database rules are guidance, not a guarantee of compatibility with every current database feature.

@@ -50,6 +50,21 @@
 | 官方网址速查 | 快速访问内置的学术数据库、专利与标准平台入口 |
 | 本地历史与统计 | 在当前浏览器保存历史记录、调用统计和优化轨迹 |
 
+## 关键词索引与项目特征词
+
+为了便于研究者、开发者和开源项目目录理解本项目，下面按真实功能整理了中英文主题词：
+
+- **产品定位**：AI 检索力、AI Retrieval Tool、AI academic search assistant、Academic Search Strategy Builder、Research Information Retrieval。
+- **检索方法**：学术检索式生成、文献检索策略、Boolean Search、Boolean Query Builder、AND / OR / NOT、database-specific search syntax。
+- **关键词处理**：中英文关键词扩展、同义词扩展、专业术语发现、Keyword Expansion、Synonym Expansion。
+- **功能特征**：多模型接入、双模型对比、BYOK、OpenAI-compatible API、检索模板库、逻辑树可视化、语音转写、字段语法提示。
+- **数据库生态**：CNKI、Wanfang Data、VIP、Web of Science、Scopus、EI Compendex、IEEE Xplore、ScienceDirect、Springer Nature Link、EBSCO、CNIPA、Espacenet。
+- **科研场景**：科研文献调研、工程技术调研、系统综述检索准备、专利检索策略、信息素养训练。
+
+这些关键词用于准确描述项目，不代表应用会自动抓取上述数据库的文献或提供全文，也不代表对所有平台语法的完整覆盖。
+
+**建议的 GitHub repository topics：** `academic-search`、`information-retrieval`、`boolean-search`、`literature-review`、`search-query-generator`、`research-tools`、`keyword-expansion`、`ai-tools`、`react`、`typescript`。
+
 ## 支持的检索目标
 
 项目内置了以下目标平台的语法提示或适配规则：

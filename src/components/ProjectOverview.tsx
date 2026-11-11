@@ -82,6 +82,107 @@ export default function ProjectOverview({
     },
   ];
 
+  const keywordGroups = [
+    {
+      title: copy("产品定位与检索工具", "Product category and discovery"),
+      description: copy(
+        "帮助研究者从自然语言研究问题出发，构建可编辑、可复核的学术数据库检索策略。",
+        "A research assistant for turning natural-language questions into editable and reviewable academic database search strategies."
+      ),
+      href: "#project-intro",
+      terms: [
+        "AI 检索力",
+        "AI Retrieval Tool",
+        "AI 学术检索工具",
+        "AI 辅助文献检索策略",
+        "Academic Search Strategy Builder",
+        "AI Search Query Generator",
+        "Research Information Retrieval",
+        "Literature Search Assistant",
+      ],
+    },
+    {
+      title: copy("检索策略与布尔语法", "Search strategy and Boolean syntax"),
+      description: copy(
+        "聚焦关键词发现、概念扩展、布尔逻辑组织与数据库字段表达。",
+        "Focuses on keyword discovery, concept expansion, Boolean logic and database field syntax."
+      ),
+      href: "#capabilities",
+      terms: [
+        "学术检索式生成",
+        "布尔检索式生成器",
+        "Boolean Search",
+        "Boolean Query Builder",
+        "Literature Search Query Generator",
+        "关键词扩展 / Keyword Expansion",
+        "同义词扩展 / Synonym Expansion",
+        "AND · OR · NOT",
+        "数据库字段检索 / Field Codes",
+        "位置算符 / Proximity Operators",
+        "PICO 检索框架",
+        "检索逻辑树 / Query Logic Tree",
+      ],
+    },
+    {
+      title: copy("产品功能与技术特征", "Product features and technical capabilities"),
+      description: copy(
+        "对应应用中实际提供的模型接入、模板、比较、可视化和语音输入能力。",
+        "Reflects implemented model access, templates, comparison, visualization and voice-input capabilities."
+      ),
+      href: "#model-access",
+      terms: [
+        "多模型接入 / Multi-model Support",
+        "双模型对比 / Dual-model Comparison",
+        "BYOK · Bring Your Own Key",
+        "OpenAI-compatible API",
+        "自定义模型服务商",
+        "检索模板库 / Search Templates",
+        "语音转文字 / Voice Transcription",
+        "检索式结构检查 / Query Validation",
+        "关键词关系可视化",
+        "本地历史记录 / Local Search History",
+      ],
+    },
+    {
+      title: copy("学术数据库与信息平台", "Academic databases and information platforms"),
+      description: copy(
+        "展示项目内置检索语法提示或快捷入口涉及的平台；实际语法请以各平台官方文档为准。",
+        "Platforms covered by built-in syntax guidance or quick links; always verify current syntax in official database documentation."
+      ),
+      href: "#database-coverage",
+      terms: [
+        "中国知网 / CNKI",
+        "万方数据 / Wanfang Data",
+        "维普 / VIP",
+        "Web of Science",
+        "Scopus",
+        "EI Compendex",
+        "IEEE Xplore",
+        "ScienceDirect",
+        "Springer Nature Link",
+        "EBSCO",
+        "CNIPA",
+        "Espacenet",
+      ],
+    },
+    {
+      title: copy("科研应用场景", "Research use cases"),
+      description: copy(
+        "适用于科研选题、工程技术调研、文献综述准备和专利技术检索策略构建。",
+        "Useful for research scoping, engineering literature surveys, literature-review preparation and patent search strategy development."
+      ),
+      href: "#workflow",
+      terms: [
+        "科研文献调研 / Research Literature Review",
+        "工程技术调研 / Engineering Research",
+        "系统综述检索准备 / Systematic Review Search Planning",
+        "专利检索策略 / Patent Search Strategy",
+        "高校科研训练 / Academic Research Training",
+        "信息素养 / Information Literacy",
+      ],
+    },
+  ];
+
   const steps = [
     copy("描述研究问题", "Describe the research question"),
     copy("选择数据库、模型与检索模板", "Choose a database, model and template"),
@@ -151,7 +252,7 @@ export default function ProjectOverview({
 
   return (
     <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-8 overflow-y-auto px-3 py-5 sm:px-6 sm:py-8 lg:px-8">
-      <section className="relative overflow-hidden rounded-3xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/15 via-slate-900/80 to-indigo-500/15 p-6 sm:p-9 lg:p-12 [.theme-light_&]:border-cyan-200 [.theme-light_&]:from-cyan-50 [.theme-light_&]:via-white [.theme-light_&]:to-indigo-50">
+      <section id="project-intro" aria-labelledby="project-overview-title" className="relative overflow-hidden rounded-3xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/15 via-slate-900/80 to-indigo-500/15 p-6 sm:p-9 lg:p-12 [.theme-light_&]:border-cyan-200 [.theme-light_&]:from-cyan-50 [.theme-light_&]:via-white [.theme-light_&]:to-indigo-50">
         <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="relative grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
           <div>
@@ -159,7 +260,7 @@ export default function ProjectOverview({
               <Sparkles size={13} />
               {copy("AI 辅助学术信息检索", "AI-assisted academic information retrieval")}
             </div>
-            <h2 className={"text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl " + headingClass}>
+            <h2 id="project-overview-title" className={"text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl " + headingClass}>
               AI 检索力
               <span className="mt-2 block text-xl font-semibold text-cyan-300 sm:text-2xl [.theme-light_&]:text-cyan-700">
                 AI Retrieval Tool
@@ -240,10 +341,10 @@ export default function ProjectOverview({
         </div>
       </section>
 
-      <section className="space-y-4">
+      <section id="capabilities" aria-labelledby="capabilities-title" className="space-y-4">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">Capabilities</p>
-          <h3 className={"mt-1 text-xl font-bold " + headingClass}>{copy("核心能力", "What the tool helps you do")}</h3>
+          <h3 id="capabilities-title" className={"mt-1 text-xl font-bold " + headingClass}>{copy("核心能力", "What the tool helps you do")}</h3>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {features.map((feature) => {
@@ -261,7 +362,59 @@ export default function ProjectOverview({
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+      <section id="keyword-index" aria-labelledby="keyword-index-title" className={cardClass}>
+        <div className="mb-5 max-w-3xl">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">Search & Discovery Index</p>
+          <h3 id="keyword-index-title" className={"mt-1 text-xl font-bold " + headingClass}>
+            {copy("关键词与特征词索引", "Keyword and feature index")}
+          </h3>
+          <p className={"mt-2 " + bodyClass}>
+            {copy(
+              "按产品定位、检索方法、功能特征、数据库平台和科研场景整理常用主题词，帮助研究者快速判断工具是否适合自己的任务，也让项目的核心主题表达更加清晰。",
+              "Explore the tool by product category, search methods, implemented features, database coverage and research use cases."
+            )}
+          </p>
+          <p className="mt-2 text-xs leading-6 text-slate-500">
+            {copy(
+              "索引词描述的是本项目实际定位与功能，不代表本工具直接提供论文全文、自动抓取数据库内容，或保证每个数据库的检索语法始终完全兼容。",
+              "These terms describe the product's scope and implemented capabilities. The app does not crawl databases, provide full-text papers or guarantee permanent compatibility with every database syntax."
+            )}
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {keywordGroups.map((group) => (
+            <article
+              key={group.title}
+              className="rounded-xl border border-white/10 bg-white/[0.025] p-4 [.theme-light_&]:border-slate-200 [.theme-light_&]:bg-slate-50"
+            >
+              <div className="mb-2 flex items-start justify-between gap-2">
+                <h4 className={"text-sm font-bold " + headingClass}>{group.title}</h4>
+                <a
+                  href={group.href}
+                  aria-label={copy("跳转到相关功能", "Jump to related section")}
+                  className="shrink-0 text-xs text-cyan-400 hover:text-cyan-300"
+                >
+                  <ExternalLink size={13} />
+                </a>
+              </div>
+              <p className="mb-3 text-xs leading-5 text-slate-400 [.theme-light_&]:text-slate-600">{group.description}</p>
+              <div className="flex flex-wrap gap-1.5" aria-label={group.title}>
+                {group.terms.map((term) => (
+                  <a
+                    key={term}
+                    href={group.href}
+                    className="rounded-lg border border-cyan-500/15 bg-cyan-500/[0.06] px-2 py-1 text-[10px] leading-4 text-cyan-200 transition hover:border-cyan-400/40 hover:bg-cyan-500/10 [.theme-light_&]:text-cyan-800"
+                  >
+                    {term}
+                  </a>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="workflow" className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <div className={cardClass}>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">How it works</p>
           <h3 className={"mb-5 mt-1 text-xl font-bold " + headingClass}>{copy("四步完成一次检索", "A four-step workflow")}</h3>
@@ -277,7 +430,7 @@ export default function ProjectOverview({
           </ol>
         </div>
 
-        <div className={cardClass}>
+        <div id="database-coverage" className={cardClass}>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">Database coverage</p>
           <h3 className={"mb-4 mt-1 text-xl font-bold " + headingClass}>{copy("内置适配目标", "Built-in database targets")}</h3>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -306,7 +459,7 @@ export default function ProjectOverview({
         </div>
       </section>
 
-      <section className="grid gap-3 lg:grid-cols-2">
+      <section id="model-access" className="grid gap-3 lg:grid-cols-2">
         <div className={cardClass}>
           <div className="mb-3 flex items-center gap-2 text-cyan-400">
             <KeyRound size={18} />
@@ -326,7 +479,7 @@ export default function ProjectOverview({
           </p>
         </div>
 
-        <div className={cardClass}>
+        <div id="privacy-and-security" className={cardClass}>
           <div className="mb-3 flex items-center gap-2 text-emerald-400">
             <ShieldCheck size={18} />
             <h3 className={"font-bold " + headingClass}>{copy("隐私与数据说明", "Privacy and data flow")}</h3>

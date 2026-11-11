@@ -4,6 +4,20 @@
   "requestFramePermissions": [
     "microphone"
   ],
+  "keywords": [
+    "AI 检索力",
+    "AI Retrieval Tool",
+    "AI academic search",
+    "academic search strategy builder",
+    "Boolean search query generator",
+    "literature search strategy",
+    "keyword expansion",
+    "information retrieval",
+    "CNKI",
+    "Web of Science",
+    "Scopus",
+    "IEEE Xplore"
+  ],
   "majorCapabilities": [
     "AI 驱动的研究意图解析与关键词提取",
     "中英文同义词与专业术语扩展",
