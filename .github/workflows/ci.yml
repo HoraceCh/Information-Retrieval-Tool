@@ -42,6 +42,9 @@ jobs:
       - name: Build production site
         run: npm run build
 
+      - name: Validate guide content and SEO metadata
+        run: npm run validate:guides
+
       - name: Verify static guide pages and crawler files
         shell: bash
         run: |

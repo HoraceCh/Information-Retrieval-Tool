@@ -11,7 +11,8 @@
     "deploy": "gh-pages -d dist",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "validate:guides": "node scripts/validate-guides.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
