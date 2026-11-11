@@ -13,6 +13,7 @@ import {
   Lightbulb,
   Sparkles,
   Info,
+  BookOpen,
   Settings,
   Languages,
   X,
@@ -60,6 +61,7 @@ import { validateBooleanQuery, autoFixBooleanQuery } from "./utils/booleanSyntax
 import { AudioTranscriber } from "./components/AudioTranscriber";
 import { ComparisonKeywordChart } from "./components/ComparisonKeywordChart";
 import { PerformanceMetricsPanel } from "./components/PerformanceMetricsPanel";
+import ProjectOverview from "./components/ProjectOverview";
 
 const UI_STRINGS = {
   mix: {
@@ -425,7 +427,7 @@ export default function App() {
   };
 
   const [input, setInput] = useState("");
-  const [activeTab, setActiveTab] = useState<'ai' | 'whitelist'>('ai');
+  const [activeTab, setActiveTab] = useState<'ai' | 'whitelist' | 'about'>('ai');
   const [showInstallerModal, setShowInstallerModal] = useState(false);
   const [dbType, setDbType] = useState(DB_TYPES[0]);
   const [operatorStyle, setOperatorStyle] = useState<"OR" | "Space">("OR");
@@ -1014,7 +1016,7 @@ export default function App() {
 
   const geminiApiKey = useMemo(() => {
     const geminiProv = providers.find(p => p.id === 'gemini' || p.isGemini);
-    return geminiProv?.apiKey || (typeof process !== "undefined" ? (process.env as any)?.GEMINI_API_KEY : "") || "";
+    return geminiProv?.apiKey || "";
   }, [providers]);
 
   const saveOperatorStyle = (style: "OR" | "Space") => {
@@ -2454,6 +2456,18 @@ export default function App() {
           <Globe size={14} className={activeTab === 'whitelist' ? 'text-cyan-400' : 'text-slate-400'} />
           <span>官方网址速查 (Official Whitelist)</span>
         </button>
+        <button
+          onClick={() => setActiveTab('about')}
+          aria-current={activeTab === 'about' ? 'page' : undefined}
+          className={`px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all rounded-lg flex items-center gap-2 border shrink-0 cursor-pointer ${
+            activeTab === 'about'
+              ? 'text-cyan-400 bg-cyan-950/25 border-cyan-500/30'
+              : 'text-slate-400 hover:text-slate-200 border-transparent hover:bg-white/5'
+          }`}
+        >
+          <BookOpen size={14} className={activeTab === 'about' ? 'text-cyan-400' : 'text-slate-400'} />
+          <span>{uiLang === 'en' ? 'About' : uiLang === 'zh' ? '项目介绍' : '项目介绍 / About'}</span>
+        </button>
       </div>
 
       {activeTab === 'ai' ? (
@@ -3530,10 +3544,15 @@ export default function App() {
           </div>
         </aside>
       </main>
-      ) : (
+      ) : activeTab === 'whitelist' ? (
         <main className="flex-1 flex flex-col gap-6 p-3 sm:p-6 overflow-y-auto min-h-0 container mx-auto max-w-[1680px]">
           <OfficialWhitelist />
         </main>
+      ) : (
+        <ProjectOverview
+          onStart={() => setActiveTab('ai')}
+          onOpenWhitelist={() => setActiveTab('whitelist')}
+        />
       )}
 
       {/* Footer System Bar */}
@@ -3553,6 +3572,10 @@ export default function App() {
             <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsStatsOpen(true)}>
               <BarChart2 size={12} className="mr-1" /> {t('statsButton')}
             </span>
+            <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setActiveTab('about')}>
+              <BookOpen size={12} className="mr-1" /> {uiLang === 'en' ? 'About' : '项目介绍'}
+            </span>
+            <a href="https://github.com/HoraceCh/Information-Retrieval-Tool#readme" target="_blank" rel="noreferrer" className="hover:text-cyan-400 transition-colors">README</a>
             <span className="hover:text-cyan-400 cursor-pointer transition-colors hidden sm:inline">DB_STATUS: OK</span>
           </div>
         </div>

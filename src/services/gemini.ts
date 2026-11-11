@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 function getGeminiClient(key?: string): GoogleGenAI {
-  const apiKey = key || (typeof process !== "undefined" && process.env?.GEMINI_API_KEY) || "";
+  const apiKey = key || "";
   if (!apiKey) {
     throw new Error(JSON.stringify({
       title: "Missing Gemini API Key",

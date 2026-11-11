@@ -1,150 +1,164 @@
-# AI_RETRIEVAL_X (AI 检索力)
+# AI 检索力 | AI Retrieval Tool
 
-> **Intelligence Query Framework / 智慧检索式生成与学术词汇扩充专家**
+> 面向科研学习与学术信息检索的 AI 检索式构建工具。将自然语言研究问题转化为可检查、可编辑、适配目标数据库的布尔检索策略。
 
-[English](#english) | [中文](#中文)
+<p align="center">
+  <a href="https://horacech.github.io/Information-Retrieval-Tool/"><strong>在线体验 Live Demo</strong></a>
+  ·
+  <a href="docs/USER_GUIDE.md">使用指南</a>
+  ·
+  <a href="docs/DEVELOPMENT.md">开发者文档</a>
+  ·
+  <a href="LICENSE">GPL-3.0 License</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/HoraceCh/Information-Retrieval-Tool">GitHub Repository</a>
+  ·
+  <a href="https://github.com/HoraceCh/Information-Retrieval-Tool/issues">反馈问题 / Report an issue</a>
+</p>
 
 ---
 
-<a id="english"></a>
+## 项目简介
+
+**AI 检索力（AI Retrieval Tool）** 是一个面向科研人员、高校师生和信息检索学习者的 AI 辅助检索式构建工具。
+
+研究者通常需要先把一个自然语言研究问题拆解成概念组，再扩展同义词、确定概念之间的逻辑关系，最后按照不同学术数据库的字段代码和检索语法组织表达式。本项目希望降低这段工作流的门槛：
+
+1. 理解自然语言研究意图，提取核心概念与限制条件。
+2. 扩展中英文关键词、同义词和相关专业术语。
+3. 根据目标数据库组织布尔逻辑与字段限定。
+4. 提供结构可视化、语法提示和人工修订入口。
+5. 复制检索式并跳转到相应数据库执行检索。
+
+**重要说明：本项目是检索策略与检索式构建工具，不是学术数据库、文献爬虫或全文下载器。** 实际检索结果由目标数据库提供，生成的检索式应由研究者检查并根据数据库官方语法调整。
+
+## 核心功能
+
+| 功能 | 说明 |
+|---|---|
+| 自然语言意图解析 | 从研究问题中提取主题、对象、方法、场景和限制条件 |
+| 中英文关键词扩展 | 生成核心词、中文同义词、英文术语与缩写 |
+| 数据库语法适配 | 按所选数据库组织布尔算符、字段代码、短语和位置算符 |
+| 多模型接入 | 预设 Gemini、DeepSeek、SiliconFlow、Kimi、Zhipu GLM、Qwen、OpenAI、OpenRouter |
+| 自定义模型接口 | 支持自定义 OpenAI-compatible API endpoint |
+| 双模型对比 | 并列比较不同模型生成的关键词和检索式 |
+| 逻辑结构可视化 | 展示关键词关系、布尔逻辑树与语法提示 |
+| 检索模板库 | 使用或管理不同学科和研究任务的检索框架 |
+| 语音输入 | 通过 Gemini 语音转写输入研究意图 |
+| 官方网址速查 | 快速访问内置的学术数据库、专利与标准平台入口 |
+| 本地历史与统计 | 在当前浏览器保存历史记录、调用统计和优化轨迹 |
+
+## 支持的检索目标
+
+项目内置了以下目标平台的语法提示或适配规则：
+
+- **中文学术数据库**：中国知网（CNKI）、万方数据、维普资讯。
+- **国际学术数据库**：Web of Science、Ei Compendex、Scopus、ScienceDirect、Springer Nature Link、EBSCO、PQDT、IEEE Xplore。
+- **专利与标准**：CNIPA、壹专利、Espacenet / USPTO、国家标准全文公开系统。
+- **学术发现与通用搜索**：百度学术 / PubScholar、Baidu / Bing。
+
+数据库平台的语法和字段支持可能发生变化。内置规则用于辅助生成，不代表对每个平台当前全部检索能力的完整覆盖；正式检索前请核对平台官方帮助文档。
+
+## 快速开始
+
+### 在线使用
+
+打开 [AI 检索力在线应用](https://horacech.github.io/Information-Retrieval-Tool/)：
+
+1. 打开右上方的 **设置**，选择模型服务商与模型。
+2. 填入自己的 API Key，点击 **测试连接**，确认可用后保存。
+3. 在检索工作区输入研究主题，选择目标数据库、语种和检索模板。
+4. 点击生成，检查关键词扩展、布尔检索式、字段检索式和语法提示。
+5. 根据研究需要手动修订，复制检索式，前往目标数据库执行检索。
+
+首次使用可点击 **新手引导** 查看交互式操作流程。**项目介绍** 页面也提供功能概览、使用流程和文档入口。
+
+### 本地运行
+
+环境要求：Node.js 20 或更高版本，npm。
+
+~~~bash
+git clone https://github.com/HoraceCh/Information-Retrieval-Tool.git
+cd Information-Retrieval-Tool
+npm install
+npm run dev
+~~~
+
+Vite 开发服务器默认运行在 localhost:3000。
+
+常用命令：
+
+~~~bash
+npm run dev      # 启动开发服务器
+npm run lint     # TypeScript 类型检查
+npm run build    # 构建生产版本
+npm run preview  # 本地预览生产构建
+~~~
+
+更多配置与操作细节见 [使用指南](docs/USER_GUIDE.md) 和 [开发者文档](docs/DEVELOPMENT.md)。
+
+## 模型配置与 API Key
+
+项目采用 **BYOK（Bring Your Own Key）** 模式：使用者自行向模型服务商申请 API Key，并在应用的设置面板中配置。
+
+支持的预设服务商包括 Google Gemini、DeepSeek、SiliconFlow、Moonshot / Kimi、Zhipu GLM、Alibaba DashScope / Qwen、OpenAI 和 OpenRouter，也可以配置兼容 OpenAI API 格式的自定义服务。
+
+模型服务商可能按调用量收费，具体价格、速率限制和可用模型以服务商公布的信息为准。语音转写功能使用 Gemini，需要单独配置可用的 Gemini API Key。
+
+## 隐私与安全
+
+当前部署是 **静态前端应用**，模型请求由浏览器直接发送给使用者选择的模型服务商；项目没有自建的模型代理后端。
+
+- API Key 和部分用户配置保存在当前浏览器的 localStorage 中。
+- localStorage 不是加密保险库。拥有当前浏览器本地访问权限的用户或恶意注入的脚本可能读取其中的数据。
+- 检索意图、语音内容和 API 请求会发送到所选模型服务商，并受该服务商的数据处理、日志和隐私政策约束。
+- 不要在公共或共享设备上保存个人 API Key；不要提交不适合发送给模型服务商的敏感资料。
+- GitHub Pages 的公开前端构建不需要注入模型 API Key。请勿通过 Vite 的 define、公开构建变量或提交源码的方式把密钥打包进浏览器资源。
+
+如需移除本地保存的密钥，请在应用设置中清除相应配置，或清除该站点在浏览器中的本地网站数据。
+
+## 技术栈
+
+- **Frontend**：React 19、TypeScript、Vite 6
+- **Styling**：Tailwind CSS 4
+- **Motion & Visualization**：Motion、Recharts、D3
+- **Internationalization**：i18next、react-i18next
+- **Model integration**：Google GenAI SDK、OpenAI-compatible HTTP APIs
+- **Deployment**：GitHub Pages + GitHub Actions
+
+## 项目结构
+
+~~~text
+.
+├── .github/workflows/       # GitHub Pages deployment workflow
+├── docs/
+│   ├── USER_GUIDE.md        # End-user guide
+│   └── DEVELOPMENT.md       # Architecture and development notes
+├── src/
+│   ├── components/          # UI modules and visualizations
+│   ├── data/                # Built-in search templates
+│   ├── services/             # Model-provider requests
+│   ├── utils/                # Query validation and matching helpers
+│   ├── App.tsx               # Main application and workspace state
+│   ├── i18n.ts               # Interface language resources
+│   └── main.tsx              # React entry point
+├── index.html
+├── package.json
+└── vite.config.ts
+~~~
+
 ## English
 
-**AI_RETRIEVAL_X** is an intelligent query generation and semantic topic expansion framework designed for researchers, academics, librarians, and information specialists. It bridges everyday natural language research intents with complex, database-specific Boolean retrieval rules.
+**AI Retrieval Tool** helps researchers turn natural-language research topics into database-aware Boolean search strategies. It expands keywords, adapts query syntax to selected academic databases, compares model outputs, visualizes query structure and provides quick access to official database portals.
 
-Powered by state-of-the-art Large Language Models (LLMs)—including Google Gemini, DeepSeek, SiliconFlow, Kimi Moonshot, Zhipu GLM, Qwen, OpenAI, and OpenRouter—it translates research concepts into high-precision, syntactically valid Boolean formulas tailored for top academic databases and patent search engines.
+The app is a client-side tool, not a literature database. Users bring their own model API keys; requests are sent directly from the browser to the selected provider. Keys are stored in browser localStorage, which is not encrypted by the app. Please review the provider's data policy and avoid entering sensitive information.
 
----
+- [Open the live app](https://horacech.github.io/Information-Retrieval-Tool/)
+- [User guide](docs/USER_GUIDE.md)
+- [Developer guide](docs/DEVELOPMENT.md)
 
-### 🌐 Instant Web Access (Zero Installation)
+## License
 
-**Experience the tool directly in your browser without any installation, downloads, or deployment:**
-
-- ⚡ **Direct Web Experience**: Open the web application and begin generating Boolean search queries immediately.
-- 🔒 **Privacy-First & Client-Side Security**: All API keys and preferences are stored exclusively in your browser's encrypted local storage (`⚙️ Settings` in the bottom navigation). Requests communicate directly with model providers with zero third-party logging or data collection.
-
----
-
-### 🎯 Key Features
-
-- **🎙️ Voice-to-Text Audio Input (`gemini-3.5-transcribe`)**: Speak your research intentions naturally. Powered by Google's dedicated `gemini-3.5-transcribe` multimodal audio model, speech is transcribed in real-time into query input with waveform audio visualization and recording timers.
-- **📊 Recharts Keyword Coverage Visualizer**: In side-by-side Comparison Mode, an embedded interactive Recharts chart contrasts Model A and Model B across core keyword count, Chinese/English synonym depth, formula token density, and shared vs. unique vocabulary.
-- **🌓 Dark & High-Contrast Light Theme**: Easily toggle between the immersive cyber dark theme and a high-contrast daylight theme in the top system bar, optimized for varying lighting conditions and accessibility.
-- **📱 Multi-Device Responsive Interface**: Fully adaptive responsive layout providing seamless productivity across ultra-wide monitors, laptops, tablets, and smartphones.
-- **💡 Multi-Model & Multi-Provider Ecosystem**: Native presets for **Google Gemini, DeepSeek, SiliconFlow, Kimi (Moonshot), Zhipu GLM, Qwen (DashScope), OpenAI, and OpenRouter**, plus custom OpenAI-compatible endpoints.
-- **🧠 Natural Language Intent Translation**: Simply describe research questions in everyday language. The engine extracts core conceptual facets and builds Boolean queries with precise operators (`AND`, `OR`, `NOT`, proximity/adjacency operators).
-- **🎓 Database-Specific Syntax Tailoring**:
-  - **CNKI (中国知网)**: Formats standard fields (e.g. `SU = (A + B) AND TKA = C`).
-  - **Web of Science / PubMed / Scopus / IEEE / ScienceDirect**: Adheres strictly to respective proximity, phrase quoting, and field codes.
-  - **Patent Search Dual-Track**: Supports space-as-OR logic for CNIPA and standard uppercase Boolean rules for 壹专利.
-- **🌳 Interactive Syntax Highlighting & Query Tree**: Real-time color-coded syntax highlighting (AND/OR/NOT/Fields/Quotes) and interactive query tree visualization for structural validation.
-- **🚀 Smart Jump URLs**: One-click direct search links to execute generated queries instantly on Baidu Academic, CNKI, Bing, and more.
-- **📚 Official Whitelist Quick Lookup**: Rapid built-in directory of verified academic database portals, proxy guides, and literature access shortcuts.
-- **📊 Usage Analytics & Local History**: Monitor token consumption, latency, and success rates with automatic local backup of your last 50 queries.
-
----
-
-### 🔑 How to Configure API Keys
-
-AI_RETRIEVAL_X operates on a privacy-respecting **Bring-Your-Own-Key (BYOK)** model:
-1. Click the **`⚙️ Settings`** icon in the bottom system bar.
-2. Select your preferred provider (e.g., Gemini, DeepSeek, SiliconFlow, OpenAI).
-3. Enter your API Key and click **Test Connection** or Save.
-
----
-
-### 💻 Local Run (Optional for Developers)
-
-For users who wish to run or customize the project locally:
-
-```bash
-# Clone the repository and install dependencies
-git clone https://github.com/your-username/AI_RETRIEVAL_X.git
-cd AI_RETRIEVAL_X
-npm install
-
-# Start local development server (runs on port 3000)
-npm run dev
-```
-
-You can also double-click the included one-click launcher scripts:
-- **Windows**: `Windows一键自动部署配置并运行.bat`
-- **macOS / Linux**: `./Mac-Linux一键自动部署配置并运行.sh`
-
----
-
-### 📄 License
-
-Licensed under the [GNU General Public License v3.0 (GPL-3.0)](LICENSE).
-
----
-
-<a id="中文"></a>
-## 中文
-
-**AI_RETRIEVAL_X (AI 检索力)** 是一款专为科研人员、高校师生、图书馆员及情报分析师打造的智慧检索式生成与学术词汇扩充框架。
-
-本工具旨在打破自然语言与复杂学术数据库布尔逻辑规则之间的壁垒，借助于 Google Gemini、DeepSeek、硅基流动 (SiliconFlow)、月之暗面 (Kimi)、智谱 GLM、通义千问 (Qwen)、OpenAI 及 OpenRouter 等主流大语言模型的推理能力，将日常自然语言需求精准转换为学术数据库和专利系统认可的高精布尔检索式。
-
----
-
-### 🌐 免安装、即开即用（网页端直接体验）
-
-**您无需配置任何本地环境或经历繁琐部署，直接在浏览器中打开网页即可完整体验全部功能：**
-
-- ⚡ **纯网页即时体验**：输入网址即可直接在浏览器内进行智能检索式生成、双模型对比与同义词扩展。
-- 🔒 **隐私安全保障 (BYOK 模式)**：纯前端驱动与云端直连模式，所有 API 密钥和偏好设置均保存在您本地浏览器的加密缓存中（通过右下角 `⚙️ 设置` 配置），直接与模型厂商官方通信，绝不上报或存储至任何第三方服务器。
-
----
-
-### 🎯 核心功能与技术特色
-
-- **🎙️ 麦克风语音转文字 (基于 gemini-3.5-transcribe)**：支持直接口述检索意图。集成 Google 专用高精音频大模型 `gemini-3.5-transcribe`，配有动态声波音量可视化、录音计时与防短录保护，一键快速将口述内容转写填入检索框。
-- **📊 核心词覆盖 Recharts 可视化对比图**：开启双模型比对模式时，结果面板内嵌微型 Recharts 图表，直观量化对比两个模型在核心概念数、中英同义词扩展深度、检索式词量密度及共同词 vs 独有词覆盖率。
-- **🌓 沉浸深色 / 高对比度浅色双主题一键切换**：顶部系统栏内置主题切换开关，支持在沉浸科技深色主题与高对比度浅色主题之间无缝切换，适配不同光照环境与视觉偏好。
-- **📱 多设备屏幕自适应与响应式优化**：针对超宽台式屏、笔记本电脑、平板以及手机屏幕进行了系统级响应式布局优化，无论横屏还是竖屏均可舒适操作。
-- **💡 主流大模型全生态兼容**：预设集成 **Google Gemini、DeepSeek 官方、硅基流动 (SiliconFlow)、月之暗面 (Kimi)、智谱 GLM、通义千问 (DashScope)、OpenAI 官方以及 OpenRouter 聚合平台**，并支持自定义 OpenAI 兼容接口。
-- **🧠 自然语言智能语义解析**：输入科研主题或问题描述，AI 自动切分主题概念小面，构建严密的布尔逻辑关系 (`AND`, `OR`, `NOT` 及位置邻近算符)。
-- **🎓 深度适配各大数据库语法规范**：
-  - **中国知网 (CNKI)**：严格使用规范字段限定（如 `SU = ('概念A' + '概念B') AND TKA = '概念C'`）。
-  - **Web of Science / PubMed / Scopus / IEEE / ScienceDirect**：精准匹配对应数据库的邻近算符、精确短语双引号及特定字段标识。
-  - **专利检索双轨制适配**：区分中国专利局 CNIPA（空格代表逻辑或 OR）与 壹专利（标准大写 Boolean 算符），彻底避免检索语法歧义。
-- **🌳 语法高亮与交互式布尔逻辑树**：实时彩色高亮逻辑算符、字段标签与限定词组，同步渲染交互式逻辑树节点，直观校验复杂公式嵌套结构。
-- **🚀 检索一键直达 (Smart Jump)**：自动生成带有真实检索参数的直达链接，一键在百度学术、CNKI、Google Scholar 等学术平台调起检索结果。
-- **📚 官方学术白名单与网址速查**：内置权威学术数据库直达导航、代理与校园网访问指引，提供纯净快捷的学术检索通道。
-- **📊 Token 用量统计与本地历史快照**：内置调用量与成功率分析看板，自动持久化存储最近 50 条检索历史记录，支持一键复用与回溯。
-
----
-
-### 🔑 如何配置 API 密钥
-
-AI_RETRIEVAL_X 采用**用户自行配置密钥 (BYOK)** 模式：
-1. 打开网页后，点击右下角的 **`⚙️ Settings (设置)`** 按钮。
-2. 在提供商下拉列表中选择您使用的模型服务商（如 DeepSeek、硅基流动、Gemini、OpenAI 等）。
-3. 填入您的 API Key，点击“测试连接”验证通过后即可永久保存并开始使用。
-
----
-
-### 💻 本地运行（开发者可选）
-
-如需在本地进行二次开发或定制修改：
-
-```bash
-# 克隆代码仓库并安装依赖
-git clone https://github.com/your-username/AI_RETRIEVAL_X.git
-cd AI_RETRIEVAL_X
-npm install
-
-# 启动本地开发服务器 (默认端口 3000)
-npm run dev
-```
-
-也可以直接运行项目根目录下的免配启动脚本：
-- **Windows 用户**：双击 `Windows一键自动部署配置并运行.bat`
-- **macOS / Linux 用户**：执行 `./Mac-Linux一键自动部署配置并运行.sh`
-
----
-
-### 📄 开源协议 (License)
-
-本项目遵循 [GNU General Public License v3.0 (GPL-3.0)](LICENSE) 开源协议。
-
+本项目采用 [GNU General Public License v3.0](LICENSE)（GPL-3.0）。
