@@ -150,11 +150,11 @@ export async function generateSearchQuery(
   const targetDB = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请根据用户的检索词自动判断最合适的一个目标学术数据库或搜索引擎（例如：CNKI、Web of Science、PubMed、专利数据库等），并在解释中说明为何选择该库。" : targetDatabase;
   const schemaInfo = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请自行匹配该目标数据库的常用检索语法与字段代码。" : (DB_SCHEMAS[targetDatabase] || DB_SCHEMAS["通用搜索引擎 (Baidu/Bing)"]);
   
-  const operatorInstruct = operatorStyle === "Space" 
-    ? "Strictly use Space (single whitespace character) instead of 'OR' to connect synonyms/alternative terms in booleanQuery and fieldSpecificQuery. For example, use '(A B)' instead of '(A OR B)'. No 'OR' word should appear as logical disjunction."
-    : "Strictly use standard 'OR' operator to connect synonyms/alternative terms in booleanQuery and fieldSpecificQuery. For example, use '(A OR B)' instead of '(A B)'.";
-  
-  const systemPrompt = `You are a professional search query generator. Build optimized search strings for the target DB. Output STRICTLY as JSON.\nConstraint style: ${operatorInstruct}`;
+  const operatorInstruct = operatorStyle === "Space"
+    ? "For booleanQuery only, use whitespace as OR between synonyms inside a concept group. Keep AND between distinct concept groups."
+    : "For booleanQuery only, use the explicit OR operator between synonyms inside a concept group. Keep AND between distinct concept groups.";
+
+  const systemPrompt = `You are a professional academic search-strategy generator. Output STRICTLY as JSON. The portable booleanQuery follows the requested operator style. The fieldSpecificQuery MUST follow the selected database's native syntax and field rules; database-native syntax takes precedence over the requested operator style.`;
   
   let userPrompt = `
 Query: "${input}"
@@ -166,9 +166,10 @@ Search Operator Style: "${operatorStyle === "Space" ? "Use Space as OR (e.g. '(A
 Tasks:
 1. Extract 2-3 core concepts.
 2. Provide 1-3 CN and EN synonyms per concept.
-3. Build 'booleanQuery': OR within concepts, AND across concepts. Match Lang Pref AND strictly obey the Search Operator Style (${operatorStyle}).
-4. Build 'fieldSpecificQuery' applying DB Schema fields AND strictly obey the Search Operator Style (${operatorStyle}).
-5. Provide a 1-sentence 'explanation'.
+3. Build 'booleanQuery' as a portable Boolean expression: OR (or the requested space-as-OR style) within concept groups, AND across distinct concept groups.
+4. Build 'fieldSpecificQuery' using the target database's native field codes, operators, phrase rules, and grouping syntax. The database schema takes precedence over the global operator-style preference. For example, use the database's native synonym separator even when it differs from the portable booleanQuery.
+5. If the target database cannot express the requested Boolean structure in one query string, do not invent unsupported operators. Return the closest supported form and explain any required UI-level combination or limitation.
+6. Provide a 1-sentence 'explanation'.
 6. Provide 1-3 'suggestedUrls'. 
 `;
 

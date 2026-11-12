@@ -51,9 +51,9 @@ export default function SyntaxValidationAlert({
         <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-emerald-950/20 rounded-lg border border-emerald-500/20 text-[11px] font-mono">
           <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
             <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
-            <span>{isZh ? "实时语法验证通过" : "Real-time Syntax Validated"}</span>
+            <span>{isZh ? "基础结构检查通过" : "Basic structure check passed"}</span>
             <span className="text-[10px] text-emerald-500/80 font-normal">
-              ({isZh ? "括号闭合平衡、算符结构无冲突" : "Balanced parens & valid operators"})
+              ({isZh ? "括号与逻辑连接结构通过检查" : "Parentheses and operator structure checked"})
             </span>
           </div>
 
@@ -80,7 +80,7 @@ export default function SyntaxValidationAlert({
         />
         <div className="absolute -top-1 left-1/2 -translate-x-1/2 px-2.5 py-0.2 bg-rose-600 text-white font-black font-mono text-[9px] uppercase tracking-widest rounded-full shadow-md flex items-center gap-1">
           <ShieldAlert size={10} />
-          <span>{isZh ? "语法错误警示" : "SYNTAX ALERT"}</span>
+          <span>{isZh ? "结构检查警示" : "SYNTAX ALERT"}</span>
         </div>
       </div>
 
@@ -104,8 +104,8 @@ export default function SyntaxValidationAlert({
               </div>
               <p className="text-[10px] text-rose-200/70">
                 {isZh
-                  ? "明显的布尔语法错误可能导致学术数据库返回 0 篇结果或报错拒绝检索。"
-                  : "Syntax errors will cause academic database engines to reject query or return 0 results."}
+                  ? "结构问题可能导致数据库拒绝检索；通过基础检查也不代表目标数据库语法一定兼容。"
+                  : "Structural issues may cause a database to reject a query. Passing this check does not guarantee database-specific compatibility."}
               </p>
             </div>
           </div>
@@ -116,10 +116,10 @@ export default function SyntaxValidationAlert({
                 type="button"
                 onClick={() => onApplyFix(fixedQuery)}
                 className="px-3 py-1 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-xs rounded-lg shadow-[0_0_10px_rgba(244,63,94,0.4)] transition-all flex items-center gap-1.5 cursor-pointer"
-                title={isZh ? "一键修复全角字符、配平括号与清理悬空算符" : "Auto-fix syntax defects"}
+                title={isZh ? "仅规范化全角标点，不会改写检索逻辑" : "Normalize punctuation only; Boolean logic is preserved"}
               >
                 <Wrench size={12} />
-                <span>{isZh ? "一键自动修复" : "Auto-Fix"}</span>
+                <span>{isZh ? "规范化标点" : "Normalize punctuation"}</span>
               </button>
             )}
 

@@ -150,3 +150,12 @@ When features, database coverage or the product's deployment URL change, update 
 ---
 
 See also: [User Guide](USER_GUIDE.md) · [Project README](../README.md) · [Live App](https://horacech.github.io/Information-Retrieval-Tool/)
+
+
+## Retrieval-query validation
+
+The Boolean validator checks expression structure (quoted phrases, parentheses, dangling operators, adjacent operands and selected implicit-operator conventions). It does **not** certify every database's live grammar, field-code availability, truncation limits, proximity-operator rules, or result recall. Always verify field-specific syntax against the selected database's current help documentation.
+
+Automatic normalization is deliberately conservative: it converts full-width punctuation to half-width punctuation only. It never removes terms, changes AND/OR/NOT, inserts missing operators, or silently balances quotation marks and parentheses.
+
+The generator treats the portable `booleanQuery` and database-native `fieldSpecificQuery` as separate outputs. Native database syntax takes precedence over the global operator-style preference.

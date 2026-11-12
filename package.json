@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "validate:guides": "python3 scripts/validate-guides.py"
+    "validate:guides": "python3 scripts/validate-guides.py",
+    "test": "node --import tsx --test src/utils/booleanSyntaxValidator.test.ts"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
