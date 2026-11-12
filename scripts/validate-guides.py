@@ -53,6 +53,13 @@ else:
 if not Path("public/robots.txt").is_file():
     errors.append("robots.txt missing")
 
+app = Path("src/App.tsx").read_text(encoding="utf-8")
+overview = Path("src/components/ProjectOverview.tsx").read_text(encoding="utf-8")
+if "['keyword-index', 'privacy-and-security']" not in app:
+    errors.append("App.tsx: missing supported project-overview anchor navigation")
+if 'SITE_URL + "?tab=about#privacy-and-security"' not in overview:
+    errors.append("ProjectOverview.tsx: privacy resource deep link is broken")
+
 if errors:
     print("\n".join(errors), file=sys.stderr)
     sys.exit(1)

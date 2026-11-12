@@ -432,8 +432,10 @@ export default function App() {
     return requestedTab === 'about' ? 'about' : requestedTab === 'whitelist' ? 'whitelist' : 'ai';
   });
   useEffect(() => {
-    if (activeTab !== 'about' || window.location.hash !== '#keyword-index') return;
-    requestAnimationFrame(() => document.getElementById('keyword-index')?.scrollIntoView());
+    if (activeTab !== 'about') return;
+    const anchorId = decodeURIComponent(window.location.hash.slice(1));
+    if (!['keyword-index', 'privacy-and-security'].includes(anchorId)) return;
+    requestAnimationFrame(() => document.getElementById(anchorId)?.scrollIntoView({ block: 'start' }));
   }, [activeTab]);
   const [showInstallerModal, setShowInstallerModal] = useState(false);
   const [dbType, setDbType] = useState(DB_TYPES[0]);

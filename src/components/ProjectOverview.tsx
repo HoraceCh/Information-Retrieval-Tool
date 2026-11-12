@@ -241,7 +241,7 @@ export default function ProjectOverview({
       icon: ShieldCheck,
       title: copy("隐私与安全说明", "Privacy and Security"),
       description: copy("了解 API Key 存储方式和数据流向", "Understand credential storage and request data flow"),
-      href: REPO_URL + "#privacy-and-security",
+      href: SITE_URL + "?tab=about#privacy-and-security",
     },
   ];
 
