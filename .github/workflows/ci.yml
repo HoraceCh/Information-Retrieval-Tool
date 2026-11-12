@@ -1,0 +1,63 @@
+name: Pull Request CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Type check, production build and static SEO pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run lint
+
+      - name: Build production site
+        run: npm run build
+
+      - name: Validate guide content and SEO metadata
+        run: npm run validate:guides
+
+      - name: Verify static guide pages and crawler files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist/guides/academic-literature-search/index.html
+          test -s dist/guides/boolean-search/index.html
+          test -s dist/guides/keyword-expansion/index.html
+          test -s dist/sitemap.xml
+          test -s dist/robots.txt
+          grep -q 'guides/academic-literature-search/' dist/sitemap.xml
+          grep -q 'guides/boolean-search/' dist/sitemap.xml
+          grep -q 'guides/keyword-expansion/' dist/sitemap.xml

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080d16">
+<meta name="robots" content="index,follow">
+<title>Keyword Expansion & Synonym Search Guide | AI 检索力</title>
+<meta name="description" content="Learn how to expand academic search keywords with synonyms, spelling variants, abbreviations, broader and narrower terms, and Chinese-English terminology.">
+<meta name="keywords" content="Keyword Expansion, Synonym Expansion, Academic Search Keywords, 关键词扩展, 中英文同义词, Literature Search Terms">
+<link rel="canonical" href="https://horacech.github.io/Information-Retrieval-Tool/guides/keyword-expansion/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="AI 检索力 · AI Retrieval Tool">
+<meta property="og:title" content="Keyword Expansion & Synonym Search Guide | AI 检索力">
+<meta property="og:description" content="Learn how to expand academic search keywords with synonyms, spelling variants, abbreviations, broader and narrower terms, and Chinese-English terminology.">
+<meta property="og:url" content="https://horacech.github.io/Information-Retrieval-Tool/guides/keyword-expansion/">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Keyword Expansion & Synonym Search Guide | AI 检索力">
+<meta name="twitter:description" content="Learn how to expand academic search keywords with synonyms, spelling variants, abbreviations, broader and narrower terms, and Chinese-English terminology.">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Keyword Expansion for Academic Literature Search","description":"Learn how to expand academic search keywords with synonyms, spelling variants, abbreviations, broader and narrower terms, and Chinese-English terminology.","inLanguage":"zh-CN","datePublished":"2026-11-11","dateModified":"2026-11-11","mainEntityOfPage":"https://horacech.github.io/Information-Retrieval-Tool/guides/keyword-expansion/","keywords":["Keyword Expansion","Synonym Expansion","Academic Search Keywords","关键词扩展","中英文同义词","Literature Search Terms"],"isPartOf":{"@type":"WebSite","name":"AI 检索力 · AI Retrieval Tool","url":"https://horacech.github.io/Information-Retrieval-Tool/"},"about":["Keyword Expansion","Synonym Expansion","Academic Search Keywords","关键词扩展","中英文同义词","Literature Search Terms"]}</script>
+<style>
+:root{color-scheme:dark;--bg:#080d16;--panel:#101a2a;--panel2:#0c1421;--line:#26354a;--text:#edf4ff;--muted:#a7b6ca;--cyan:#67e8f9;--blue:#7dd3fc;--green:#86efac}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 80% 0%,#12304a 0,transparent 36%),var(--bg);color:var(--text);font:16px/1.75 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}header,main,footer{width:min(1080px,calc(100% - 40px));margin-inline:auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px 0;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:12px;color:var(--text);font-weight:750}.mark{display:grid;place-items:center;width:38px;height:38px;border:1px solid #2d6477;border-radius:12px;background:#103144;color:var(--cyan);font-size:18px}
+.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:.16em;font-weight:650}
+nav{display:flex;align-items:center;gap:18px;font-size:13px;color:var(--muted)}nav a{color:var(--muted)}
+main{padding:56px 0 72px}.eyebrow{color:var(--cyan);font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:800}
+.hero{max-width:850px;padding:28px 0 34px}h1{font-size:clamp(34px,6vw,58px);line-height:1.12;letter-spacing:-.045em;margin:14px 0 18px}h1 span{display:block;color:var(--cyan);font-size:.58em;letter-spacing:-.02em;margin-top:12px}.lead{font-size:18px;line-height:1.8;color:#c5d3e5;max-width:780px}
+.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}.button{display:inline-flex;align-items:center;justify-content:center;padding:11px 17px;border-radius:12px;background:#a5f3fc;color:#08202b;font-size:14px;font-weight:800}.button.secondary{background:#14263a;color:var(--text);border:1px solid var(--line)}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}.tag{border:1px solid #31536a;background:#102235;color:#b8e9f5;border-radius:999px;padding:4px 10px;font-size:11px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:28px;align-items:start}.article,.sidecard,.related-card{border:1px solid var(--line);background:linear-gradient(145deg,rgba(18,31,49,.95),rgba(11,19,31,.96));border-radius:18px}
+.article{padding:clamp(22px,4vw,42px)}.article h2{font-size:23px;line-height:1.3;margin:42px 0 14px;letter-spacing:-.025em}.article h2:first-child{margin-top:0}.article h3{font-size:17px;margin:24px 0 8px}.article p,.article li{color:#c3d0e0}.article strong{color:#f2f7ff}.article ul,.article ol{padding-left:22px}.article li{padding:4px 0}.article code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:#a5f3fc;background:#0b1726;border:1px solid #23384c;border-radius:6px;padding:2px 5px;font-size:.9em}
+pre{overflow:auto;padding:18px;border:1px solid #2a4158;border-radius:12px;background:#07111e;color:#b8f3ff;line-height:1.65;font-size:13px}
+.note{border-left:3px solid var(--cyan);padding:14px 17px;background:#0d2030;border-radius:0 12px 12px 0;color:#c4d8e8;margin:20px 0}
+.side{position:sticky;top:20px;display:grid;gap:14px}.sidecard{padding:20px}.sidecard h2{font-size:14px;margin:0 0 12px}.sidecard ol{margin:0;padding-left:20px;color:var(--muted);font-size:13px}.sidecard li{padding:4px 0}.sidecard p{font-size:13px;color:var(--muted);margin:8px 0}
+.related{margin-top:42px}.related h2{font-size:22px}.related-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.related-card{padding:18px}.related-card h3{margin:0 0 8px;font-size:16px}.related-card p{margin:0 0 12px;color:var(--muted);font-size:13px}.related-card a{font-size:13px;font-weight:750}
+footer{border-top:1px solid var(--line);padding:25px 0 40px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+@media(max-width:800px){.layout{grid-template-columns:1fr}.side{position:static;grid-row:1}.sidecard ol{columns:2}.related-grid{grid-template-columns:1fr}}@media(max-width:560px){header{align-items:flex-start;flex-direction:column}nav{flex-wrap:wrap}.lead{font-size:16px}.sidecard ol{columns:1}}
+</style>
+</head>
+<body>
+<header>
+<a class="brand" href="../../"><span class="mark">检</span><span>AI 检索力<small>AI RETRIEVAL TOOL · RESEARCH GUIDES</small></span></a>
+<nav aria-label="主导航"><a href="../../">项目首页</a><a href="../../?tab=about#keyword-index">关键词索引</a><a href="https://github.com/HoraceCh/Information-Retrieval-Tool">GitHub</a></nav>
+</header>
+<main>
+<div class="hero">
+<div class="eyebrow">Research guide · keyword expansion</div>
+<h1>Keyword Expansion<span>关键词扩展：从一个研究概念建立中英文检索词表</span></h1>
+<p class="lead">关键词扩展的目标不是尽可能多地产生词语，而是找到能够代表同一研究概念、又能覆盖不同作者表达习惯的检索词。</p>
+<div class="tags"><span class="tag">Keyword Expansion</span><span class="tag">Synonym Expansion</span><span class="tag">Academic Search Keywords</span><span class="tag">关键词扩展</span><span class="tag">中英文同义词</span><span class="tag">Literature Search Terms</span></div>
+<div class="actions"><a class="button" href="../../">打开 AI 检索力应用 ↗</a><a class="button secondary" href="https://github.com/HoraceCh/Information-Retrieval-Tool">查看开源仓库</a></div>
+</div>
+<div class="layout">
+<article class="article">
+<h2 id="why">为什么需要关键词扩展？</h2>
+<p>同一个研究概念可能以不同名称出现在论文标题、摘要和关键词中。作者可能使用缩写、全称、不同拼写、相近术语，或来自不同学科的表达。如果只搜索研究者最先想到的一个词，就可能漏掉相关记录。</p>
+<p><strong>Keyword expansion</strong> 是在保持概念边界的前提下，系统补充可替代表达，为后续布尔检索建立更完整的词表。</p>
+<h2 id="types">六类值得检查的表达</h2>
+<ol>
+<li><strong>同义词与近义表达：</strong>例如 cleaning、surface cleaning、contamination removal。近义词需要结合上下文确认是否真的指向同一概念。</li>
+<li><strong>缩写与全称：</strong>同时检查 acronym 和完整名称，例如 PV 与 photovoltaic。缩写可能有多种含义，必要时搭配上下文词。</li>
+<li><strong>拼写与词形变体：</strong>例如英美拼写差异、单复数、词性变化和常见派生词。</li>
+<li><strong>上位词与下位词：</strong>较宽泛的术语可能增加召回率，较具体的术语可以帮助聚焦研究对象。</li>
+<li><strong>相关技术与方法表达：</strong>不同论文可能用过程、设备、材料或评价指标描述相近研究主题。</li>
+<li><strong>跨语言术语：</strong>中文和英文术语应按学科语境对应，不要只依赖逐字翻译。</li>
+</ol>
+<h2 id="bilingual">中英文术语扩展的方法</h2>
+<p>建议先确定概念的中文定义，再查找该领域常用英文表达；反过来，也可以从英文核心论文中收集常见术语，再补充中文表达。对于缩写、多义词和新兴技术词，优先查看领域论文、数据库主题词和专业词典中的实际用法。</p>
+<p>如果研究涉及医学、生命科学或其他有成熟主题词表的领域，可以检查 MeSH、Emtree 等受控词表。自由关键词与受控主题词互为补充，不能把 AI 生成的同义词列表当作正式受控词表。</p>
+<h2 id="example">示例：光伏组件清洁研究</h2>
+<p>以“光伏板表面清洁”为例，可以先按概念组织候选词：</p>
+<ul>
+<li><strong>研究对象：</strong>photovoltaic module、solar panel、PV module、solar cell module</li>
+<li><strong>污染与问题：</strong>dust accumulation、soiling、particle deposition、surface contamination</li>
+<li><strong>清洁过程：</strong>cleaning、dust removal、washing、surface maintenance</li>
+<li><strong>自动化技术（按研究范围决定是否加入）：</strong>robotic cleaning、autonomous cleaning、automated maintenance</li>
+</ul>
+<p>将候选词整理成概念组后，可以用 <code>OR</code> 连接同组表达，再用 <code>AND</code> 连接不同概念。是否加入自动化技术这一组，取决于研究问题：若希望先了解所有光伏清洁方法，过早加入 robot 可能会漏掉人工或固定式清洁研究。</p>
+<h2 id="quality">如何控制关键词扩展质量</h2>
+<ul>
+<li><strong>检查概念一致性：</strong>每个词都应该能够解释为什么代表该概念。</li>
+<li><strong>识别歧义：</strong>多义缩写和泛化词可能引入大量噪声。</li>
+<li><strong>避免无边界扩展：</strong>相关词不一定是同义词，不要把所有相关主题都塞进一个 OR 组。</li>
+<li><strong>用已知文献验证：</strong>检查检索策略能否找回几篇确定相关的代表性文献。</li>
+<li><strong>记录词表来源：</strong>记录术语来自论文、数据库主题词、领域标准还是模型建议。</li>
+</ul>
+<h2 id="assistant">AI 检索力如何辅助关键词扩展</h2>
+<p>AI 检索力面向自然语言研究意图，辅助提取核心概念并生成中英文关键词和相关术语候选项。研究者可以在生成后筛选、删改和补充，再把确认后的词表用于布尔检索式构建。</p>
+<p>模型生成的词语不一定都是严格同义词，也可能存在学科歧义或遗漏。正式检索前应核对术语是否符合研究定义，并根据目标数据库的字段与语法进行调整。</p>
+<h2 id="english">English summary</h2>
+<p>Keyword expansion improves academic search coverage by identifying synonyms, spelling variants, abbreviations, broader and narrower terms, and discipline-specific expressions. Build a separate term set for each concept, verify ambiguous terms in domain literature or controlled vocabularies, and avoid mixing merely related concepts into one synonym group. AI-generated terms are candidates for human review, not authoritative thesauri.</p>
+</article>
+<aside class="side">
+<section class="sidecard"><h2>本页内容</h2><ol><li><a href="#why">为什么需要关键词扩展</a></li><li><a href="#types">六类值得检查的表达</a></li><li><a href="#bilingual">中英文术语扩展</a></li><li><a href="#example">示例：光伏板清洁</a></li><li><a href="#quality">如何控制扩展质量</a></li><li><a href="#assistant">AI 检索力如何辅助</a></li></ol></section>
+<section class="sidecard"><h2>使用 AI 检索力</h2><p>把研究问题转化为概念组、关键词和可编辑的布尔检索策略。生成结果请结合目标数据库语法人工检查。</p><a href="../../">开始构建检索式 →</a></section>
+<section class="sidecard"><h2>项目说明</h2><p>本工具辅助检索策略构建，不是文献数据库、爬虫或全文下载服务。</p><a href="https://github.com/HoraceCh/Information-Retrieval-Tool/blob/main/README.md">阅读项目 README →</a></section>
+</aside>
+</div>
+<section class="related"><h2>继续阅读 · Related guides</h2><div class="related-grid"><article class="related-card"><h3>Academic Literature Search</h3><p>学术文献检索工作流 · 从研究问题、概念拆分到数据库执行，建立可复核的文献检索流程。</p><a href="../academic-literature-search/">阅读专题指南 →</a></article><article class="related-card"><h3>Boolean Search Generator</h3><p>布尔检索式构建 · 理解 AND、OR、NOT、括号、短语与字段限定的组合方法。</p><a href="../boolean-search/">阅读专题指南 →</a></article></div></section>
+</main>
+<footer><span>© AI 检索力 · AI Retrieval Tool</span><span><a href="../../">应用首页</a> · <a href="https://github.com/HoraceCh/Information-Retrieval-Tool">GitHub</a> · GPL-3.0</span></footer>
+</body>
+</html>
