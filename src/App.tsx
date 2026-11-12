@@ -427,7 +427,14 @@ export default function App() {
   };
 
   const [input, setInput] = useState("");
-  const [activeTab, setActiveTab] = useState<'ai' | 'whitelist' | 'about'>('ai');
+  const [activeTab, setActiveTab] = useState<'ai' | 'whitelist' | 'about'>(() => {
+    const requestedTab = new URLSearchParams(window.location.search).get('tab');
+    return requestedTab === 'about' ? 'about' : requestedTab === 'whitelist' ? 'whitelist' : 'ai';
+  });
+  useEffect(() => {
+    if (activeTab !== 'about' || window.location.hash !== '#keyword-index') return;
+    requestAnimationFrame(() => document.getElementById('keyword-index')?.scrollIntoView());
+  }, [activeTab]);
   const [showInstallerModal, setShowInstallerModal] = useState(false);
   const [dbType, setDbType] = useState(DB_TYPES[0]);
   const [operatorStyle, setOperatorStyle] = useState<"OR" | "Space">("OR");
