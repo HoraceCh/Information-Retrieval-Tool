@@ -1,0 +1,55 @@
+name: Temporary compatible dependency remediation
+on:
+  push:
+    branches:
+      - chore/audit-bundle-browser-qa
+
+permissions:
+  contents: write
+
+concurrency:
+  group: audit-fix-lockfile
+  cancel-in-progress: false
+
+jobs:
+  refresh-lock:
+    if: github.repository == 'HoraceCh/Information-Retrieval-Tool'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v5
+        with:
+          ref: chore/audit-bundle-browser-qa
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: Reconcile direct dependencies and lockfile
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Apply only compatible advisory fixes
+        run: |
+          npm audit fix --package-lock-only --ignore-scripts || echo "Audit has remaining advisories to review"
+
+      - name: Test clean install, typecheck and production build
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+          npm audit --json > /tmp/npm-audit-postfix.json || true
+          node -e "const r=require('/tmp/npm-audit-postfix.json'); console.log('Postfix vulnerabilities:',r.metadata?.vulnerabilities);"
+
+      - name: Commit updated package lock if changed
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "No lockfile changes needed"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "Lock compatible dependency security updates"
+            git push origin HEAD:chore/audit-bundle-browser-qa
+          fi
