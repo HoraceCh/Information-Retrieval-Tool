@@ -8,6 +8,9 @@ import { defineConfig } from 'vite';
 function vendorChunk(id: string): string | undefined {
   const normalized = id.replace(/\\/g, '/');
   if (!normalized.includes('/node_modules/')) return undefined;
+  if (/\/node_modules\/(?:react|react-dom|react-is|scheduler|use-sync-external-store)\//.test(normalized)) return 'vendor-react';
+  if (/\/node_modules\/(?:i18next|react-i18next)\//.test(normalized)) return 'vendor-i18n';
+  if (normalized.includes('/node_modules/pinyin-pro/')) return 'vendor-pinyin';
   if (normalized.includes('/node_modules/@google/genai/')) return 'vendor-google-genai';
   if (/\/node_modules\/(?:recharts|victory-vendor)\//.test(normalized)) return 'vendor-recharts';
   if (/\/node_modules\/(?:d3(?:-[^/]+)?|internmap|delaunator|robust-predicates)\//.test(normalized)) return 'vendor-d3';

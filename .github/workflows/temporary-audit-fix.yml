@@ -27,8 +27,10 @@ jobs:
         with:
           node-version: 20
 
-      - name: Reconcile direct dependencies and lockfile
-        run: npm install --package-lock-only --ignore-scripts
+      - name: Rebuild lockfile from declared dependencies (drop orphan optional peers)
+        run: |
+          rm package-lock.json
+          npm install --package-lock-only --ignore-scripts
 
       - name: Apply only compatible advisory fixes
         run: |
