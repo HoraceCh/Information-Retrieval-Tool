@@ -53,7 +53,7 @@ try {
   assert(overflow <= 2, "Mobile page has horizontal overflow of " + overflow + "px");
   // Download the generated offline page and test hostile persisted data.
   await page.goto(BASE, { waitUntil: "networkidle", timeout: 30000 });
-  await page.locator('button[title*="离线安装"]').first().click();
+  await page.locator('button[title*="离线安装"]').first().evaluate(button => button.click());
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: /一键打包下载离线版 HTML/ }).click();
   const download = await downloadPromise;
