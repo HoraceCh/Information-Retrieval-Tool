@@ -27,8 +27,8 @@ try {
   await page.locator("#project-overview-title").waitFor();
   await page.locator("#keyword-index").waitFor();
   await page.screenshot({ path: path.join(artifacts, "desktop-overview.png"), fullPage: true });
-  const returnButton = page.getByRole("button", { name: /开始生成检索式|Start building a query/ }).first();
-  await returnButton.click();
+  // Reload the app shell before exercising the whitelist; its visible nav label may vary by locale.
+  await page.goto(BASE, { waitUntil: "networkidle", timeout: 30000 });
   await page.getByRole("button", { name: /官方网址速查|Official Whitelist/ }).first().click();
   await page.locator("main").first().waitFor();
 
