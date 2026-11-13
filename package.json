@@ -13,7 +13,8 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "validate:guides": "python3 scripts/validate-guides.py",
-    "audit:report": "node scripts/report-audit.mjs"
+    "audit:report": "node scripts/report-audit.mjs",
+    "validate:bundle": "node scripts/validate-bundles.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

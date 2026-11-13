@@ -44,11 +44,17 @@ jobs:
       - name: Report npm audit baseline
         run: npm run audit:report
 
+      - name: Block high and critical dependency advisories
+        run: npm audit --audit-level=high
+
       - name: Type check
         run: npm run lint
 
       - name: Build production site
         run: npm run build
+
+      - name: Verify JavaScript chunk size budget
+        run: npm run validate:bundle
 
       - name: Validate guide content and SEO metadata
         run: npm run validate:guides

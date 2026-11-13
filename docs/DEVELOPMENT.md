@@ -139,6 +139,34 @@ The public GitHub Pages app includes a small SEO baseline:
 
 When features, database coverage or the product's deployment URL change, update the overview page, README, metadata and JSON-LD together. Never claim that the app retrieves full-text papers or supports a database syntax feature unless the implementation has been verified.
 
+## Dependency security, bundle size and browser QA
+
+The repository uses npm as the authoritative installation workflow. Keep
+`package-lock.json` synchronized with `package.json` and use `npm ci`
+for repeatable CI and production builds. Audit advisories must not be ignored
+merely because a build succeeds.
+
+- `npm run audit:report` prints the current advisory inventory and dependency paths.
+- `npm audit --audit-level=high` is enforced by both PR CI and Pages deployment.
+- `npm run validate:bundle` checks the actual production `dist/assets/*.js` files
+  against a maximum of 500 KiB per JavaScript chunk. This is a per-file budget,
+  **not** a claim about total initial transfer size or runtime performance.
+- React, i18n, D3, Recharts, Motion, icons, pinyin and the Gemini SDK have separate
+  Vite vendor chunks to improve browser caching and reduce main-chunk parsing.
+- PR CI additionally runs Chromium against the built `vite preview` site:
+  About navigation, guide pages, table-of-contents anchors, mobile layout
+  overflow and uncaught browser exceptions. It uploads desktop/mobile screenshots
+  as an Actions artifact. No real model API keys are used.
+- Browser smoke tests do not replace manual model-provider testing, accessibility
+  audits or multi-browser QA. Verify provider connections using a disposable
+  scoped API key when performing integration testing.
+
+In November 2026, the original npm audit identified 13 advisories (including
+one Critical issue in an unused Express dependency path). Unused Express-related
+packages were removed and the lockfile was rebuilt using versions compatible with
+the declared major version ranges. The remediation build reported **0 npm audit
+vulnerabilities**. Future audit output may change as advisories are published.
+
 ## 9. Known boundaries
 
 - Query generation is model-assisted and may contain incorrect terms or syntax.
