@@ -35,6 +35,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Block high and critical dependency advisories
+        run: npm audit --audit-level=high
+
       - name: Type check
         run: npm run lint
 
@@ -43,6 +46,9 @@ jobs:
 
       - name: Build application
         run: npm run build
+
+      - name: Verify JavaScript chunk size budget
+        run: npm run validate:bundle
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
