@@ -178,3 +178,10 @@ vulnerabilities**. Future audit output may change as advisories are published.
 ---
 
 See also: [User Guide](USER_GUIDE.md) · [Project README](../README.md) · [Live App](https://horacech.github.io/Information-Retrieval-Tool/)
+
+
+## Security and recovery notes
+
+- Error recovery removes only this application's namespaced localStorage/sessionStorage keys, including the legacy `suYangFinalV6_react` whitelist key; it never clears all browser storage.
+- API keys are stored in browser localStorage without application-level encryption. Browser-side model requests send credentials directly to the selected provider.
+- Exported offline HTML treats locally added names, URLs and filenames as untrusted input. Persisted URLs are validated as HTTP/HTTPS, dynamic labels use DOM text nodes, and unsafe filenames are ignored.

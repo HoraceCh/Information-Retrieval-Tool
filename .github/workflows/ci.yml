@@ -50,6 +50,9 @@ jobs:
       - name: Type check
         run: npm run lint
 
+      - name: Test scoped recovery and security helpers
+        run: npm run test:security
+
       - name: Build production site
         run: npm run build
 

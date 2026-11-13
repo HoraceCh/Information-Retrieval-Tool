@@ -103,7 +103,7 @@ const UI_STRINGS = {
     deleteProvider: "DELETE / 删除",
     modelsListLabel: "支持的模型 (逗号分隔)",
     apiKeyLabel: "API Key",
-    apiKeyPlaceholder: "输入您的 API Key (为空使用默认)",
+    apiKeyPlaceholder: "输入您的 API Key（必填）",
     modelLabel: "底层模型 Model",
     baseUrlLabel: "Base URL (可选)",
     baseUrlPlaceholder: "自定义 API 端点，如: https://api.deepseek.com",
@@ -165,7 +165,7 @@ const UI_STRINGS = {
     deleteProvider: "删除提供商",
     modelsListLabel: "支持的模型 (用逗号分隔)",
     apiKeyLabel: "API 密钥",
-    apiKeyPlaceholder: "输入您的 API 密钥 (为空使用默认)",
+    apiKeyPlaceholder: "输入您的 API 密钥（必填）",
     modelLabel: "底层大模型",
     baseUrlLabel: "基础 URL (可选)",
     baseUrlPlaceholder: "例如: https://api.deepseek.com",
@@ -227,7 +227,7 @@ const UI_STRINGS = {
     deleteProvider: "Delete Provider",
     modelsListLabel: "Supported Models (Comma separated)",
     apiKeyLabel: "API Key",
-    apiKeyPlaceholder: "Enter your API Key (leave empty for default)",
+    apiKeyPlaceholder: "Enter your API Key (required)",
     modelLabel: "Underlying Model",
     baseUrlLabel: "Base URL (Optional)",
     baseUrlPlaceholder: "e.g., https://api.deepseek.com",
@@ -3801,8 +3801,8 @@ export default function App() {
                     <div className="font-bold text-cyan-300">🔑 API Key 指引 / Key Configuration Guide</div>
                     <div>
                       {uiLang === 'zh' || i18n.language === 'mix'
-                        ? "本网站在部署至 GitHub Pages 或独立部署后，由使用者自行配置 API Key。请在下方选择目标模型厂商，粘贴您在对应平台申请的 API Key（密钥加密储存在您本地浏览器中，绝不上传第三方服务器）。"
-                        : "When using this app, users provide their own API Keys. Select a provider below and enter your Key (stored locally in your browser)."
+                        ? "API Key 会以明文形式保存在当前浏览器的 localStorage 中（应用不会对其加密）。发起模型请求时，浏览器会将密钥直接发送至您选择的模型服务商；本项目没有自建代理服务器。请勿在公共设备保存密钥，并查看服务商的数据处理政策。"
+                        : "API keys are stored in this browser's localStorage without app-level encryption. Model requests send the key directly to the provider you select; this app does not proxy requests through its own server. Avoid saving keys on shared devices and review the provider's data policy."
                       }
                     </div>
                   </div>
@@ -3895,7 +3895,7 @@ export default function App() {
                     className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-cyan-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
                   />
                   <p className="text-[10px] text-slate-500 mt-2 font-mono">
-                    If left empty for Gemini, the system default key will be used. User keys are saved locally.
+                    密钥保存在本浏览器的 localStorage 中（未加密）。模型调用时会直接发送至所选服务商；留空将无法调用模型。
                   </p>
                 </div>
 
