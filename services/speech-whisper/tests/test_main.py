@@ -95,3 +95,13 @@ def test_openai_timeout_sanitized(monkeypatch):
     install_fake_client(monkeypatch,fake)
     r=client.post("/api/speech/openai/transcriptions",files={"file":("a.wav",b"x","audio/wav")})
     assert r.status_code==504 and "private" not in r.text
+
+
+def test_deepgram_malformed_payload_is_sanitized(monkeypatch):
+    monkeypatch.setattr(main,"DEEPGRAM_API_KEY","deepgram-secret")
+    async def fake(url,**kw):
+        return httpx.Response(200,json={"results":"unexpected"},request=httpx.Request("POST",url))
+    install_fake_client(monkeypatch,fake)
+    r=client.post("/api/speech/deepgram/transcriptions",files={"file":("a.wav",b"x","audio/wav")})
+    assert r.status_code==502
+    assert "unexpected" not in r.text

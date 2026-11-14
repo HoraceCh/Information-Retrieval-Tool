@@ -100,7 +100,12 @@ async def forward_deepgram(data: bytes, content_type: str, language: str) -> str
             response=await client.post("https://api.deepgram.com/v1/listen?"+urlencode(params),headers={"Authorization":f"Token {DEEPGRAM_API_KEY}","Content-Type":content_type},content=data)
         response.raise_for_status()
         payload=response.json()
-        transcript=payload.get("results",{}).get("channels",[{}])[0].get("alternatives",[{}])[0].get("transcript")
+        results=payload.get("results") if isinstance(payload,dict) else None
+        channels=results.get("channels") if isinstance(results,dict) else None
+        first_channel=channels[0] if isinstance(channels,list) and channels else None
+        alternatives=first_channel.get("alternatives") if isinstance(first_channel,dict) else None
+        first_alternative=alternatives[0] if isinstance(alternatives,list) and alternatives else None
+        transcript=first_alternative.get("transcript") if isinstance(first_alternative,dict) else None
         if not isinstance(transcript,str) or not transcript.strip(): raise HTTPException(status_code=502,detail="Deepgram returned an empty or invalid transcription.")
         return transcript.strip()
     except HTTPException: raise
@@ -108,7 +113,7 @@ async def forward_deepgram(data: bytes, content_type: str, language: str) -> str
     except httpx.HTTPStatusError as error:
         logger.warning("Deepgram upstream returned HTTP %s",error.response.status_code)
         raise HTTPException(status_code=502,detail="Deepgram speech provider rejected the transcription request.") from None
-    except (httpx.HTTPError,ValueError,KeyError,IndexError,TypeError):
+    except (httpx.HTTPError,ValueError,KeyError,IndexError,TypeError,AttributeError):
         logger.exception("Deepgram upstream request failed")
         raise HTTPException(status_code=502,detail="Deepgram speech provider request failed.") from None
 
