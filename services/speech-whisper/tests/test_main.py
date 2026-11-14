@@ -56,7 +56,7 @@ def test_openai_proxy_uses_server_key(monkeypatch):
     seen={}
     async def fake(url,**kw):
         seen.update(url=url,**kw)
-        return httpx.Response(200,json={"text":"OpenAI transcript"})
+        return httpx.Response(200,json={"text":"OpenAI transcript"},request=httpx.Request("POST",url))
     install_fake_client(monkeypatch,fake)
     r=client.post("/api/speech/openai/transcriptions",files={"file":("a.webm",b"audio","audio/webm")},data={"language":"en"})
     assert r.status_code==200 and r.json()=={"text":"OpenAI transcript"}
@@ -73,7 +73,7 @@ def test_deepgram_proxy_auto_detect(monkeypatch):
     seen={}
     async def fake(url,**kw):
         seen.update(url=url,**kw)
-        return httpx.Response(200,json={"results":{"channels":[{"alternatives":[{"transcript":"Deepgram transcript"}]}]}})
+        return httpx.Response(200,json={"results":{"channels":[{"alternatives":[{"transcript":"Deepgram transcript"}]}]}},request=httpx.Request("POST",url))
     install_fake_client(monkeypatch,fake)
     r=client.post("/api/speech/deepgram/transcriptions",files={"file":("a.webm",b"audio","audio/webm")})
     assert r.status_code==200 and r.json()=={"text":"Deepgram transcript"}
@@ -84,7 +84,7 @@ def test_deepgram_explicit_language(monkeypatch):
     monkeypatch.setattr(main,"DEEPGRAM_API_KEY","deepgram-secret")
     async def fake(url,**kw):
         assert "language=zh" in url
-        return httpx.Response(200,json={"results":{"channels":[{"alternatives":[{"transcript":"你好"}]}]}})
+        return httpx.Response(200,json={"results":{"channels":[{"alternatives":[{"transcript":"你好"}]}]}},request=httpx.Request("POST",url))
     install_fake_client(monkeypatch,fake)
     r=client.post("/api/speech/deepgram/transcriptions",files={"file":("a.wav",b"x","audio/wav")},data={"language":"zh"})
     assert r.status_code==200 and r.json()=={"text":"你好"}

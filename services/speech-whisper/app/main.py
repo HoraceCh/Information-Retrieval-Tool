@@ -120,10 +120,16 @@ async def healthz():
 async def transcribe_whisper(file: UploadFile=File(...),language: str=Form("auto")):
     language=validate_language(language)
     data,content_type=await read_audio(file)
-    with tempfile.NamedTemporaryFile(prefix="speech-",suffix=AUDIO_SUFFIXES[content_type]) as temp:
-        temp.write(data); temp.flush()
-        transcript=await run_in_threadpool(transcribe_file,temp.name,language)
-    return {"text":transcript}
+    try:
+        with tempfile.NamedTemporaryFile(prefix="speech-",suffix=AUDIO_SUFFIXES[content_type]) as temp:
+            temp.write(data); temp.flush()
+            transcript=await run_in_threadpool(transcribe_file,temp.name,language)
+        return {"text":transcript}
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Local Whisper transcription failed")
+        raise HTTPException(status_code=502,detail="Local speech recognition failed. Check the Whisper model setup and audio format.") from None
 
 @app.post("/api/speech/openai/transcriptions")
 async def transcribe_openai(file: UploadFile=File(...),language: str=Form("auto")):

@@ -10,7 +10,6 @@ on:
       - main
       - master
       - feat/local-whisper-runtime
-      - feat/local-whisper-runtime
   workflow_dispatch:
 
 permissions:
