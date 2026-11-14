@@ -42,10 +42,10 @@ export default function ProjectOverview({
     },
     {
       icon: Database,
-      title: copy("数据库语法适配", "Database-aware syntax"),
+      title: copy("数据库语法提示", "Database syntax guidance"),
       description: copy(
-        "根据目标数据库组织布尔逻辑、字段代码、短语和位置算符。",
-        "Shapes Boolean logic, field codes, phrases and proximity operators for the selected database."
+        "根据目标数据库提供布尔逻辑、字段代码、短语和位置算符的生成提示；最终检索式仍需在平台核对。",
+        "Provides database-specific guidance for Boolean logic, field codes, phrases and proximity operators; verify the final query on the target platform."
       ),
     },
     {
@@ -60,8 +60,8 @@ export default function ProjectOverview({
       icon: Network,
       title: copy("结构检查与可视化", "Structure and validation"),
       description: copy(
-        "通过关键词关系、布尔逻辑树和语法提示，辅助检查生成结果。",
-        "Inspect generated strategies with keyword relationships, Boolean trees and syntax guidance."
+        "通过关键词关系、布尔逻辑树和基础结构检查辅助复核；检查通过不代表数据库语法已获认证。",
+        "Review strategies with keyword relationships, Boolean trees and conservative structural checks; a pass does not certify database compatibility."
       ),
     },
     {
@@ -126,8 +126,8 @@ export default function ProjectOverview({
     {
       title: copy("产品功能与技术特征", "Product features and technical capabilities"),
       description: copy(
-        "对应应用中实际提供的模型接入、模板、比较、可视化和语音输入能力。",
-        "Reflects implemented model access, templates, comparison, visualization and voice-input capabilities."
+        "对应应用中实际提供的模型接入、模板、比较、结构检查、可视化和语音输入能力。",
+        "Reflects implemented model access, templates, comparison, structural query checks, visualization and voice-input capabilities."
       ),
       href: "#model-access",
       terms: [
@@ -139,6 +139,7 @@ export default function ProjectOverview({
         "检索模板库 / Search Templates",
         "语音转文字 / Voice Transcription",
         "检索式结构检查 / Query Validation",
+        "基础布尔结构检查 / Boolean Structure Check",
         "关键词关系可视化",
         "本地历史记录 / Local Search History",
       ],

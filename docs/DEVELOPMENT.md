@@ -35,6 +35,8 @@ npm run dev      # Development server
 npm run lint     # TypeScript type check (tsc --noEmit)
 npm run build    # Production build
 npm run preview  # Preview dist/
+npm run test:validator  # Boolean-query structural regression tests
+npm run test:security   # Storage recovery and security regression tests
 ~~~
 
 ## 3. 代码目录
@@ -185,3 +187,24 @@ See also: [User Guide](USER_GUIDE.md) · [Project README](../README.md) · [Live
 - Error recovery removes only this application's namespaced localStorage/sessionStorage keys, including the legacy `suYangFinalV6_react` whitelist key; it never clears all browser storage.
 - API keys are stored in browser localStorage without application-level encryption. Browser-side model requests send credentials directly to the selected provider.
 - Exported offline HTML treats locally added names, URLs and filenames as untrusted input. Persisted URLs are validated as HTTP/HTTPS, dynamic labels use DOM text nodes, and unsafe filenames are ignored.
+- File entries store filenames only; the actual documents are not embedded or uploaded and must be placed beside the exported HTML.
+
+
+## 10. Retrieval-query structural validation
+
+`src/utils/booleanSyntaxValidator.ts` is a conservative structural checker, not a complete parser for every database grammar.
+
+- Tokenizes quoted phrases, field labels, parentheses, Boolean operators and selected proximity operators.
+- Detects unmatched parentheses, unclosed quotes, leading/trailing or consecutive operators, empty groups, missing field values and ambiguous adjacency.
+- Counts single-quoted and double-quoted phrases. Parentheses inside localized field labels such as `申请人所在国（省）=` are not grouping punctuation.
+- Receives database, portable operator preference and field-specific mode; all are included in React memo dependencies.
+- Automatic normalization is limited to full-width punctuation. It never rewrites Boolean operators, search terms or grouping.
+- Passing means only that no covered structural error was found. It does not certify field-code validity, full database grammar, proximity/truncation semantics or recall.
+
+Portable `booleanQuery` follows the selected operator preference. Database-native `fieldSpecificQuery` follows the target platform and search mode; global whitespace preferences must not override native syntax.
+
+Run `npm run test:validator` and `npm run test:security`. The validator suite uses the existing TypeScript compiler and adds no runtime dependency.
+
+### Offline URL reference export
+
+The offline export packages the built-in database/standards/patent URL directory and pinyin search metadata into a standalone HTML file. Directory lookup works offline; external website access and model generation still require network. Custom file entries store filenames only, so the corresponding files must be placed beside the exported HTML. Inline JSON must continue to use the dedicated safe serializer.

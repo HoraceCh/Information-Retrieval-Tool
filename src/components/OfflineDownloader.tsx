@@ -49,7 +49,7 @@ export default function OfflineDownloader() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>AI+信息素养大赛 - 官方合规网址速查离线便携版</title>
+  <title>AI Retrieval Tool - Offline Official URL Reference</title>
   <style>
     * {
       box-sizing: border-box;
@@ -405,8 +405,8 @@ export default function OfflineDownloader() {
       <svg style="width:12px;height:12px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 2a8 8 0 0 1 8 8 8 8 0 0 1-8 8 8 8 0 0 1-8-8 8 8 0 0 1 8-8m-1 3v6h2V7h-2m0 8v2h2v-2h-2z"/></svg>
       SYSTEM STABLE
     </div>
-    <h1>AI+信息素养合规检索助手</h1>
-    <p class="subtitle">官方网址速查离线合规数据库 • 100% 纯前端离线运行，在无网络竞技状态下双击即用</p>
+    <h1>官方数据库网址速查</h1>
+    <p class="subtitle">离线网址目录 • 可在本地搜索已打包的平台入口；打开外部网站仍需网络</p>
   </header>
 
   <!-- Redirect Area -->
@@ -422,9 +422,9 @@ export default function OfflineDownloader() {
   </div>
 
   <div class="toolbox">
-    <input type="text" id="searchBar" class="search-input" placeholder="输入名称、网址、分类，或拼音拼音首字母缩写速查（如: zgzw 查知网）..." autocomplete="off">
+    <input type="text" id="searchBar" class="search-input" placeholder="输入名称、网址、分类，或拼音/首字母缩写速查（如：zgzw 查知网）..." autocomplete="off">
     <button class="btn btn-primary" onclick="openAddModal()">➕ 添加网站</button>
-    <button class="btn btn-secondary" onclick="triggerFileUpload()">📎 上传文件记录</button>
+    <button class="btn btn-secondary" onclick="triggerFileUpload()">📎 添加文件记录</button>
     <button class="btn btn-danger" onclick="triggerReset()">🗑️ 重置数据</button>
   </div>
 
@@ -435,7 +435,7 @@ export default function OfflineDownloader() {
         <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
         上传文件记录
       </div>
-      <p style="font-size:10px;color:#64748b;line-height:1.4;margin-bottom:12px">可以上传您的PDF/文档资料，点击将直接引导前往本地同文件夹下打开。</p>
+      <p style="font-size:10px;color:#64748b;line-height:1.4;margin-bottom:12px">添加 PDF/文档的文件名记录；对应文件需与此 HTML 放在同一文件夹，点击后在浏览器中打开。</p>
       <div id="fileList"></div>
     </div>
   </div>
@@ -639,7 +639,7 @@ export default function OfflineDownloader() {
       fileList.innerHTML = '';
 
       if (db.files.length === 0) {
-        fileList.innerHTML = '<p style="font-size:11px;color:#475569;font-style:italic">暂无本地上传的文件记录</p>';
+        fileList.innerHTML = '<p style="font-size:11px;color:#475569;font-style:italic">暂无本地文件名记录</p>';
       } else {
         db.files.forEach((file, fIdx) => {
           if (!file || !isSafeFileName(file.name)) return;
@@ -675,7 +675,7 @@ export default function OfflineDownloader() {
     }
 
     function deleteOfflineFile(idx) {
-      if (confirm('确定要删除此文件上传记录吗？')) {
+      if (confirm('确定要删除此文件名记录吗？')) {
         db.files.splice(idx, 1);
         saveToStorage();
         render();
@@ -880,7 +880,7 @@ pause`;
   const macScript = `#!/bin/bash
 clear
 echo "==================================================="
-echo "  AI+信息素养大赛：检索式智慧生成与速查平台"
+echo "  AI Retrieval Tool：官方数据库网址离线速查"
 echo "  macOS & Linux 桌面一键快速部署安装神器"
 echo "==================================================="
 echo ""
@@ -1060,7 +1060,7 @@ npm run dev`;
             </div>
           </div>
           <div className="mt-6 pt-4 border-t border-white/5">
-            <span className="text-[10px] text-slate-500 font-mono italic">提示：100% 浏览器原生极力推荐</span>
+            <span className="text-[10px] text-slate-500 font-mono italic">提示：建议优先使用浏览器原生安装功能</span>
           </div>
         </div>
  
@@ -1075,13 +1075,13 @@ npm run dev`;
                 方案二：高集成离线单文件 (HTML)
               </h3>
               <p className="text-[11px] text-slate-500 font-mono leading-relaxed">
-                一键导出完全独立、免部署、100% 本地离线高精度查询纯前端单网页。集成了完整的 150+ 合规高校白名单及多维拼音模糊速查内核。
+                导出独立 HTML 文件，内置平台网址目录与拼音检索索引。目录查询可离线使用；外部网站访问仍需网络。
               </p>
             </div>
             <div className="space-y-2 border-t border-white/5 pt-3">
               <div className="flex gap-2.5 items-start text-[10px] text-slate-400 font-mono">
                 <span className="bg-slate-800 border border-white/5 text-slate-300 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0">√</span>
-                <span>自动内置拼音首字母匹配，响应快至 0 ms</span>
+                <span>内置拼音与首字母索引，支持离线检索平台名称</span>
               </div>
               <div className="flex gap-2.5 items-start text-[10px] text-slate-400 font-mono">
                 <span className="bg-slate-800 border border-white/5 text-slate-300 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0">√</span>
@@ -1089,7 +1089,7 @@ npm run dev`;
               </div>
               <div className="flex gap-2.5 items-start text-[10px] text-slate-400 font-mono">
                 <span className="bg-slate-800 border border-white/5 text-slate-300 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0">√</span>
-                <span>可通过 LocalStorage 全面且永久记录您的修改和文件</span>
+                <span>自定义网址与文件名记录保存在当前浏览器；清除站点数据后会丢失</span>
               </div>
             </div>
           </div>

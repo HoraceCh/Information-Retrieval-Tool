@@ -75,7 +75,7 @@ const DB_SCHEMAS: Record<string, string> = {
   "EBSCO (ASP/BSP)": "支持 AND, OR, NOT。优先级 () > AND > NOT > OR。位置算符：N/n (词序不定), W/n (词序一定)。截词 *, # (0-1个), ?(单词中1个)。",
   "PQDT (博硕士论文)": "支持 AND, OR, NOT。优先级 PRE > NEAR > AND > OR > NOT。位置算符 NEAR/n, PRE/n。截词 * 和 ?（- 等价于 PRE/0）。",
   "IEEE Xplore": "支持 AND, OR, NOT。优先级 () > AND > NOT > OR。位置：NEAR/n, ONEAR/n。截词 * 和 ?。宽松短语 \"\"。",
-  "CNIPA (中国专利)": "CNIPA高级检索：空格表示逻辑或(OR)，不支持 AND 等通用逻辑词。检索时通过空格进行同义词扩展。主要字段：TI=发明名称, AB=摘要, CL=权利要求, PA=申请人, IN=发明人, IPC=分类号。",
+  "CNIPA (中国专利)": "CNIPA专利检索包含常规检索、高级检索和命令行检索等入口，空格规则依入口而异：常规检索的“自动识别”模式中空格按AND处理，指定单一字段的常规检索中空格可按OR处理；高级/命令行检索支持显式AND、OR、NOT和括号，不应将所有空格一律解释为OR。高级检索中的不同字段可按AND组合。字段名称与输入语法请以当前界面说明为准，例如发明名称、摘要、权利要求、申请人、发明人和IPC分类号。",
   "壹专利 (中文专利)": "壹专利支持 AND / OR / NOT 逻辑算符。优先级：() > N/W > NOT > AND > OR。精确词组需使用 \"\" 英文半角双引号。位置算符：nN (无序邻近), nW (有序邻近)。截词符：* (0-多个) 和 ? (单字)。主要字段：TI=标题, AB=摘要, CL=权利要求书, PA=申请人, IN=发明人, IPC=分类号。",
   "Espacenet / USPTO (外文专利)": "USPTO: 支持 AND, OR, NOT, XOR, 空格表OR。通配符 ?, $, *。位置: ADJ, NEAR, WITH, SAME。命令语法: 检索式.检索字段 (如 (face AND recogni*).BSUM )。Espacenet：Any, All, Proximity。",
   "国家标准全文公开系统": "支持状态检索 (现行、作废、未生效)。分类法：ICS与CCS。主要检索字段：标准号、关键词等。",
@@ -151,10 +151,10 @@ export async function generateSearchQuery(
   const schemaInfo = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请自行匹配该目标数据库的常用检索语法与字段代码。" : (DB_SCHEMAS[targetDatabase] || DB_SCHEMAS["通用搜索引擎 (Baidu/Bing)"]);
   
   const operatorInstruct = operatorStyle === "Space" 
-    ? "Strictly use Space (single whitespace character) instead of 'OR' to connect synonyms/alternative terms in booleanQuery and fieldSpecificQuery. For example, use '(A B)' instead of '(A OR B)'. No 'OR' word should appear as logical disjunction."
-    : "Strictly use standard 'OR' operator to connect synonyms/alternative terms in booleanQuery and fieldSpecificQuery. For example, use '(A OR B)' instead of '(A B)'.";
+    ? "For portable booleanQuery only, use whitespace as OR between synonyms inside a concept group. Do not apply this style to fieldSpecificQuery unless the selected database explicitly defines whitespace as OR."
+    : "For portable booleanQuery only, use the explicit OR operator between synonyms inside a concept group.";
   
-  const systemPrompt = `You are a professional search query generator. Build optimized search strings for the target DB. Output STRICTLY as JSON.\nConstraint style: ${operatorInstruct}`;
+  const systemPrompt = `You are a professional academic search-strategy generator. Output STRICTLY as JSON. ${operatorInstruct} The fieldSpecificQuery MUST follow the selected database's native field names, operators, phrase rules and grouping syntax; database-native syntax takes precedence over the global operator-style preference. If the selected platform has multiple search modes, follow the mode represented by the generated query.`;
   
   let userPrompt = `
 Query: "${input}"
@@ -166,10 +166,11 @@ Search Operator Style: "${operatorStyle === "Space" ? "Use Space as OR (e.g. '(A
 Tasks:
 1. Extract 2-3 core concepts.
 2. Provide 1-3 CN and EN synonyms per concept.
-3. Build 'booleanQuery': OR within concepts, AND across concepts. Match Lang Pref AND strictly obey the Search Operator Style (${operatorStyle}).
-4. Build 'fieldSpecificQuery' applying DB Schema fields AND strictly obey the Search Operator Style (${operatorStyle}).
-5. Provide a 1-sentence 'explanation'.
-6. Provide 1-3 'suggestedUrls'. 
+3. Build 'booleanQuery' as a portable Boolean expression: use the requested operator style for synonyms within each concept group and AND across distinct concept groups.
+4. Build 'fieldSpecificQuery' using the target database's native field names, operators, phrase rules, truncation/proximity syntax and grouping. Do not copy portable whitespace conventions into the database-native query unless that database mode explicitly supports them.
+5. If the target database cannot express the intended structure in one query string, return the closest supported form and explain any required UI-level combination or limitation; never invent unsupported operators or field codes.
+6. Provide a 1-sentence 'explanation'.
+7. Provide 1-3 'suggestedUrls'. 
 `;
 
   if (templateConstraint) {
@@ -182,8 +183,11 @@ ${templateConstraint.framework}
 ${templateConstraint.constraintPrompt}
 
 Strict Execution Requirements:
-1. When extracting and grouping core concepts, you MUST align and map them directly into the facets/blocks defined in this framework.
-2. The generated 'booleanQuery' and 'fieldSpecificQuery' MUST strictly conform to this logical framework structure (combining synonyms with OR/Space within each facet block, and chaining the facet blocks with AND/specified operators).
+1. Map the concepts into the framework's facets and preserve the intended conceptual relationships.
+2. Encode those relationships in the portable 'booleanQuery' using the requested operator style.
+3. Translate the same intended relationships into 'fieldSpecificQuery' using the selected database's native syntax. The database schema and search-mode rules take precedence over the global operator-style preference.
+4. Do not force whitespace-as-OR, generic field aliases or unsupported operators into a database-native query.
+5. If the selected database cannot express the framework as one query string, explain the limitation and the required UI-level combination instead of inventing syntax.
 `;
   }
 
