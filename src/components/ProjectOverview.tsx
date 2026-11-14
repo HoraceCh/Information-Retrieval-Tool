@@ -42,10 +42,10 @@ export default function ProjectOverview({
     },
     {
       icon: Database,
-      title: copy("数据库语法适配", "Database-aware syntax"),
+      title: copy("数据库语法提示", "Database syntax guidance"),
       description: copy(
-        "根据目标数据库组织布尔逻辑、字段代码、短语和位置算符。",
-        "Shapes Boolean logic, field codes, phrases and proximity operators for the selected database."
+        "根据目标数据库提供布尔逻辑、字段代码、短语和位置算符的生成提示；最终检索式仍需在平台核对。",
+        "Provides database-specific guidance for Boolean logic, field codes, phrases and proximity operators; verify the final query on the target platform."
       ),
     },
     {
