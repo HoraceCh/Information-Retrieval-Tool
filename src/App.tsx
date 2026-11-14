@@ -57,7 +57,7 @@ import FeedbackAnalytics, { UserFeedback } from "./components/FeedbackAnalytics"
 import VisualQueryTree from "./components/VisualQueryTree";
 import HighlightedBooleanQuery from "./components/HighlightedBooleanQuery";
 import SyntaxValidationAlert from "./components/SyntaxValidationAlert";
-import { validateBooleanQuery, autoFixBooleanQuery } from "./utils/booleanSyntaxValidator";
+import { validateBooleanQuery } from "./utils/booleanSyntaxValidator";
 import { AudioTranscriber } from "./components/AudioTranscriber";
 import { ComparisonKeywordChart } from "./components/ComparisonKeywordChart";
 import { PerformanceMetricsPanel } from "./components/PerformanceMetricsPanel";
@@ -641,8 +641,8 @@ export default function App() {
   // Real-time syntax validation status
   const syntaxValidation = useMemo(() => {
     if (!result || result._isLoading || !activeFormulaQuery) return null;
-    return validateBooleanQuery(activeFormulaQuery);
-  }, [result, activeFormulaQuery]);
+    return validateBooleanQuery(activeFormulaQuery, { database: dbType, operatorStyle, isFieldSpecific: showMapped });
+  }, [result, activeFormulaQuery, dbType, operatorStyle, showMapped]);
 
   // Handle applying automatic syntax fix for primary query
   const handleApplySyntaxFix = (fixedQuery: string) => {
@@ -1717,7 +1717,7 @@ export default function App() {
     const queryStr = mResp ? (showMapped ? (effQueries.fieldSpecificQuery || effQueries.booleanQuery) : effQueries.booleanQuery) : "";
 
     // Real-time syntax validation for compare card
-    const cardValidation = (queryStr && !isLoading && !isErr) ? validateBooleanQuery(queryStr) : null;
+    const cardValidation = (queryStr && !isLoading && !isErr) ? validateBooleanQuery(queryStr, { database: dbType, operatorStyle, isFieldSpecific: showMapped }) : null;
 
     const handleApplyCompareFix = (fixedQuery: string) => {
       setResults(prev => {
