@@ -458,10 +458,46 @@ export default function OfflineDownloader() {
     const DEFAULT_LINKS = ${linksJson};
 
     const storageKey = 'ai_info_literacy_offline_db_v6';
-    let db = JSON.parse(localStorage.getItem(storageKey)) || {
-      links: DEFAULT_LINKS,
-      files: []
-    };
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[char]);
+    }
+
+    function normalizeHttpUrl(value) {
+      const candidate = String(value || '').trim();
+      if (!candidate || candidate.length > 2048 || candidate.startsWith('//')) return null;
+      if (Array.from(candidate).some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) return null;
+      const lower = candidate.toLowerCase();
+      const hasHttpScheme = lower.startsWith('https://') || lower.startsWith('http://');
+      if (!hasHttpScheme && candidate.includes(':')) return null;
+      const withProtocol = hasHttpScheme ? candidate : 'https://' + candidate;
+      try {
+        const parsed = new URL(withProtocol);
+        if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+        if (!parsed.hostname || parsed.username || parsed.password) return null;
+        return parsed.href;
+      } catch { return null; }
+    }
+
+    function isSafeFileName(value) {
+      return typeof value === 'string' && value.length > 0 && value.length <= 255 &&
+        value !== '.' && value !== '..' &&
+        !value.includes('/') && !value.includes(String.fromCharCode(92)) &&
+        !Array.from(value).some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127);
+    }
+
+    let db;
+    try {
+      const stored = JSON.parse(localStorage.getItem(storageKey));
+      db = {
+        links: Array.isArray(stored && stored.links) ? stored.links : DEFAULT_LINKS,
+        files: Array.isArray(stored && stored.files) ? stored.files : []
+      };
+    } catch {
+      db = { links: DEFAULT_LINKS, files: [] };
+    }
 
     function saveToStorage() {
       localStorage.setItem(storageKey, JSON.stringify(db));
@@ -510,7 +546,11 @@ export default function OfflineDownloader() {
       let totalResults = 0;
 
       DEFAULT_CATEGORIES.forEach(cat => {
-        const catLinks = db.links.filter(l => l.cat === cat && fuzzyMatch(l, kw));
+        const catLinks = db.links.filter(l =>
+          l && typeof l.name === 'string' && typeof l.url === 'string' &&
+          typeof l.cat === 'string' && l.cat === cat &&
+          normalizeHttpUrl(l.url) && fuzzyMatch(l, kw)
+        );
         totalResults += catLinks.length;
 
         if (kw && catLinks.length === 0) return; // Skip empty categories on filtering
@@ -521,7 +561,7 @@ export default function OfflineDownloader() {
         const header = document.createElement('div');
         header.className = 'cat-header';
         header.innerHTML = \`
-          <span class="cat-title">\${cat}</span>
+          <span class="cat-title">\${escapeHtml(cat)}</span>
           <span class="cat-count">\${catLinks.length} 网址</span>
         \`;
         card.appendChild(header);
@@ -533,12 +573,13 @@ export default function OfflineDownloader() {
           list.innerHTML = '<p style="font-size:11px;color:#475569;font-style:italic;padding:8px">暂无网址</p>';
         } else {
           catLinks.forEach(link => {
+            const safeUrl = normalizeHttpUrl(link.url);
+            if (!safeUrl) return;
             const item = document.createElement('div');
             item.className = 'link-item';
-            // Simple right click menu replacement (Alert/Confirm) or click action
             item.onclick = (e) => {
-              if (e.target.tagName !== 'A') {
-                window.open(link.url, '_blank');
+              if (!e.target.closest('a')) {
+                window.open(safeUrl, '_blank', 'noopener,noreferrer');
               }
             };
             item.oncontextmenu = (e) => {
@@ -550,17 +591,23 @@ export default function OfflineDownloader() {
               }
             };
 
-            const cleanCatName = link.cat.indexOf('、') !== -1 ? link.cat.split('、')[1] : link.cat;
+            const anchor = document.createElement('a');
+            anchor.href = safeUrl;
+            anchor.target = '_blank';
+            anchor.rel = 'noopener noreferrer';
+            const content = document.createElement('div');
+            const name = document.createElement('span');
+            name.textContent = link.name;
+            const displayedUrl = document.createElement('span');
+            displayedUrl.className = 'link-url';
+            displayedUrl.textContent = safeUrl;
+            content.append(name, displayedUrl);
+            anchor.appendChild(content);
 
-            item.innerHTML = \`
-              <a href="\${link.url}" target="_blank" rel="noopener noreferrer">
-                <div>
-                  <span>\${link.name}</span>
-                  <span class="link-url">\${link.url}</span>
-                </div>
-              </a>
-              <span class="action-badge">\${cleanCatName}</span>
-            \`;
+            const badge = document.createElement('span');
+            badge.className = 'action-badge';
+            badge.textContent = link.cat.includes('、') ? link.cat.split('、')[1] : link.cat;
+            item.append(anchor, badge);
             list.appendChild(item);
           });
         }
@@ -572,7 +619,7 @@ export default function OfflineDownloader() {
       // Handle redirect box
       const redirectPanel = document.getElementById('redirectPanel');
       if (kw && totalResults === 0) {
-        document.getElementById('redirectTitle').innerHTML = '未匹配到 “<span style="color:#ffffff">' + kw + '</span>”';
+        document.getElementById('redirectTitle').textContent = '未匹配到 “' + kw + '”';
         
         document.getElementById('redirectBingBtn').onclick = () => {
           window.open('https://cn.bing.com/search?q=' + encodeURIComponent(kw), '_blank');
@@ -594,20 +641,33 @@ export default function OfflineDownloader() {
         fileList.innerHTML = '<p style="font-size:11px;color:#475569;font-style:italic">暂无本地上传的文件记录</p>';
       } else {
         db.files.forEach((file, fIdx) => {
+          if (!file || !isSafeFileName(file.name)) return;
           const fItem = document.createElement('div');
           fItem.className = 'file-item';
-          fItem.innerHTML = \`
-            <span class="file-name" style="cursor:pointer" onclick="openOfflineFile('\${encodeURIComponent(file.name)}')">📎 \${file.name}</span>
-            <span class="file-delete" onclick="deleteOfflineFile(\${fIdx})">删除</span>
-          \`;
+
+          const openButton = document.createElement('button');
+          openButton.type = 'button';
+          openButton.className = 'file-name';
+          openButton.style.cssText = 'cursor:pointer;border:0;background:transparent;color:inherit;text-align:left;font:inherit';
+          openButton.textContent = '📎 ' + file.name;
+          openButton.onclick = () => openOfflineFile(file.name);
+
+          const deleteButton = document.createElement('button');
+          deleteButton.type = 'button';
+          deleteButton.className = 'file-delete';
+          deleteButton.style.cssText = 'cursor:pointer;border:0;background:transparent;font:inherit';
+          deleteButton.textContent = '删除';
+          deleteButton.onclick = () => deleteOfflineFile(fIdx);
+          fItem.append(openButton, deleteButton);
           fileList.appendChild(fItem);
         });
       }
     }
 
-    function openOfflineFile(nameEncoded) {
+    function openOfflineFile(name) {
+      if (!isSafeFileName(name)) return;
       try {
-        window.open('./' + nameEncoded, '_blank');
+        window.open('./' + encodeURIComponent(name), '_blank', 'noopener,noreferrer');
       } catch (e) {
         alert('打开失败，请确保该文件在当前 HTML 文件的同一个文件夹下。');
       }
@@ -641,8 +701,10 @@ export default function OfflineDownloader() {
         return;
       }
 
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = 'https://' + url;
+      url = normalizeHttpUrl(url);
+      if (!url || name.length > 120 || url.length > 2048) {
+        alert('请输入有效的 HTTP/HTTPS 网址，名称不超过 120 个字符。');
+        return;
       }
 
       db.links.push({
@@ -670,6 +732,7 @@ export default function OfflineDownloader() {
           return;
         }
 
+        if (!isSafeFileName(file.name)) { alert('文件名不符合安全要求'); return; }
         db.files.push({ name: file.name });
         saveToStorage();
         render();

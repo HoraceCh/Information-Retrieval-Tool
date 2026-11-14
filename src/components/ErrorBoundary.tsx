@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RefreshCw, Trash2 } from "lucide-react";
+import { clearAppStorage } from "../utils/recoveryStorage.mjs";
 
 interface Props {
   children?: ReactNode;
@@ -32,12 +33,19 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReset = () => {
-    try {
-      localStorage.clear();
-      sessionStorage.clear();
-    } catch (e) {
-      console.error(e);
+    const confirmed = window.confirm(
+      "Clear AI Retrieval Tool data saved in this browser? This removes this app's API keys, settings, history, templates and cache. Other websites' data will not be touched."
+    );
+    if (!confirmed) return;
+
+    for (const storage of [window.localStorage, window.sessionStorage]) {
+      try {
+        clearAppStorage(storage);
+      } catch (error) {
+        console.error("Unable to clear app-scoped browser data:", error);
+      }
     }
+
     window.location.reload();
   };
 
@@ -65,6 +73,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
             <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
               <button
+                type="button"
                 onClick={() => window.location.reload()}
                 className="flex-1 py-2 px-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
@@ -73,13 +82,17 @@ export default class ErrorBoundary extends Component<Props, State> {
               </button>
 
               <button
+                type="button"
                 onClick={this.handleReset}
                 className="flex-1 py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                重置缓存 / Clear Cache
+                清除本应用数据 / Clear app data
               </button>
             </div>
+            <p className="text-[10px] leading-5 text-slate-500">
+              仅清除本应用保存的设置、API Key、历史记录和缓存，不会清除同一浏览器中其他网站的数据。
+            </p>
           </div>
         </div>
       );
