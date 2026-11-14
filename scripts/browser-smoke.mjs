@@ -82,7 +82,7 @@ try {
         { name: '<svg onload=window.__xss=2>', url: 'https://example.com/?q=%22%3E', cat: '二、AI素养' }
       ],
       files: [
-        { name: "x');window.__xss=3;//.pdf" },
+        { name: "x');window.__xss=3;evil.pdf" },
         { name: '../outside.html' }
       ]
     }));
