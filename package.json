@@ -15,8 +15,7 @@
     "validate:guides": "python3 scripts/validate-guides.py",
     "audit:report": "node scripts/report-audit.mjs",
     "validate:bundle": "node scripts/validate-bundles.mjs",
-    "test:security": "node --test tests/security-recovery.test.mjs",
-    "test:validator": "node --test tests/booleanSyntaxValidator.test.mjs"
+    "test:security": "node --test tests/security-recovery.test.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
