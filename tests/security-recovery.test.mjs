@@ -60,7 +60,7 @@ test("escapes HTML script end tags and parser-sensitive characters in embedded J
 
   assert.doesNotMatch(serialized, /<|>|&|\u2028|\u2029/);
   assert.deepEqual(JSON.parse(serialized), payload);
-  assert.match(serialized, /\\u003c\\/script\\u003e/i);
+  assert.ok(serialized.includes("\\u003c/script\\u003e"));
 });
 
 test("rejects values that JSON cannot serialize", () => {
