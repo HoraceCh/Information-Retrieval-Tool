@@ -267,7 +267,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
       let details = err.message;
       try {
         const parsed = JSON.parse(err.message);
-        details = parsed.details || parsed.title || err.message;
+        details = parsed.details || parsed.detail || parsed.title || err.message;
       } catch (_) {}
       setErrorMsg(details);
     } finally {
