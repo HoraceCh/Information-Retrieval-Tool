@@ -12,3 +12,4 @@ export function isSpeechProviderId(value: unknown): value is SpeechProviderId;
 export function getSpeechProxyPath(providerId: SpeechProviderId): string | null;
 export function normalizeTranscript(value: unknown): string;
 export function buildSpeechProxyUrl(baseUrl: string | undefined, providerId: SpeechProviderId): string;
+export function formatSpeechProxyError(status: number, detail: unknown): string;
