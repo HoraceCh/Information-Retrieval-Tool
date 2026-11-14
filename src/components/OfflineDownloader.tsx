@@ -49,7 +49,7 @@ export default function OfflineDownloader() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>AI+信息素养大赛 - 官方合规网址速查离线便携版</title>
+  <title>AI Retrieval Tool - Offline Official URL Reference</title>
   <style>
     * {
       box-sizing: border-box;
@@ -405,8 +405,8 @@ export default function OfflineDownloader() {
       <svg style="width:12px;height:12px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 2a8 8 0 0 1 8 8 8 8 0 0 1-8 8 8 8 0 0 1-8-8 8 8 0 0 1 8-8m-1 3v6h2V7h-2m0 8v2h2v-2h-2z"/></svg>
       SYSTEM STABLE
     </div>
-    <h1>AI+信息素养合规检索助手</h1>
-    <p class="subtitle">官方网址速查离线合规数据库 • 100% 纯前端离线运行，在无网络竞技状态下双击即用</p>
+    <h1>官方数据库网址速查</h1>
+    <p class="subtitle">离线网址目录 • 可在本地搜索已打包的平台入口；打开外部网站仍需网络</p>
   </header>
 
   <!-- Redirect Area -->
@@ -880,7 +880,7 @@ pause`;
   const macScript = `#!/bin/bash
 clear
 echo "==================================================="
-echo "  AI+信息素养大赛：检索式智慧生成与速查平台"
+echo "  AI Retrieval Tool：官方数据库网址离线速查"
 echo "  macOS & Linux 桌面一键快速部署安装神器"
 echo "==================================================="
 echo ""
@@ -1075,7 +1075,7 @@ npm run dev`;
                 方案二：高集成离线单文件 (HTML)
               </h3>
               <p className="text-[11px] text-slate-500 font-mono leading-relaxed">
-                一键导出完全独立、免部署、100% 本地离线高精度查询纯前端单网页。集成了完整的 150+ 合规高校白名单及多维拼音模糊速查内核。
+                导出独立 HTML 文件，内置平台网址目录与拼音检索索引。目录查询可离线使用；外部网站访问仍需网络。
               </p>
             </div>
             <div className="space-y-2 border-t border-white/5 pt-3">
