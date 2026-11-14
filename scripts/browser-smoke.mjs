@@ -56,9 +56,12 @@ try {
   await page.screenshot({ path: path.join(artifacts, "mobile-overview.png"), fullPage: true });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   assert(overflow <= 2, "Mobile page has horizontal overflow of " + overflow + "px");
+  // The offline installer is a desktop header control. Switch back from the
+  // narrow mobile viewport before testing its download/export workflow.
+  await page.setViewportSize({ width: 1440, height: 900 });
   // Export actual generated offline HTML; serve on a known origin for stable localStorage.
   await page.goto(BASE, { waitUntil: "networkidle", timeout: 30000 });
-  await page.locator('button[title*="离线安装"]').first().click();
+  await page.locator('button[title*="离线安装"]:visible').first().click({ timeout: 15000 });
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: /一键打包下载离线版 HTML/ }).click();
   const download = await downloadPromise;
