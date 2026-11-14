@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { DEFAULT_LINKS, DEFAULT_CATEGORIES } from "./OfficialWhitelist";
 import { getPinyinMeta } from "../utils/pinyinMatcher";
+import { serializeJsonForInlineScript } from "../utils/inlineScriptJson.mjs";
 
 export default function OfflineDownloader() {
   const [downloading, setDownloading] = useState(false);
@@ -40,8 +41,8 @@ export default function OfflineDownloader() {
         };
       });
 
-      const categoriesJson = JSON.stringify(DEFAULT_CATEGORIES, null, 2);
-      const linksJson = JSON.stringify(bundledLinks, null, 2);
+      const categoriesJson = serializeJsonForInlineScript(DEFAULT_CATEGORIES);
+      const linksJson = serializeJsonForInlineScript(bundledLinks);
 
       const htmlContent = `<!DOCTYPE html>
 <html lang="zh-CN">
