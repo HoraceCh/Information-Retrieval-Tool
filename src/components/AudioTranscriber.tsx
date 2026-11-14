@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Mic, MicOff, Square, Loader2, Sparkles, AlertCircle, Check, Volume2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { transcribeAudio } from "../services/gemini";
+import { transcribeWithProvider } from "../services/speech/speechService";
+import { SPEECH_PROVIDERS, type SpeechProviderId } from "../services/speech/speechProviders.mjs";
 
 interface AudioTranscriberProps {
   geminiKey?: string;
+  speechProxyUrl?: string;
   onTranscribe: (text: string) => void;
   uiLang?: string;
   disabled?: boolean;
@@ -12,11 +14,24 @@ interface AudioTranscriberProps {
 
 export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
   geminiKey,
+  speechProxyUrl,
   onTranscribe,
   uiLang = "mix",
   disabled = false,
 }) => {
   const [isRecording, setIsRecording] = useState(false);
+  const [providerId, setProviderId] = useState<SpeechProviderId>(() => {
+    try {
+      const saved = localStorage.getItem("ai_retrieval_speech_provider");
+      return SPEECH_PROVIDERS.some(provider => provider.id === saved) ? saved as SpeechProviderId : "gemini";
+    } catch { return "gemini"; }
+  });
+  const selectedProvider = SPEECH_PROVIDERS.find(provider => provider.id === providerId) || SPEECH_PROVIDERS[0];
+  const saveProvider = (next: SpeechProviderId) => {
+    setProviderId(next);
+    try { localStorage.setItem("ai_retrieval_speech_provider", next); } catch { /* storage is optional */ }
+    setErrorMsg(null);
+  };
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [recordDuration, setRecordDuration] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -220,7 +235,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
     setErrorMsg(null);
 
     try {
-      const text = await transcribeAudio(audioBlob, geminiKey);
+      const text = await transcribeWithProvider(providerId, audioBlob, { geminiKey, proxyBaseUrl: speechProxyUrl });
       if (!text) {
         setErrorMsg(
           uiLang === "zh" || uiLang === "mix"
@@ -255,7 +270,21 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
   };
 
   return (
-    <div className="relative inline-flex items-center">
+    <div className="relative inline-flex items-center gap-2">
+      {!isRecording && !isTranscribing && (
+        <select
+          id="speech-provider-select"
+          aria-label={uiLang === "zh" || uiLang === "mix" ? "语音识别引擎" : "Speech recognition engine"}
+          value={providerId}
+          onChange={(event) => saveProvider(event.target.value as SpeechProviderId)}
+          disabled={disabled}
+          className="max-w-[132px] rounded-lg border border-slate-600/30 bg-slate-800/70 px-2 py-1.5 text-[10px] text-slate-200 outline-none focus:border-cyan-500"
+        >
+          {SPEECH_PROVIDERS.map(provider => (
+            <option key={provider.id} value={provider.id}>{provider.label}</option>
+          ))}
+        </select>
+      )}
       {/* Default State: Trigger Button */}
       {!isRecording && !isTranscribing && (
         <button
@@ -264,15 +293,15 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
           disabled={disabled}
           title={
             uiLang === "zh" || uiLang === "mix"
-              ? "语音转文字 (按住/点击使用 gemini-3.5-transcribe 识别检索需求)"
-              : "Voice Input (Transcribe audio with gemini-3.5-transcribe)"
+              ? `语音转文字 · ${selectedProvider.label}`
+              : `Voice input · ${selectedProvider.label}`
           }
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-cyan-500/20 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 hover:text-cyan-200 text-xs font-semibold transition-all cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(6,182,212,0.2)] disabled:opacity-40 disabled:cursor-not-allowed group select-none"
         >
           <Mic size={14} className="text-cyan-400 group-hover:scale-110 transition-transform" />
           <span>{uiLang === "zh" || uiLang === "mix" ? "语音输入" : "Voice Input"}</span>
           <span className="text-[10px] px-1 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/30 text-cyan-300/80 font-mono scale-90">
-            3.5-transcribe
+            {selectedProvider.shortLabel}
           </span>
         </button>
       )}
@@ -340,8 +369,8 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
           <Loader2 size={14} className="animate-spin text-cyan-400" />
           <span className="font-medium">
             {uiLang === "zh" || uiLang === "mix"
-              ? "正在使用 gemini-3.5-transcribe 智能转写..."
-              : "Transcribing audio with gemini-3.5-transcribe..."}
+              ? `正在使用 ${selectedProvider.label} 转写...`
+              : `Transcribing with ${selectedProvider.label}...`}
           </span>
         </motion.div>
       )}
