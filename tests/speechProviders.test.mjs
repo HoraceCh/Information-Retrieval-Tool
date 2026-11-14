@@ -16,3 +16,19 @@ test("proxy URL rejects credentials, query strings, fragments and invalid URLs",
 });
 test("proxy URL rejects unknown providers", () => assert.throws(() => buildSpeechProxyUrl("https://example.test", "unknown"), /Unsupported speech provider/));
 test("transcript normalization trims whitespace and strips UTF-8 BOM", () => { assert.equal(normalizeTranscript("\uFEFF  robotics\n"), "robotics"); assert.equal(normalizeTranscript("  "), ""); assert.equal(normalizeTranscript({ text: "not a transcript" }), ""); });
+
+
+test("speech proxy errors are classified for common HTTP statuses", async () => {
+  const { formatSpeechProxyError } = await import("../src/services/speech/speechProviders.mjs");
+  assert.match(formatSpeechProxyError(401, "bad key"), /authentication failed/i);
+  assert.match(formatSpeechProxyError(413, "too large"), /too large/i);
+  assert.match(formatSpeechProxyError(422, "bad audio"), /format is not supported/i);
+  assert.match(formatSpeechProxyError(429, "quota"), /rate limit or quota/i);
+  assert.match(formatSpeechProxyError(503, "offline"), /not configured or temporarily unavailable/i);
+  assert.match(formatSpeechProxyError(504, "upstream timeout"), /timed out/i);
+});
+
+test("speech proxy error formatter falls back safely when detail is absent", async () => {
+  const { formatSpeechProxyError } = await import("../src/services/speech/speechProviders.mjs");
+  assert.equal(formatSpeechProxyError(500, ""), "Speech service request failed (HTTP 500).");
+});

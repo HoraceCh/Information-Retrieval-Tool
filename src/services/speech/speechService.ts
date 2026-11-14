@@ -1,6 +1,6 @@
 import { transcribeAudio } from "../gemini";
-import { buildSpeechProxyUrl, normalizeTranscript, type SpeechProviderId } from "./speechProviders.mjs";
-export interface SpeechTranscriptionOptions { geminiKey?: string; proxyBaseUrl?: string; }
+import { buildSpeechProxyUrl, formatSpeechProxyError, normalizeTranscript, type SpeechProviderId } from "./speechProviders.mjs";
+export interface SpeechTranscriptionOptions { geminiKey?: string; proxyBaseUrl?: string; timeoutMs?: number; }
 
 async function readProxyError(response: Response): Promise<string> {
   let payload: unknown;
@@ -11,16 +11,7 @@ async function readProxyError(response: Response): Promise<string> {
     : payload && typeof payload === "object" && "message" in payload
       ? (payload as { message?: unknown }).message
       : null;
-  const message = typeof detail === "string" && detail.trim()
-    ? detail.trim()
-    : `Speech service request failed (HTTP ${response.status}).`;
-  if (response.status === 401 || response.status === 403) return `Speech service authentication failed: ${message}`;
-  if (response.status === 413) return `Audio file is too large: ${message}`;
-  if (response.status === 415 || response.status === 422) return `Audio or language format is not supported: ${message}`;
-  if (response.status === 429) return `Speech provider rate limit or quota reached: ${message}`;
-  if (response.status === 503) return `Speech provider is not configured or temporarily unavailable: ${message}`;
-  if (response.status === 504) return `Speech provider timed out: ${message}`;
-  return message;
+  return formatSpeechProxyError(response.status, detail);
 }
 
 /** Provider-neutral transcription. Cloud credentials remain on a trusted server proxy. */
@@ -32,10 +23,18 @@ export async function transcribeWithProvider(providerId: SpeechProviderId, audio
   form.append("file", audioBlob, "recording");
   form.append("language", "auto");
   let response: Response;
+  const controller = new AbortController();
+  const timeoutMs = Number.isFinite(options.timeoutMs) && (options.timeoutMs ?? 0) > 0 ? options.timeoutMs! : 90_000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    response = await fetch(url, { method: "POST", body: form, headers: { Accept: "application/json" } });
-  } catch {
+    response = await fetch(url, { method: "POST", body: form, headers: { Accept: "application/json" }, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Speech service request timed out after ${Math.round(timeoutMs / 1000)} seconds. Try a shorter recording or another provider.`);
+    }
     throw new Error("Could not reach the speech service. Check that it is running, the URL is correct, and browser network access is allowed.");
+  } finally {
+    clearTimeout(timeoutId);
   }
   if (!response.ok) throw new Error(await readProxyError(response));
   let payload: unknown;

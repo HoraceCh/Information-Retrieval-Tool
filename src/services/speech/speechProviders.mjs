@@ -32,3 +32,14 @@ export function buildSpeechProxyUrl(baseUrl, providerId) {
   }
   return parsed.origin + parsed.pathname.replace(/\/+$/, "") + path;
 }
+
+export function formatSpeechProxyError(status, detail) {
+  const message = typeof detail === "string" && detail.trim() ? detail.trim() : `Speech service request failed (HTTP ${status}).`;
+  if (status === 401 || status === 403) return `Speech service authentication failed: ${message}`;
+  if (status === 413) return `Audio file is too large: ${message}`;
+  if (status === 415 || status === 422) return `Audio or language format is not supported: ${message}`;
+  if (status === 429) return `Speech provider rate limit or quota reached: ${message}`;
+  if (status === 503) return `Speech provider is not configured or temporarily unavailable: ${message}`;
+  if (status === 504) return `Speech provider timed out: ${message}`;
+  return message;
+}
