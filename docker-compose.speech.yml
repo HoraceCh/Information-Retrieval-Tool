@@ -1,0 +1,19 @@
+services:
+  whisper:
+    build:
+      context: ./services/speech-whisper
+    container_name: ai-retrieval-local-whisper
+    restart: unless-stopped
+    environment:
+      WHISPER_MODEL_SIZE: small
+      WHISPER_DEVICE: cpu
+      WHISPER_COMPUTE_TYPE: int8
+      WHISPER_DOWNLOAD_ROOT: /models
+      MAX_AUDIO_BYTES: "20971520"
+      SPEECH_ALLOWED_ORIGINS: "https://horacech.github.io,http://localhost:3000,http://127.0.0.1:3000,http://localhost:4173,http://127.0.0.1:4173"
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - whisper-model-cache:/models
+volumes:
+  whisper-model-cache:
