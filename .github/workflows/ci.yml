@@ -44,6 +44,8 @@ jobs:
 
       - name: Test local Whisper API (model mocked; no model download)
         run: python -m pytest -q services/speech-whisper/tests
+      - name: Test Whisper benchmark harness
+        run: python -m pytest -q services/speech-whisper/tests/test_evaluation.py
 
       - name: Install dependencies
         run: npm ci
