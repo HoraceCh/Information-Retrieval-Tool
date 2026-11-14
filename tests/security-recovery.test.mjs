@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { clearAppStorage, isAppStorageKey } from "../src/utils/recoveryStorage.mjs";
+import { serializeJsonForInlineScript } from "../src/utils/inlineScriptJson.mjs";
 
 function createStorage(entries) {
   const values = new Map(entries);
@@ -47,4 +48,21 @@ test("handles empty storage", () => {
   const storage = createStorage([]);
   assert.doesNotThrow(() => clearAppStorage(storage));
   assert.equal(storage.length, 0);
+});
+
+test("escapes HTML script end tags and parser-sensitive characters in embedded JSON", () => {
+  const payload = {
+    name: "</script><script>window.__xss = 1</script>",
+    ampersand: "A & B",
+    separators: "\u2028 and \u2029",
+  };
+  const serialized = serializeJsonForInlineScript(payload);
+
+  assert.doesNotMatch(serialized, /<|>|&|\u2028|\u2029/);
+  assert.deepEqual(JSON.parse(serialized), payload);
+  assert.match(serialized, /\\u003c\\/script\\u003e/i);
+});
+
+test("rejects values that JSON cannot serialize", () => {
+  assert.throws(() => serializeJsonForInlineScript(undefined), TypeError);
 });
