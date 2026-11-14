@@ -1,6 +1,6 @@
 # AI 检索力 | AI Retrieval Tool
 
-> 面向科研学习与学术信息检索的 AI 检索式构建工具。将自然语言研究问题转化为可检查、可编辑、适配目标数据库的布尔检索策略。
+> 面向科研学习与学术信息检索的 AI 检索式构建工具。将自然语言研究问题转化为可检查、可编辑，并参考目标数据库语法的布尔检索策略。
 
 <p align="center">
   <a href="https://horacech.github.io/Information-Retrieval-Tool/"><strong>在线体验 Live Demo</strong></a>
@@ -28,7 +28,7 @@
 
 1. 理解自然语言研究意图，提取核心概念与限制条件。
 2. 扩展中英文关键词、同义词和相关专业术语。
-3. 根据目标数据库组织布尔逻辑与字段限定。
+3. 结合目标数据库的字段代码和语法提示组织布尔逻辑与字段限定。
 4. 提供结构可视化、语法提示和人工修订入口。
 5. 复制检索式并跳转到相应数据库执行检索。
 
@@ -40,7 +40,7 @@
 |---|---|
 | 自然语言意图解析 | 从研究问题中提取主题、对象、方法、场景和限制条件 |
 | 中英文关键词扩展 | 生成核心词、中文同义词、英文术语与缩写 |
-| 数据库语法适配 | 按所选数据库组织布尔算符、字段代码、短语和位置算符 |
+| 数据库语法提示 | 按所选数据库提示布尔算符、字段代码、短语和位置算符；最终语法需在平台核对 |
 | 多模型接入 | 预设 Gemini、DeepSeek、SiliconFlow、Kimi、Zhipu GLM、Qwen、OpenAI、OpenRouter |
 | 自定义模型接口 | 支持自定义 OpenAI-compatible API endpoint |
 | 双模型对比 | 并列比较不同模型生成的关键词和检索式 |
@@ -57,7 +57,7 @@
 
 ## 离线官方网址速查
 
-应用可导出独立的单文件 HTML，搜索内置学术数据库、专利和标准平台网址目录，并使用本地自定义网址/文件记录。它是便携式网址速查目录，不是完整的离线 AI 检索引擎：AI 检索式生成和打开外部数据库仍需网络。
+应用可导出独立的单文件 HTML，离线搜索内置学术数据库、专利和标准平台网址目录，并保存自定义网址与文件名记录。文件名记录不会复制文件内容；对应文件需与导出的 HTML 放在同一文件夹。它是便携式网址速查目录，不是完整的离线 AI 检索引擎：AI 检索式生成和打开外部数据库仍需网络。
 
 ## 专题指南 / Search Guides
 
@@ -82,7 +82,7 @@
 
 这些关键词用于准确描述项目，不代表应用会自动抓取上述数据库的文献或提供全文，也不代表对所有平台语法的完整覆盖。
 
-**建议的 GitHub repository topics：** `academic-search`、`information-retrieval`、`boolean-search`、`literature-review`、`search-query-generator`、`research-tools`、`keyword-expansion`、`ai-tools`、`react`、`typescript`。
+**建议在现有 GitHub repository topics 基础上补充：** `search-query-generator`、`ai-tools`、`react`、`typescript`。
 
 ## 支持的检索目标
 
@@ -189,9 +189,11 @@ npm run test:security   # 存储恢复与安全回归测试
 
 ## English
 
-**AI Retrieval Tool** helps researchers turn natural-language research topics into database-aware Boolean search strategies. It expands keywords, adapts query syntax to selected academic databases, compares model outputs, visualizes query structure and provides quick access to official database portals.
+**AI Retrieval Tool** is a client-side, BYOK assistant that helps researchers turn natural-language topics into academic search strategies. It expands Chinese and English keywords, drafts portable Boolean queries and database-specific syntax, compares model outputs, and checks basic query structure. A successful structural check does not certify compatibility with a database's complete or current grammar.
 
-The app is a client-side tool, not a literature database. Users bring their own model API keys; requests are sent directly from the browser to the selected provider. Keys are stored in browser localStorage, which is not encrypted by the app. Please review the provider's data policy and avoid entering sensitive information.
+The standalone HTML export provides an offline-searchable directory of academic database, patent and standards URLs. Custom file entries store filenames only; the corresponding files must sit beside the exported HTML. Opening external sites and generating AI queries still require a network connection. The app does not crawl databases or host papers.
+
+Users bring their own model API keys. Requests are sent directly from the browser to the selected provider, and keys are stored in browser localStorage without application-level encryption. Please review the provider's data policy and avoid entering sensitive information.
 
 - [Open the live app](https://horacech.github.io/Information-Retrieval-Tool/)
 - [User guide](docs/USER_GUIDE.md)
