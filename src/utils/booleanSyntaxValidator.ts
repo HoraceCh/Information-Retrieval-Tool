@@ -45,11 +45,14 @@ interface Token {
   value: string;
   start: number;
   end: number;
+  positional?: boolean;
 }
+type DatabaseSyntaxKind =
+  | "portable" | "chinese" | "pubscholar" | "web" | "springer"
+  | "wos" | "ei" | "scopus" | "ebsco" | "pqdt" | "ieee"
+  | "cnipa" | "yizhuanli" | "patent" | "unknown";
 interface TokenizeOptions {
-  plusAsOr: boolean;
-  pipeAsOr: boolean;
-  cnipaOperators: boolean;
+  syntaxKind: DatabaseSyntaxKind;
 }
 interface TokenizeResult {
   tokens: Token[];
@@ -65,8 +68,87 @@ function isEscaped(value: string, index: number): boolean {
   return slashCount % 2 === 1;
 }
 function isBoundary(value: string | undefined): boolean {
-  return value === undefined || (value !== undefined &&
-    (/\s|[()（）=]/u.test(value) || value === '"' || value === "'" || value === "+" || value === "|"));
+  return value === undefined || (/\s|[()（）=]/u.test(value) ||
+    value === '"' || value === "'" || value === "+" || value === "|");
+}
+function getDatabaseSyntaxKind(database: string, isFieldSpecific: boolean): DatabaseSyntaxKind {
+  if (!isFieldSpecific) return "portable";
+  if (/CNKI|知网|维普|VIP/i.test(database)) return "chinese";
+  if (/PubScholar|百度学术/i.test(database)) return "pubscholar";
+  if (/通用搜索引擎|Baidu\/Bing/i.test(database)) return "web";
+  if (/Springer/i.test(database)) return "springer";
+  if (/Web of Science/i.test(database)) return "wos";
+  if (/Ei Compendex/i.test(database)) return "ei";
+  if (/Scopus/i.test(database)) return "scopus";
+  if (/EBSCO/i.test(database)) return "ebsco";
+  if (/PQDT/i.test(database)) return "pqdt";
+  if (/IEEE Xplore/i.test(database)) return "ieee";
+  if (/CNIPA|中国专利/i.test(database)) return "cnipa";
+  if (/壹专利/i.test(database)) return "yizhuanli";
+  if (/Espacenet|USPTO/i.test(database)) return "patent";
+  return "unknown";
+}
+function getSymbolOperator(query: string, index: number, kind: DatabaseSyntaxKind): string | null {
+  const char = query[index];
+  const before = query[index - 1];
+  const after = query[index + 1];
+  if (kind === "pubscholar" && char === "|") return "OR";
+  if (kind === "chinese" && char === "+" && isBoundary(before) && isBoundary(after)) return "OR";
+  if (kind === "chinese" && char === "*" && isBoundary(before) && isBoundary(after)) return "AND";
+  if ((kind === "chinese" || kind === "pubscholar" || kind === "web") && char === "-" && isBoundary(before)) return "NOT";
+  if (kind === "springer" && char === "&" && isBoundary(before) && isBoundary(after)) return "AND";
+  return null;
+}
+function isPositionalOperator(value: string, kind: DatabaseSyntaxKind): boolean {
+  switch (kind) {
+    case "wos": return /^(?:NEAR\/\d+|SAME)$/i.test(value);
+    case "ei": return /^(?:NEAR|ONEAR)\/\d+$/i.test(value);
+    case "scopus": return /^(?:W|PRE)\/\d+$/i.test(value);
+    case "ebsco": return /^(?:N|W)\/\d+$/i.test(value);
+    case "pqdt": return /^(?:NEAR|PRE)\/\d+$/i.test(value);
+    case "ieee": return /^(?:NEAR|ONEAR)\/\d+$/i.test(value);
+    case "cnipa":
+      return /^(?:=)?\d*(?:D|W)$/i.test(value) || /^(?:F|P|S|NOTF|NOTP|NOTS)$/i.test(value);
+    case "yizhuanli": return /^\d+[NW]$/i.test(value);
+    case "patent": return /^(?:ADJ|NEAR|WITH|SAME|XOR)$/i.test(value);
+    default: return false;
+  }
+}
+function findFullwidthSyntaxPunctuation(query: string): string[] {
+  const found = new Set<string>();
+  const quotePairs: Record<string, string> = { '"': '"', "'": "'", "“": "”", "‘": "’" };
+  let quoteClose: string | null = null;
+  let index = 0;
+  while (index < query.length) {
+    const char = query[index];
+    if (quoteClose) {
+      if (char === quoteClose && !isEscaped(query, index)) quoteClose = null;
+      index += 1;
+      continue;
+    }
+    const fieldMatch = query.slice(index).match(/^[\p{L}][\p{L}\p{N}_（）()/-]*\s*=/u);
+    if (fieldMatch) {
+      index += fieldMatch[0].length;
+      continue;
+    }
+    const isSingleQuote = char === "'" || char === "‘";
+    const startsQuote = Boolean(quotePairs[char]) &&
+      (!isSingleQuote || isBoundary(query[index - 1])) && !isEscaped(query, index);
+    if (startsQuote) {
+      if (char === "“") found.add("全角中文双引号");
+      if (char === "‘") found.add("全角中文单引号");
+      quoteClose = quotePairs[char];
+      index += 1;
+      continue;
+    }
+    if (char === "”") found.add("全角中文双引号");
+    if (char === "’" && isBoundary(query[index - 1])) found.add("全角中文单引号");
+    if (char === "（" || char === "）") found.add("全角中文括号");
+    if (char === "：") found.add("全角中文冒号");
+    if (char === "\u3000") found.add("全角空格");
+    index += 1;
+  }
+  return [...found];
 }
 function tokenize(query: string, options: TokenizeOptions, errors: SyntaxErrorItem[]): TokenizeResult {
   const tokens: Token[] = [];
@@ -76,7 +158,8 @@ function tokenize(query: string, options: TokenizeOptions, errors: SyntaxErrorIt
   let doubleQuotes = 0;
   let phraseCount = 0;
   let index = 0;
-  const push = (type: TokenType, value: string, start: number, end: number) => tokens.push({ type, value, start, end });
+  const push = (type: TokenType, value: string, start: number, end: number, positional = false) =>
+    tokens.push({ type, value, start, end, ...(positional ? { positional: true } : {}) });
 
   while (index < query.length) {
     const char = query[index];
@@ -155,11 +238,11 @@ function tokenize(query: string, options: TokenizeOptions, errors: SyntaxErrorIt
       index += 1;
       continue;
     }
-    if (options.plusAsOr && char === "+" && isBoundary(query[index - 1]) && isBoundary(query[index + 1])) {
-      push("OPERATOR","+",index,index+1); index += 1; continue;
-    }
-    if (options.pipeAsOr && char === "|" && isBoundary(query[index - 1]) && isBoundary(query[index + 1])) {
-      push("OPERATOR","|",index,index+1); index += 1; continue;
+    const symbolOperator = getSymbolOperator(query, index, options.syntaxKind);
+    if (symbolOperator) {
+      push("OPERATOR", symbolOperator, index, index + 1);
+      index += 1;
+      continue;
     }
 
     const start = index;
@@ -167,8 +250,7 @@ function tokenize(query: string, options: TokenizeOptions, errors: SyntaxErrorIt
       const current = query[index];
       if (/\s|[()（）"“”]/u.test(current)) break;
       if ((current === "'" || current === "‘") && isBoundary(query[index - 1])) break;
-      if (options.plusAsOr && current === "+" && isBoundary(query[index - 1]) && isBoundary(query[index + 1])) break;
-      if (options.pipeAsOr && current === "|" && isBoundary(query[index - 1]) && isBoundary(query[index + 1])) break;
+      if (getSymbolOperator(query, index, options.syntaxKind)) break;
       index += 1;
     }
     if (index === start) {
@@ -177,14 +259,25 @@ function tokenize(query: string, options: TokenizeOptions, errors: SyntaxErrorIt
     }
     const value = query.slice(start,index);
     const upper = value.toUpperCase();
-    const commonPositionalOperator =
-      /^(NEAR|ONEAR|W|PRE|N)\s*\/\s*\d+$/i.test(value) ||
-      /^(SAME|ADJ|WITH|XOR)$/i.test(value);
-    const cnipaPositionalOperator = options.cnipaOperators &&
-      (/^(=)?\d*(D|W)$/i.test(value) || /^(F|P|S|NOTF|NOTP|NOTS)$/i.test(value));
-    if (upper === "AND" || upper === "OR" || upper === "NOT" || commonPositionalOperator || cnipaPositionalOperator) {
-      push("OPERATOR",upper,start,index);
-    } else push("TERM",value,start,index);
+    const positionalOperator = isPositionalOperator(value, options.syntaxKind);
+    if (upper === "AND" || upper === "OR" || upper === "NOT" || positionalOperator) {
+      push("OPERATOR", upper, start, index, positionalOperator);
+    } else push("TERM", value, start, index);
+  }
+
+  // Bare words such as SAME, WITH and XOR can also be ordinary search terms.
+  // Treat them as positional operators only when both operands are present.
+  for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex += 1) {
+    const token = tokens[tokenIndex];
+    if (!token.positional || /\d/.test(token.value)) continue;
+    const left = tokens[tokenIndex - 1];
+    const right = tokens[tokenIndex + 1];
+    const canEndExpression = Boolean(left && ["TERM", "PHRASE", "RPAREN"].includes(left.type));
+    const canStartExpression = Boolean(right && ["TERM", "PHRASE", "FIELD", "LPAREN"].includes(right.type));
+    if (!canEndExpression || !canStartExpression) {
+      token.type = "TERM";
+      delete token.positional;
+    }
   }
 
   if (parenStack.length > 0) {
@@ -218,34 +311,21 @@ export function validateBooleanQuery(query: string, options: ValidationOptions =
     return { isValid:true, errors, warnings, stats:{openParens:0,closeParens:0,doubleQuotes:0,phraseCount:0,hasFullwidth:false} };
   }
 
-  // Exclude localized field-label parentheses from the syntax punctuation check.
-  const syntaxOnly = raw.replace(FIELD_LABEL_PATTERN,"FIELD=");
-  const fullwidthMatches: string[] = [];
-  if (/[（）]/u.test(syntaxOnly)) fullwidthMatches.push("全角中文括号");
-  if (/[“”]/u.test(syntaxOnly)) fullwidthMatches.push("全角中文双引号");
-  if (/[‘’]/u.test(syntaxOnly)) fullwidthMatches.push("全角中文单引号");
-  if (/：/u.test(syntaxOnly)) fullwidthMatches.push("全角中文冒号");
-  if (/\u3000/u.test(syntaxOnly)) fullwidthMatches.push("全角空格");
-  if (fullwidthMatches.length > 0) {
-    errors.push({
-      id:"fullwidth-chars", type:"FULLWIDTH_CHAR", severity:"error",
-      title:"检测到全角标点 (Full-width Punctuation)",
-      message:"检测到 " + fullwidthMatches.join("、") + "。部分数据库要求使用半角语法符号；请核对目标数据库的输入规则。",
-      fixSuggestion:"可以先规范化全角语法标点，但仍需人工确认检索式结构和数据库语法。"
-    });
-  }
+  // Ignore punctuation inside quoted search phrases and localized field labels.
+  const fullwidthMatches = findFullwidthSyntaxPunctuation(raw);
 
   const database = options.database || "";
   const isFieldSpecific = options.isFieldSpecific === true;
-  const isCnkiFieldQuery = isFieldSpecific && /CNKI|知网/i.test(database);
-  const isPubScholarFieldQuery = isFieldSpecific && /PubScholar|百度学术/i.test(database);
-  const isCnipaFieldQuery = isFieldSpecific && /CNIPA|中国专利/i.test(database);
-  const scanned = tokenize(raw,{
-    plusAsOr:isCnkiFieldQuery,
-    pipeAsOr:isPubScholarFieldQuery,
-    cnipaOperators:isCnipaFieldQuery
-  },errors);
+  const syntaxKind = getDatabaseSyntaxKind(database, isFieldSpecific);
+  const scanned = tokenize(raw, { syntaxKind }, errors);
   const tokens = scanned.tokens;
+  const implicitBehavior = !isFieldSpecific
+    ? { operator: options.operatorStyle === "Space" ? "OR" : "AND", warn: options.operatorStyle !== "Space" }
+    : syntaxKind === "pubscholar" || syntaxKind === "web"
+      ? { operator: "AND", warn: false }
+      : syntaxKind === "patent"
+        ? { operator: "OR", warn: false }
+        : { operator: "AND", warn: true };
   let index = 0;
 
   const addDanglingError = (token:Token,title:string,message:string) => errors.push({
@@ -322,9 +402,8 @@ export function validateBooleanQuery(query: string, options: ValidationOptions =
         precedence = operatorPrecedence(next.value);
       } else if (isPrimaryStart(next)) {
         implicit = true;
-        const implicitOperator = !isFieldSpecific && options.operatorStyle === "Space" ? "OR" : "AND";
-        precedence = operatorPrecedence(implicitOperator);
-        if (isFieldSpecific || options.operatorStyle !== "Space") {
+        precedence = operatorPrecedence(implicitBehavior.operator);
+        if (implicitBehavior.warn) {
           warnings.push({
             id:"missing-operator-"+next.start, type:"MISSING_OPERATOR", severity:"warning",
             title:"相邻检索项之间缺少显式算符 (Missing Operator)",
@@ -391,23 +470,48 @@ export function validateBooleanQuery(query: string, options: ValidationOptions =
   };
 }
 
-/** Safe punctuation normalization only. Never rewrites operators, terms or grouping. */
+/** Normalize syntax punctuation only; preserve quoted content and localized field labels. */
 export function autoFixBooleanQuery(raw:string):string {
-  const normalizeSegment = (value:string) => value
-    .replace(/[（]/g,"(")
-    .replace(/[）]/g,")")
-    .replace(/[“”]/g,'"')
-    .replace(/[‘’]/g,"'")
-    .replace(/：/g,":")
-    .replace(/\u3000/g," ");
+  const quotePairs: Record<string, string> = { '"': '"', "'": "'", "“": "”", "‘": "’" };
   let output = "";
-  let cursor = 0;
-  for (const match of raw.matchAll(FIELD_LABEL_PATTERN)) {
-    const start = match.index ?? cursor;
-    output += normalizeSegment(raw.slice(cursor,start));
-    output += match[0];
-    cursor = start + match[0].length;
+  let quoteClose: string | null = null;
+  let index = 0;
+  while (index < raw.length) {
+    const char = raw[index];
+    if (quoteClose) {
+      if (char === quoteClose && !isEscaped(raw, index)) {
+        output += quoteClose === "”" ? '"' : quoteClose === "’" ? "'" : char;
+        quoteClose = null;
+      } else output += char;
+      index += 1;
+      continue;
+    }
+    const fieldMatch = raw.slice(index).match(/^[\p{L}][\p{L}\p{N}_（）()/-]*\s*=/u);
+    if (fieldMatch) {
+      output += fieldMatch[0];
+      index += fieldMatch[0].length;
+      continue;
+    }
+    const isSingleQuote = char === "'" || char === "‘";
+    const startsQuote = Boolean(quotePairs[char]) &&
+      (!isSingleQuote || isBoundary(raw[index - 1])) && !isEscaped(raw, index);
+    if (startsQuote) {
+      output += char === "“" ? '"' : char === "‘" ? "'" : char;
+      quoteClose = quotePairs[char];
+      index += 1;
+      continue;
+    }
+    if (char === "”" || char === "’") {
+      output += char;
+      index += 1;
+      continue;
+    }
+    output += char === "（" ? "("
+      : char === "）" ? ")"
+      : char === "：" ? ":"
+      : char === "\u3000" ? " "
+      : char;
+    index += 1;
   }
-  output += normalizeSegment(raw.slice(cursor));
   return output;
 }

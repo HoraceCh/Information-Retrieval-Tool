@@ -111,7 +111,9 @@ test("does not interpret a term containing AND as an operator", () => {
   assert.equal(validateBooleanQuery("android AND robotics").isValid, true);
 });
 test("accepts common and CNIPA proximity operators", () => {
-  const common = validateBooleanQuery('"solar" NEAR/5 "panel"');
+  const common = validateBooleanQuery('"solar" NEAR/5 "panel"', {
+    database: "Web of Science核心合集", isFieldSpecific: true
+  });
   const cnipa = validateBooleanQuery("发明名称=(光伏) AND 摘要=(清洁 1W 机器人)", {
     database: "CNIPA (中国专利)", isFieldSpecific: true
   });
@@ -123,4 +125,71 @@ test("reports a field label with no value", () => {
   const result = validateBooleanQuery("TI= AND AB=robotics", { isFieldSpecific: true });
   assert.equal(result.isValid, false);
   assert.ok(result.errors.some(error => error.type === "MISSING_FIELD_VALUE"));
+});
+
+test("does not reserve ordinary words as operators in portable queries", () => {
+  for (const query of ["same sex robotics", "robot with gripper", "XOR gate"]) {
+    const result = validateBooleanQuery(query);
+    assert.equal(result.errors.length, 0, query);
+  }
+});
+test("recognizes PubScholar pipe OR without surrounding spaces and implicit AND", () => {
+  const options = { database: "百度学术 / PubScholar", isFieldSpecific: true };
+  const explicit = validateBooleanQuery("robotics|manipulator", options);
+  assert.equal(explicit.isValid, true);
+  assert.equal(explicit.warnings.length, 0);
+  const implicit = validateBooleanQuery("robotics control", options);
+  assert.equal(implicit.isValid, true);
+  assert.equal(implicit.warnings.length, 0);
+});
+test("recognizes native minus exclusion in web search queries", () => {
+  const result = validateBooleanQuery("robotics -medical", {
+    database: "通用搜索引擎 (Baidu/Bing)", isFieldSpecific: true
+  });
+  assert.equal(result.isValid, true);
+  assert.equal(result.warnings.length, 0);
+});
+test("recognizes CNKI symbol operators without splitting hyphenated terms", () => {
+  const options = { database: "CNKI 知网 (中文学术)", isFieldSpecific: true };
+  const result = validateBooleanQuery("SU = ('robot arm' * 'manipulator' + 'robotics')", options);
+  assert.equal(result.isValid, true);
+  assert.equal(result.warnings.length, 0);
+  assert.equal(validateBooleanQuery("TI = COVID-19", options).errors.length, 0);
+});
+test("recognizes Springer ampersand as AND", () => {
+  const result = validateBooleanQuery("TI=robot & AB=gripper", {
+    database: "Springer Nature Link", isFieldSpecific: true
+  });
+  assert.equal(result.isValid, true);
+  assert.equal(result.warnings.length, 0);
+});
+test("recognizes only database-supported positional operators", () => {
+  const wos = validateBooleanQuery('"robot" NEAR/5 "arm"', {
+    database: "Web of Science核心合集", isFieldSpecific: true
+  });
+  assert.equal(wos.isValid, true);
+  assert.equal(wos.warnings.length, 0);
+  const patent = validateBooleanQuery("robot ADJ arm", {
+    database: "Espacenet / USPTO (外文专利)", isFieldSpecific: true
+  });
+  assert.equal(patent.isValid, true);
+  assert.equal(patent.warnings.length, 0);
+  const yizhuanli = validateBooleanQuery("robot 5N arm", {
+    database: "壹专利 (中文专利)", isFieldSpecific: true
+  });
+  assert.equal(yizhuanli.isValid, true);
+  assert.equal(yizhuanli.warnings.length, 0);
+});
+test("keeps positional-looking words as terms when they are not between operands", () => {
+  const result = validateBooleanQuery("same sex robotics", {
+    database: "Web of Science核心合集", isFieldSpecific: true
+  });
+  assert.equal(result.errors.length, 0);
+});
+test("does not normalize full-width punctuation inside quoted content", () => {
+  const query = '“机器人（机械臂）：清洁” AND control';
+  assert.equal(autoFixBooleanQuery(query), '"机器人（机械臂）：清洁" AND control');
+  const literal = validateBooleanQuery('"robot（arm）" AND control');
+  assert.equal(literal.stats.hasFullwidth, false);
+  assert.equal(literal.errors.some(error => error.type === "FULLWIDTH_CHAR"), false);
 });
