@@ -63,3 +63,12 @@ Run npm run test:speech for browser-side provider routing and URL validation. Ru
     python -m pytest -q services/speech-whisper/tests
 
 The API tests mock model inference and do not download weights. Run npm run lint && npm run build for TypeScript and production checks.
+
+
+## Cloud proxy configuration
+
+The bundled FastAPI service implements OpenAI and Deepgram endpoint contracts. Configure credentials only in the service process environment: OPENAI_API_KEY and DEEPGRAM_API_KEY. Model settings are OPENAI_TRANSCRIPTION_MODEL (whisper-1 by default) and DEEPGRAM_MODEL (nova-3 by default). SPEECH_UPSTREAM_TIMEOUT_SECONDS defaults to 90.
+
+The browser sends only audio and a language hint to the configured service URL. The proxy adds provider authorization server-side and returns a normalized JSON text response. Health status reports whether each provider is configured, never its secret.
+
+Do not expose this unauthenticated service beyond loopback. Shared remote hosting requires user authentication, rate limiting, abuse controls, HTTPS, and secret management before provider keys are enabled.

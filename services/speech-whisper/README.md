@@ -54,3 +54,20 @@ For reproducible comparisons, keep the same audio corpus, language settings, mod
     python -m pytest -q tests
 
 Unit/API tests mock inference and do not download model weights.
+
+
+## Optional cloud speech providers
+
+The service can proxy OpenAI and Deepgram while keeping provider API keys on the server process.
+
+Set OPENAI_API_KEY and/or DEEPGRAM_API_KEY in the service environment. Optional settings: OPENAI_TRANSCRIPTION_MODEL (default whisper-1), DEEPGRAM_MODEL (default nova-3), and SPEECH_UPSTREAM_TIMEOUT_SECONDS (default 90).
+
+For Docker Compose, supply credentials through an untracked local .env file or deployment secret manager. Never commit keys or put them in Vite variables/browser storage.
+
+Endpoints:
+- POST /api/speech/openai/transcriptions
+- POST /api/speech/deepgram/transcriptions
+
+Both accept multipart file and language fields and return a JSON text field. language=auto uses provider-side automatic language detection; explicit language codes are forwarded.
+
+These proxy endpoints do not implement user authentication or per-user quotas. Keep the service loopback-only for local use. Any shared/remote deployment must add authentication, rate limiting, abuse controls, HTTPS, and secret management before enabling cloud providers.

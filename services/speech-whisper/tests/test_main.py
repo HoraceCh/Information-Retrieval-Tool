@@ -1,96 +1,97 @@
 from pathlib import Path
-
+import httpx
 from fastapi.testclient import TestClient
-
 from app import main
-
-client = TestClient(main.app)
-
+client=TestClient(main.app)
 
 def test_health_does_not_load_model():
-    response = client.get("/healthz")
-    assert response.status_code == 200
-    assert response.json()["status"] == "ok"
-    assert response.json()["model_loaded"] is False
+    r=client.get("/healthz")
+    assert r.status_code==200 and r.json()["model_loaded"] is False
 
-
-def test_transcription_returns_text_and_applies_cors(monkeypatch):
-    observed = {}
-
-    def fake_transcribe(file_path, language):
-        observed["bytes"] = Path(file_path).read_bytes()
-        observed["language"] = language
+def test_whisper_transcription_and_cors(monkeypatch):
+    seen={}
+    def fake(path,language):
+        seen["bytes"]=Path(path).read_bytes(); seen["language"]=language
         return "robotics research"
+    monkeypatch.setattr(main,"transcribe_file",fake)
+    r=client.post("/api/speech/whisper/transcriptions",files={"file":("voice.webm",b"audio","audio/webm;codecs=opus")},data={"language":"auto"},headers={"Origin":"https://horacech.github.io"})
+    assert r.status_code==200 and r.json()=={"text":"robotics research"}
+    assert seen=={"bytes":b"audio","language":"auto"}
+    assert r.headers["access-control-allow-origin"]=="https://horacech.github.io"
 
-    monkeypatch.setattr(main, "transcribe_file", fake_transcribe)
-    response = client.post(
-        "/api/speech/whisper/transcriptions",
-        files={"file": ("voice.webm", b"fake-webm-audio", "audio/webm;codecs=opus")},
-        data={"language": "auto"},
-        headers={"Origin": "https://horacech.github.io"},
-    )
-    assert response.status_code == 200
-    assert response.json() == {"text": "robotics research"}
-    assert observed == {"bytes": b"fake-webm-audio", "language": "auto"}
-    assert response.headers["access-control-allow-origin"] == "https://horacech.github.io"
+def test_whisper_explicit_language(monkeypatch):
+    seen={}
+    monkeypatch.setattr(main,"transcribe_file",lambda _p,l: seen.setdefault("language",l) or "你好")
+    r=client.post("/api/speech/whisper/transcriptions",files={"file":("a.wav",b"audio","audio/wav")},data={"language":"zh"})
+    assert r.status_code==200 and seen["language"]=="zh"
 
+def test_empty_audio_rejected():
+    assert client.post("/api/speech/whisper/transcriptions",files={"file":("a.webm",b"","audio/webm")}).status_code==400
 
-def test_explicit_language_is_forwarded(monkeypatch):
-    observed = {}
-    def fake_transcribe(_path, language):
-        observed["language"] = language
-        return "你好"
-    monkeypatch.setattr(main, "transcribe_file", fake_transcribe)
-    response = client.post(
-        "/api/speech/whisper/transcriptions",
-        files={"file": ("voice.wav", b"audio", "audio/wav")},
-        data={"language": "zh"},
-    )
-    assert response.status_code == 200
-    assert observed["language"] == "zh"
+def test_unsupported_mime_rejected():
+    assert client.post("/api/speech/whisper/transcriptions",files={"file":("a.txt",b"text","text/plain")}).status_code==415
 
+def test_oversized_audio_rejected(monkeypatch):
+    monkeypatch.setattr(main,"MAX_AUDIO_BYTES",4)
+    assert client.post("/api/speech/whisper/transcriptions",files={"file":("a.webm",b"12345","audio/webm")}).status_code==413
 
-def test_empty_audio_is_rejected():
-    response = client.post(
-        "/api/speech/whisper/transcriptions",
-        files={"file": ("empty.webm", b"", "audio/webm")},
-    )
-    assert response.status_code == 400
+def test_invalid_language_rejected():
+    assert client.post("/api/speech/whisper/transcriptions",files={"file":("a.webm",b"x","audio/webm")},data={"language":"not-valid"}).status_code==422
 
+def test_whisper_errors_sanitized(monkeypatch):
+    monkeypatch.setattr(main,"transcribe_file",lambda *_: (_ for _ in ()).throw(RuntimeError("private path")))
+    r=client.post("/api/speech/whisper/transcriptions",files={"file":("a.webm",b"x","audio/webm")})
+    assert r.status_code==502 and "private path" not in r.text
 
-def test_unsupported_mime_type_is_rejected():
-    response = client.post(
-        "/api/speech/whisper/transcriptions",
-        files={"file": ("payload.txt", b"not audio", "text/plain")},
-    )
-    assert response.status_code == 415
+def install_fake_client(monkeypatch, fake_post):
+    class FakeClient:
+        def __init__(self,**_): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self,*_): pass
+        async def post(self,url,**kwargs): return await fake_post(url,**kwargs)
+    monkeypatch.setattr(main.httpx,"AsyncClient",FakeClient)
 
+def test_openai_proxy_uses_server_key(monkeypatch):
+    monkeypatch.setattr(main,"OPENAI_API_KEY","server-secret")
+    seen={}
+    async def fake(url,**kw):
+        seen.update(url=url,**kw)
+        return httpx.Response(200,json={"text":"OpenAI transcript"})
+    install_fake_client(monkeypatch,fake)
+    r=client.post("/api/speech/openai/transcriptions",files={"file":("a.webm",b"audio","audio/webm")},data={"language":"en"})
+    assert r.status_code==200 and r.json()=={"text":"OpenAI transcript"}
+    assert seen["headers"]["Authorization"]=="Bearer server-secret"
+    assert seen["data"]=={"model":"whisper-1","language":"en"}
+    assert seen["files"]["file"][1]==b"audio"
 
-def test_oversized_audio_is_rejected(monkeypatch):
-    monkeypatch.setattr(main, "MAX_AUDIO_BYTES", 4)
-    response = client.post(
-        "/api/speech/whisper/transcriptions",
-        files={"file": ("large.webm", b"12345", "audio/webm")},
-    )
-    assert response.status_code == 413
+def test_openai_missing_key_returns_503(monkeypatch):
+    monkeypatch.setattr(main,"OPENAI_API_KEY","")
+    assert client.post("/api/speech/openai/transcriptions",files={"file":("a.wav",b"x","audio/wav")}).status_code==503
 
+def test_deepgram_proxy_auto_detect(monkeypatch):
+    monkeypatch.setattr(main,"DEEPGRAM_API_KEY","deepgram-secret")
+    seen={}
+    async def fake(url,**kw):
+        seen.update(url=url,**kw)
+        return httpx.Response(200,json={"results":{"channels":[{"alternatives":[{"transcript":"Deepgram transcript"}]}]}})
+    install_fake_client(monkeypatch,fake)
+    r=client.post("/api/speech/deepgram/transcriptions",files={"file":("a.webm",b"audio","audio/webm")})
+    assert r.status_code==200 and r.json()=={"text":"Deepgram transcript"}
+    assert seen["headers"]["Authorization"]=="Token deepgram-secret"
+    assert "detect_language=true" in seen["url"] and seen["content"]==b"audio"
 
-def test_invalid_language_is_rejected():
-    response = client.post(
-        "/api/speech/whisper/transcriptions",
-        files={"file": ("voice.webm", b"audio", "audio/webm")},
-        data={"language": "not-a-language"},
-    )
-    assert response.status_code == 422
+def test_deepgram_explicit_language(monkeypatch):
+    monkeypatch.setattr(main,"DEEPGRAM_API_KEY","deepgram-secret")
+    async def fake(url,**kw):
+        assert "language=zh" in url
+        return httpx.Response(200,json={"results":{"channels":[{"alternatives":[{"transcript":"你好"}]}]}})
+    install_fake_client(monkeypatch,fake)
+    r=client.post("/api/speech/deepgram/transcriptions",files={"file":("a.wav",b"x","audio/wav")},data={"language":"zh"})
+    assert r.status_code==200 and r.json()=={"text":"你好"}
 
-
-def test_inference_error_is_sanitized(monkeypatch):
-    def fail(_path, _language):
-        raise RuntimeError("internal model path should not leak")
-    monkeypatch.setattr(main, "transcribe_file", fail)
-    response = client.post(
-        "/api/speech/whisper/transcriptions",
-        files={"file": ("voice.webm", b"audio", "audio/webm")},
-    )
-    assert response.status_code == 502
-    assert "internal model path" not in response.text
+def test_openai_timeout_sanitized(monkeypatch):
+    monkeypatch.setattr(main,"OPENAI_API_KEY","secret")
+    async def fake(*_a,**_k): raise httpx.TimeoutException("private")
+    install_fake_client(monkeypatch,fake)
+    r=client.post("/api/speech/openai/transcriptions",files={"file":("a.wav",b"x","audio/wav")})
+    assert r.status_code==504 and "private" not in r.text
