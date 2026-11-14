@@ -57,10 +57,20 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animFrameRef = useRef<number | null>(null);
+  const mountedRef = useRef(false);
+  const startPendingRef = useRef(false);
+  const transcriptionAbortRef = useRef<AbortController | null>(null);
+  const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
+      transcriptionAbortRef.current?.abort();
+      transcriptionAbortRef.current = null;
+      if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+      successTimeoutRef.current = null;
       cleanupAudio();
     };
   }, []);
@@ -85,6 +95,8 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
   };
 
   const startRecording = async () => {
+    if (startPendingRef.current || isRecording || isTranscribing) return;
+    startPendingRef.current = true;
     setErrorMsg(null);
     setSuccessNotice(null);
 
@@ -105,6 +117,11 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
           autoGainControl: true,
         } 
       });
+      if (!mountedRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        startPendingRef.current = false;
+        return;
+      }
       streamRef.current = stream;
 
       // Setup audio analyzer for live volume waveform
@@ -166,6 +183,8 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
       recorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
         cleanupAudio();
+        mediaRecorderRef.current = null;
+        if (!mountedRef.current) return;
         setIsRecording(false);
         setRecordDuration(0);
 
@@ -183,6 +202,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
       };
 
       recorder.start(250);
+      startPendingRef.current = false;
       setIsRecording(true);
       setRecordDuration(0);
 
@@ -197,7 +217,9 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
         });
       }, 1000);
     } catch (err: any) {
+      startPendingRef.current = false;
       cleanupAudio();
+      if (!mountedRef.current) return;
       setIsRecording(false);
       console.error("Microphone Access Error:", err);
       if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
@@ -227,6 +249,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
   };
 
   const cancelRecording = () => {
+    startPendingRef.current = false;
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.ondataavailable = null;
       mediaRecorderRef.current.onstop = null;
@@ -242,12 +265,24 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
     setErrorMsg(null);
   };
 
+  const cancelTranscription = () => {
+    transcriptionAbortRef.current?.abort();
+    transcriptionAbortRef.current = null;
+    setIsTranscribing(false);
+    setErrorMsg(null);
+  };
+
   const handleTranscription = async (audioBlob: Blob) => {
+    if (!mountedRef.current) return;
+    const controller = new AbortController();
+    transcriptionAbortRef.current?.abort();
+    transcriptionAbortRef.current = controller;
     setIsTranscribing(true);
     setErrorMsg(null);
 
     try {
-      const text = await transcribeWithProvider(providerId, audioBlob, { geminiKey, proxyBaseUrl: effectiveProxyBaseUrl });
+      const text = await transcribeWithProvider(providerId, audioBlob, { geminiKey, proxyBaseUrl: effectiveProxyBaseUrl, signal: controller.signal });
+      if (!mountedRef.current || controller.signal.aborted) return;
       if (!text) {
         setErrorMsg(
           uiLang === "zh" || uiLang === "mix"
@@ -261,9 +296,14 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
             ? `已转写: "${text.length > 25 ? text.slice(0, 25) + "..." : text}"`
             : `Transcribed: "${text.length > 25 ? text.slice(0, 25) + "..." : text}"`
         );
-        setTimeout(() => setSuccessNotice(null), 4000);
+        if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+        successTimeoutRef.current = setTimeout(() => {
+          if (mountedRef.current) setSuccessNotice(null);
+          successTimeoutRef.current = null;
+        }, 4000);
       }
     } catch (err: any) {
+      if (!mountedRef.current || controller.signal.aborted) return;
       let details = err.message;
       try {
         const parsed = JSON.parse(err.message);
@@ -271,7 +311,8 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
       } catch (_) {}
       setErrorMsg(details);
     } finally {
-      setIsTranscribing(false);
+      if (transcriptionAbortRef.current === controller) transcriptionAbortRef.current = null;
+      if (mountedRef.current) setIsTranscribing(false);
     }
   };
 
@@ -400,6 +441,9 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
               ? `正在使用 ${selectedProvider.label} 转写...`
               : `Transcribing with ${selectedProvider.label}...`}
           </span>
+          <button type="button" onClick={cancelTranscription} className="rounded-md px-2 py-1 text-[11px] text-cyan-200/80 hover:bg-cyan-800/50 hover:text-white">
+            {uiLang === "zh" || uiLang === "mix" ? "取消" : "Cancel"}
+          </button>
         </motion.div>
       )}
 

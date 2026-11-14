@@ -1,6 +1,6 @@
 import { transcribeAudio } from "../gemini";
 import { buildSpeechProxyUrl, formatSpeechProxyError, normalizeTranscript, type SpeechProviderId } from "./speechProviders.mjs";
-export interface SpeechTranscriptionOptions { geminiKey?: string; proxyBaseUrl?: string; timeoutMs?: number; }
+export interface SpeechTranscriptionOptions { geminiKey?: string; proxyBaseUrl?: string; timeoutMs?: number; signal?: AbortSignal; }
 
 async function readProxyError(response: Response): Promise<string> {
   let payload: unknown;
@@ -25,16 +25,21 @@ export async function transcribeWithProvider(providerId: SpeechProviderId, audio
   let response: Response;
   const controller = new AbortController();
   const timeoutMs = Number.isFinite(options.timeoutMs) && (options.timeoutMs ?? 0) > 0 ? options.timeoutMs! : 90_000;
+  const abortFromCaller = () => controller.abort();
+  if (options.signal?.aborted) controller.abort();
+  else options.signal?.addEventListener("abort", abortFromCaller, { once: true });
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
     response = await fetch(url, { method: "POST", body: form, headers: { Accept: "application/json" }, signal: controller.signal });
   } catch (error) {
+    if (options.signal?.aborted) throw new Error("Speech transcription was cancelled.");
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error(`Speech service request timed out after ${Math.round(timeoutMs / 1000)} seconds. Try a shorter recording or another provider.`);
     }
     throw new Error("Could not reach the speech service. Check that it is running, the URL is correct, and browser network access is allowed.");
   } finally {
     clearTimeout(timeoutId);
+    options.signal?.removeEventListener("abort", abortFromCaller);
   }
   if (!response.ok) throw new Error(await readProxyError(response));
   let payload: unknown;
