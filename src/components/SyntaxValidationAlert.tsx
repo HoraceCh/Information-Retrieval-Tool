@@ -67,6 +67,11 @@ export default function SyntaxValidationAlert({
             </span>
           </div>
         </div>
+        <p className="px-3 text-[10px] leading-relaxed text-slate-500">
+          {isZh
+            ? "基础结构检查通过不等于数据库语法认证；正式检索前请在目标平台验证。"
+            : "A structural pass is not database syntax certification; verify the query on the target platform."}
+        </p>
       </div>
     );
   }

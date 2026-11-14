@@ -324,7 +324,9 @@ export function validateBooleanQuery(query: string, options: ValidationOptions =
     : syntaxKind === "pubscholar" || syntaxKind === "web"
       ? { operator: "AND", warn: false }
       : syntaxKind === "patent"
-        ? { operator: "OR", warn: false }
+        // USPTO and Espacenet do not share one reliable whitespace default.
+        // Keep the likely USPTO precedence, but ask users to verify the selected mode.
+        ? { operator: "OR", warn: true }
         : { operator: "AND", warn: true };
   let index = 0;
 

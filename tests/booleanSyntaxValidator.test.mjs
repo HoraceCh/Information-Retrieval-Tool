@@ -193,3 +193,11 @@ test("does not normalize full-width punctuation inside quoted content", () => {
   assert.equal(literal.stats.hasFullwidth, false);
   assert.equal(literal.errors.some(error => error.type === "FULLWIDTH_CHAR"), false);
 });
+
+test("warns when whitespace semantics are ambiguous across combined patent platforms", () => {
+  const result = validateBooleanQuery("robotics manipulation", {
+    database: "Espacenet / USPTO (外文专利)", isFieldSpecific: true
+  });
+  assert.equal(result.isValid, true);
+  assert.ok(result.warnings.some(warning => warning.type === "MISSING_OPERATOR"));
+});
