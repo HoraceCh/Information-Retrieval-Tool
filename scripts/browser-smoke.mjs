@@ -25,6 +25,14 @@ try {
   const response = await page.goto(BASE, { waitUntil: "networkidle", timeout: 30000 });
   assert(response?.ok(), "Main application did not load");
   await page.locator("#root").waitFor();
+  const speechProvider = page.locator("#speech-provider-select");
+  await speechProvider.waitFor({ state: "visible", timeout: 15000 });
+  assert(await speechProvider.locator("option").count() === 4, "Speech provider selector should expose four engines");
+  await speechProvider.selectOption("whisper-local");
+  assert(await speechProvider.inputValue() === "whisper-local", "Local Whisper provider could not be selected");
+  await page.reload({ waitUntil: "networkidle" });
+  assert(await page.locator("#speech-provider-select").inputValue() === "whisper-local", "Speech provider selection was not persisted");
+  await page.locator("#speech-provider-select").selectOption("gemini");
   const aboutButton = page.locator("button").filter({ hasText: /项目介绍|About/ }).first();
   await aboutButton.waitFor({ timeout: 15000 });
   await aboutButton.click();

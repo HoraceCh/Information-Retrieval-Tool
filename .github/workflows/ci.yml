@@ -56,6 +56,9 @@ jobs:
       - name: Test scoped recovery and security helpers
         run: npm run test:security
 
+      - name: Test speech provider registry and routing
+        run: npm run test:speech
+
       - name: Build production site
         run: npm run build
 

@@ -19,7 +19,7 @@ Set `VITE_SPEECH_PROXY_URL` at build time to a trusted HTTPS endpoint (or a loca
 
 Each endpoint returns JSON: `{ "text": "recognized words" }`. The proxy owns provider authentication, request-size limits, MIME validation, rate limiting, and transcript normalization. Never put OpenAI or Deepgram secret keys in Vite environment variables or browser localStorage: Vite variables are embedded in public client assets.
 
-The Whisper endpoint should forward audio to a locally managed Whisper runtime and should not expose a remote provider key. Selecting a proxy-backed provider without configuring the endpoint shows an actionable error rather than silently falling back to Gemini.
+The Whisper endpoint should forward audio to a locally managed Whisper runtime and should not expose a remote provider key. The static GitHub Pages deployment does not host this proxy or launch a local model; the proxy must be hosted separately and reachable from the browser. A localhost Whisper service is useful during local development, while production users need an HTTPS-reachable proxy or a future per-user endpoint setting. Selecting a proxy-backed provider without configuring the endpoint shows an actionable error rather than silently falling back to Gemini.
 
 ## Validation
 

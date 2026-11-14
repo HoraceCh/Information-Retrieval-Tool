@@ -166,7 +166,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
           return;
         }
 
-        // Call Gemini Transcribe
+        // Dispatch through the selected speech provider
         await handleTranscription(audioBlob);
       };
 
