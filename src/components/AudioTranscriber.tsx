@@ -27,6 +27,18 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
     } catch { return "gemini"; }
   });
   const selectedProvider = SPEECH_PROVIDERS.find(provider => provider.id === providerId) || SPEECH_PROVIDERS[0];
+  const [proxyBaseUrl, setProxyBaseUrl] = useState(() => {
+    try { return localStorage.getItem("ai_retrieval_speech_proxy_url") || ""; }
+    catch { return ""; }
+  });
+  const effectiveProxyBaseUrl = proxyBaseUrl.trim() || speechProxyUrl;
+  const saveProxyBaseUrl = (next: string) => {
+    setProxyBaseUrl(next);
+    try {
+      if (next.trim()) localStorage.setItem("ai_retrieval_speech_proxy_url", next.trim());
+      else localStorage.removeItem("ai_retrieval_speech_proxy_url");
+    } catch { /* storage is optional */ }
+  };
   const saveProvider = (next: SpeechProviderId) => {
     setProviderId(next);
     try { localStorage.setItem("ai_retrieval_speech_provider", next); } catch { /* storage is optional */ }
@@ -235,7 +247,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
     setErrorMsg(null);
 
     try {
-      const text = await transcribeWithProvider(providerId, audioBlob, { geminiKey, proxyBaseUrl: speechProxyUrl });
+      const text = await transcribeWithProvider(providerId, audioBlob, { geminiKey, proxyBaseUrl: effectiveProxyBaseUrl });
       if (!text) {
         setErrorMsg(
           uiLang === "zh" || uiLang === "mix"
@@ -285,6 +297,22 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
           ))}
         </select>
       )}
+      {selectedProvider.requiresProxy && !isRecording && !isTranscribing && (
+        <label className="flex items-center gap-1.5 text-[10px] text-slate-500">
+          <span className="whitespace-nowrap">{uiLang === "zh" || uiLang === "mix" ? "服务地址" : "Service URL"}</span>
+          <input
+            id="speech-proxy-url"
+            type="url"
+            aria-label={uiLang === "zh" || uiLang === "mix" ? "语音服务地址" : "Speech service URL"}
+            value={proxyBaseUrl}
+            onChange={(event) => saveProxyBaseUrl(event.target.value)}
+            placeholder={speechProxyUrl || "http://127.0.0.1:8000"}
+            autoComplete="url"
+            className="w-44 max-w-[34vw] rounded-lg border border-slate-600/30 bg-slate-800/70 px-2 py-1.5 text-[10px] text-slate-200 outline-none focus:border-cyan-500 placeholder:text-slate-500"
+          />
+        </label>
+      )}
+
       {/* Default State: Trigger Button */}
       {!isRecording && !isTranscribing && (
         <button
