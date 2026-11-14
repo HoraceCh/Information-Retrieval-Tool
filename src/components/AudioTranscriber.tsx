@@ -59,6 +59,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
   const animFrameRef = useRef<number | null>(null);
   const mountedRef = useRef(false);
   const startPendingRef = useRef(false);
+  const startRequestIdRef = useRef(0);
   const transcriptionAbortRef = useRef<AbortController | null>(null);
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -67,6 +68,8 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      startRequestIdRef.current += 1;
+      startPendingRef.current = false;
       transcriptionAbortRef.current?.abort();
       transcriptionAbortRef.current = null;
       if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
@@ -97,6 +100,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
   const startRecording = async () => {
     if (startPendingRef.current || isRecording || isTranscribing) return;
     startPendingRef.current = true;
+    const requestId = ++startRequestIdRef.current;
     setErrorMsg(null);
     setSuccessNotice(null);
 
@@ -106,6 +110,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
           ? "您的浏览器不支持麦克风录音功能，请使用现代浏览器 (Chrome / Edge / Firefox / Safari)。"
           : "Your browser does not support audio recording. Please use Chrome, Edge, Firefox, or Safari."
       );
+      startPendingRef.current = false;
       return;
     }
 
@@ -117,9 +122,9 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
           autoGainControl: true,
         } 
       });
-      if (!mountedRef.current) {
+      if (!mountedRef.current || requestId !== startRequestIdRef.current) {
         stream.getTracks().forEach(track => track.stop());
-        startPendingRef.current = false;
+        if (requestId === startRequestIdRef.current) startPendingRef.current = false;
         return;
       }
       streamRef.current = stream;
@@ -137,7 +142,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
           source.connect(analyser);
 
           const updateLevel = () => {
-            if (!analyserRef.current) return;
+            if (!mountedRef.current || requestId !== startRequestIdRef.current || !analyserRef.current) return;
             const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
             analyserRef.current.getByteFrequencyData(dataArray);
             let sum = 0;
@@ -217,9 +222,9 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
         });
       }, 1000);
     } catch (err: any) {
-      startPendingRef.current = false;
+      if (requestId === startRequestIdRef.current) startPendingRef.current = false;
+      if (requestId !== startRequestIdRef.current || !mountedRef.current) return;
       cleanupAudio();
-      if (!mountedRef.current) return;
       setIsRecording(false);
       console.error("Microphone Access Error:", err);
       if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
@@ -249,6 +254,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
   };
 
   const cancelRecording = () => {
+    startRequestIdRef.current += 1;
     startPendingRef.current = false;
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.ondataavailable = null;
