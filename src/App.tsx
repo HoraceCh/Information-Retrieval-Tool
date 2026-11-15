@@ -2442,7 +2442,7 @@ export default function App() {
       </header>
 
       {/* Interface Tab Selector */}
-      <div className="flex border-b border-white/10 bg-[#05070A]/95 px-3 sm:px-6 lg:px-8 py-2.5 gap-2 sm:gap-3 shrink-0 justify-start items-center z-40 overflow-x-auto scrollbar-hide">
+      <div className={`flex border-b px-3 sm:px-6 lg:px-8 py-2.5 gap-2 sm:gap-3 shrink-0 justify-start items-center z-40 overflow-x-auto scrollbar-hide ${theme === 'light' ? 'bg-white border-slate-200' : 'border-white/10 bg-[#05070A]/95'}`}>
         <button
           onClick={() => setActiveTab('ai')}
           className={`px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all rounded-lg flex items-center gap-2 border shrink-0 cursor-pointer ${
@@ -2774,7 +2774,11 @@ export default function App() {
               minHeight: screenHeight < 700 ? '220px' : screenHeight < 800 ? '260px' : '300px'
             }}
             className={`flex flex-col flex-1 rounded-2xl border transition-all duration-700 relative shadow-inner ${
-              result ? 'bg-cyan-950/20 border-cyan-500/30' : 'bg-slate-900/20 border-white/5 grayscale pointer-events-none'
+              result
+                ? 'bg-cyan-950/20 border-cyan-500/30'
+                : theme === 'light'
+                  ? 'bg-white border-slate-200 pointer-events-none'
+                  : 'bg-slate-900/20 border-white/5 grayscale pointer-events-none'
             }`}
           >
             <AnimatePresence>
