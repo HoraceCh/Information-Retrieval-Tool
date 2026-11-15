@@ -17,7 +17,7 @@ async function readProxyError(response: Response): Promise<string> {
 /** Provider-neutral transcription. Cloud credentials remain on a trusted server proxy. */
 export async function transcribeWithProvider(providerId: SpeechProviderId, audioBlob: Blob, options: SpeechTranscriptionOptions = {}): Promise<string> {
   if (!(audioBlob instanceof Blob) || audioBlob.size === 0) throw new Error("No audio data was recorded. Please record again.");
-  if (providerId === "gemini") return normalizeTranscript(await transcribeAudio(audioBlob, options.geminiKey));
+  if (providerId === "gemini") return normalizeTranscript(await transcribeAudio(audioBlob, options.geminiKey, options.signal));
   const url = buildSpeechProxyUrl(options.proxyBaseUrl, providerId);
   const form = new FormData();
   form.append("file", audioBlob, "recording");

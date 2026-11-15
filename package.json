@@ -17,7 +17,7 @@
     "validate:bundle": "node scripts/validate-bundles.mjs",
     "test:security": "node --test tests/security-recovery.test.mjs",
     "test:validator": "node --test tests/booleanSyntaxValidator.test.mjs",
-    "test:speech": "node --test tests/speechProviders.test.mjs"
+    "test:speech": "node --test tests/speechProviders.test.mjs tests/speechGeminiCancellation.test.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
