@@ -26,7 +26,8 @@ html.theme-light,
 /* Backgrounds in Light Theme */
 .theme-light .bg-\[\#05070A\],
 .theme-light .bg-\[\#05070A\]\/80,
-.theme-light .bg-\[\#05070A\]\/90 {
+.theme-light .bg-\[\#05070A\]\/90,
+.theme-light .bg-\[\#05070A\]\/95 {
   background-color: #ffffff !important;
 }
 
