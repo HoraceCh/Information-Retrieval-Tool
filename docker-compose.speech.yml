@@ -5,19 +5,20 @@ services:
     container_name: ai-retrieval-local-whisper
     restart: unless-stopped
     environment:
-      WHISPER_MODEL_SIZE: small
+      WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-small}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_TRANSCRIPTION_MODEL: ${OPENAI_TRANSCRIPTION_MODEL:-whisper-1}
       DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY:-}
       DEEPGRAM_MODEL: ${DEEPGRAM_MODEL:-nova-3}
       SPEECH_UPSTREAM_TIMEOUT_SECONDS: ${SPEECH_UPSTREAM_TIMEOUT_SECONDS:-90}
-      WHISPER_DEVICE: cpu
-      WHISPER_COMPUTE_TYPE: int8
+      WHISPER_DEVICE: ${WHISPER_DEVICE:-cpu}
+      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
       WHISPER_DOWNLOAD_ROOT: /models
-      MAX_AUDIO_BYTES: "20971520"
-      SPEECH_ALLOWED_ORIGINS: "https://horacech.github.io,http://localhost:3000,http://127.0.0.1:3000,http://localhost:4173,http://127.0.0.1:4173"
+      MAX_AUDIO_BYTES: "${MAX_AUDIO_BYTES:-20971520}"
+      MAX_CONCURRENT_INFERENCES: "${MAX_CONCURRENT_INFERENCES:-1}"
+      SPEECH_ALLOWED_ORIGINS: "${SPEECH_ALLOWED_ORIGINS:-https://horacech.github.io,http://localhost:3000,http://127.0.0.1:3000,http://localhost:4173,http://127.0.0.1:4173}"
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:${SPEECH_PORT:-8000}:8000"
     volumes:
       - whisper-model-cache:/models
 volumes:

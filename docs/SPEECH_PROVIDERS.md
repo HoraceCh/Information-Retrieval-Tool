@@ -27,7 +27,10 @@ Requirements: Docker Desktop or Python 3.11+. The default configuration uses the
 
 From the repository root:
 
+    cp .env.example .env
     docker compose -f docker-compose.speech.yml up --build
+
+Edit the untracked `.env` file to override model, device, compute type, port, upload limit, allowed origins, or optional cloud-provider credentials. Never commit `.env`.
 
 The service binds to 127.0.0.1:8000 on the host. In the web app, select Whisper 本地服务 and set Service URL to:
 
@@ -44,14 +47,16 @@ For local Vite development, .env.local may contain VITE_SPEECH_PROXY_URL=http://
 - WHISPER_COMPUTE_TYPE: int8 by default; compatible GPUs commonly use float16.
 - MAX_AUDIO_BYTES: 20 MiB by default.
 - SPEECH_ALLOWED_ORIGINS: comma-separated exact browser origins.
+- MAX_CONCURRENT_INFERENCES: local model concurrency; defaults to 1 and rejects overlapping inference with HTTP 429.
+- SPEECH_PORT: host loopback port; defaults to 8000.
 
 The first model download requires network access. Keep the model-cache volume to avoid downloading it again.
 
 ## Security and deployment boundary
 
 - Docker Compose binds the host port to loopback (127.0.0.1), not the LAN.
-- CORS is restricted to configured origins. CORS is not authentication.
-- The service enforces an upload limit, checks declared audio MIME types, uses generated temporary filenames, and returns sanitized inference errors.
+- CORS is restricted to configured origins, and POST requests carrying a browser Origin header are checked against the same allowlist. CORS and Origin checks are not authentication.
+- The service enforces an upload limit, checks declared audio MIME types, uses generated temporary filenames, serializes local inference by default, and returns sanitized inference errors.
 - Do not expose this unauthenticated local service directly to the public internet or LAN. A remote deployment needs HTTPS, authentication, rate limiting, and an explicit origin allowlist at a trusted gateway.
 - A public static GitHub Pages site cannot host Python inference. A browser connecting from the hosted page to a local Whisper service may trigger browser local-network permission prompts; users must allow access.
 

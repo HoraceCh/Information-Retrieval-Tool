@@ -4,9 +4,12 @@ A loopback-only FastAPI service exposing the speech-provider endpoint expected b
 
 ## Quick start
 
-From the repository root:
+From the repository root, create your local configuration and start the service:
 
+    cp .env.example .env
     docker compose -f docker-compose.speech.yml up --build
+
+Edit `.env` to change the model, device, port, upload limit, allowed browser origins, or optional cloud-provider credentials. The `.env` file is ignored by Git; never commit it.
 
 The first transcription downloads the configured faster-whisper model. Model weights persist in the whisper-model-cache Docker volume. The default model is small, CPU / int8.
 
@@ -31,9 +34,11 @@ Python 3.11+:
 - WHISPER_COMPUTE_TYPE: int8 by default.
 - WHISPER_DOWNLOAD_ROOT: /models by default.
 - MAX_AUDIO_BYTES: 20 MiB by default.
-- SPEECH_ALLOWED_ORIGINS: comma-separated exact CORS origins.
+- SPEECH_ALLOWED_ORIGINS: comma-separated exact browser origins.
+- MAX_CONCURRENT_INFERENCES: simultaneous local model inferences; defaults to 1 and rejects excess requests with HTTP 429.
+- SPEECH_PORT: host loopback port; defaults to 8000.
 
-The container port binds to host loopback only. CORS is not authentication. Do not expose this service to a network or the public internet without an authenticated HTTPS gateway, rate limiting, and an explicit origin allowlist.
+The container port binds to host loopback only. The API checks browser `Origin` on POST requests as well as applying CORS; requests without an Origin header remain available for local command-line diagnostics. CORS and Origin checks are not authentication. Do not expose this service to a network or the public internet without an authenticated HTTPS gateway, rate limiting, and an explicit origin allowlist.
 
 ## Real-model evaluation
 

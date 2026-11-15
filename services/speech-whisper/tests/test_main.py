@@ -1,4 +1,5 @@
 from pathlib import Path
+import threading
 import httpx
 from fastapi.testclient import TestClient
 from app import main
@@ -18,6 +19,22 @@ def test_whisper_transcription_and_cors(monkeypatch):
     assert r.status_code==200 and r.json()=={"text":"robotics research"}
     assert seen=={"bytes":b"audio","language":"auto"}
     assert r.headers["access-control-allow-origin"]=="https://horacech.github.io"
+
+def test_disallowed_browser_origin_is_rejected_before_processing(monkeypatch):
+    monkeypatch.setattr(main,"transcribe_file",lambda *_: (_ for _ in ()).throw(AssertionError("must not run")))
+    r=client.post("/api/speech/whisper/transcriptions",files={"file":("a.webm",b"audio","audio/webm")},headers={"Origin":"https://evil.example"})
+    assert r.status_code==403 and "not allowed" in r.json()["detail"]
+
+def test_local_whisper_rejects_overlapping_inference(monkeypatch):
+    slots=threading.BoundedSemaphore(1)
+    monkeypatch.setattr(main,"_inference_slots",slots)
+    assert slots.acquire(blocking=False)
+    try:
+        r=client.post("/api/speech/whisper/transcriptions",files={"file":("a.webm",b"audio","audio/webm")})
+        assert r.status_code==429
+        assert r.headers["retry-after"]=="3"
+    finally:
+        slots.release()
 
 def test_whisper_explicit_language(monkeypatch):
     seen={}

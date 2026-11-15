@@ -14,6 +14,8 @@ async function readProxyError(response: Response): Promise<string> {
   return formatSpeechProxyError(response.status, detail);
 }
 
+class SpeechServiceResponseError extends Error {}
+
 /** Provider-neutral transcription. Cloud credentials remain on a trusted server proxy. */
 export async function transcribeWithProvider(providerId: SpeechProviderId, audioBlob: Blob, options: SpeechTranscriptionOptions = {}): Promise<string> {
   if (!(audioBlob instanceof Blob) || audioBlob.size === 0) throw new Error("No audio data was recorded. Please record again.");
@@ -22,31 +24,34 @@ export async function transcribeWithProvider(providerId: SpeechProviderId, audio
   const form = new FormData();
   form.append("file", audioBlob, "recording");
   form.append("language", "auto");
-  let response: Response;
   const controller = new AbortController();
   const timeoutMs = Number.isFinite(options.timeoutMs) && (options.timeoutMs ?? 0) > 0 ? options.timeoutMs! : 90_000;
+  let timedOut = false;
   const abortFromCaller = () => controller.abort();
   if (options.signal?.aborted) controller.abort();
   else options.signal?.addEventListener("abort", abortFromCaller, { once: true });
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutId = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
   try {
-    response = await fetch(url, { method: "POST", body: form, headers: { Accept: "application/json" }, signal: controller.signal });
+    const response = await fetch(url, { method: "POST", body: form, headers: { Accept: "application/json" }, signal: controller.signal });
+    if (!response.ok) throw new SpeechServiceResponseError(await readProxyError(response));
+    let payload: unknown;
+    try { payload = await response.json(); }
+    catch { throw new SpeechServiceResponseError("Speech service returned invalid JSON. Check the proxy service version and logs."); }
+    if (!payload || typeof payload !== "object" || !("text" in payload)) {
+      throw new SpeechServiceResponseError("Speech proxy returned an invalid response. Expected JSON with a text field.");
+    }
+    const transcript = normalizeTranscript((payload as { text?: unknown }).text);
+    if (!transcript) throw new SpeechServiceResponseError("No speech was recognized. Please try again.");
+    return transcript;
   } catch (error) {
     if (options.signal?.aborted) throw new Error("Speech transcription was cancelled.");
-    if (error instanceof Error && error.name === "AbortError") {
+    if (timedOut || (error instanceof Error && error.name === "AbortError")) {
       throw new Error(`Speech service request timed out after ${Math.round(timeoutMs / 1000)} seconds. Try a shorter recording or another provider.`);
     }
+    if (error instanceof SpeechServiceResponseError) throw new Error(error.message);
     throw new Error("Could not reach the speech service. Check that it is running, the URL is correct, and browser network access is allowed.");
   } finally {
     clearTimeout(timeoutId);
     options.signal?.removeEventListener("abort", abortFromCaller);
   }
-  if (!response.ok) throw new Error(await readProxyError(response));
-  let payload: unknown;
-  try { payload = await response.json(); }
-  catch { throw new Error("Speech service returned invalid JSON. Check the proxy service version and logs."); }
-  if (!payload || typeof payload !== "object" || !("text" in payload)) throw new Error("Speech proxy returned an invalid response. Expected JSON with a text field.");
-  const transcript = normalizeTranscript((payload as { text?: unknown }).text);
-  if (!transcript) throw new Error("No speech was recognized. Please try again.");
-  return transcript;
 }

@@ -3,7 +3,8 @@ import logging, os, re, tempfile, threading
 from pathlib import Path
 from urllib.parse import urlencode
 import httpx
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
 
@@ -16,6 +17,7 @@ def positive_int_env(name: str, default: int) -> int:
         return default
 
 MAX_AUDIO_BYTES = positive_int_env("MAX_AUDIO_BYTES", 20 * 1024 * 1024)
+MAX_CONCURRENT_INFERENCES = positive_int_env("MAX_CONCURRENT_INFERENCES", 1)
 MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "small")
 MODEL_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
 MODEL_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
@@ -30,8 +32,18 @@ ALLOWED_ORIGINS = [o.strip() for o in os.getenv("SPEECH_ALLOWED_ORIGINS", DEFAUL
 AUDIO_SUFFIXES = {"audio/webm":".webm","audio/mp4":".mp4","audio/ogg":".ogg","audio/wav":".wav","audio/x-wav":".wav","audio/mpeg":".mp3","audio/flac":".flac","audio/aac":".aac","audio/3gpp":".3gp"}
 app = FastAPI(title="AI_RETRIEVAL_X Speech API", version="1.1.0", docs_url=None, redoc_url=None)
 app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_credentials=False, allow_methods=["GET","POST","OPTIONS"], allow_headers=["Accept","Content-Type"])
+
+@app.middleware("http")
+async def enforce_allowed_browser_origin(request: Request, call_next):
+    # CORS controls response visibility, not whether a cross-origin form POST is sent.
+    # Reject disallowed browser origins before they can trigger inference or cloud spend.
+    origin = request.headers.get("origin")
+    if request.method == "POST" and origin and origin not in ALLOWED_ORIGINS:
+        return JSONResponse(status_code=403, content={"detail": "Browser origin is not allowed."})
+    return await call_next(request)
 _model = None
 _model_lock = threading.Lock()
+_inference_slots = threading.BoundedSemaphore(MAX_CONCURRENT_INFERENCES)
 
 def get_whisper_model():
     global _model
@@ -119,12 +131,14 @@ async def forward_deepgram(data: bytes, content_type: str, language: str) -> str
 
 @app.get("/healthz")
 async def healthz():
-    return {"status":"ok","model_loaded":_model is not None,"model":MODEL_SIZE,"device":MODEL_DEVICE,"compute_type":MODEL_COMPUTE_TYPE,"providers":{"whisper-local":True,"openai":bool(OPENAI_API_KEY),"deepgram":bool(DEEPGRAM_API_KEY)}}
+    return {"status":"ok","model_loaded":_model is not None,"model":MODEL_SIZE,"device":MODEL_DEVICE,"compute_type":MODEL_COMPUTE_TYPE,"max_concurrent_inferences":MAX_CONCURRENT_INFERENCES,"providers":{"whisper-local":True,"openai":bool(OPENAI_API_KEY),"deepgram":bool(DEEPGRAM_API_KEY)}}
 
 @app.post("/api/speech/whisper/transcriptions")
 async def transcribe_whisper(file: UploadFile=File(...),language: str=Form("auto")):
     language=validate_language(language)
     data,content_type=await read_audio(file)
+    if not _inference_slots.acquire(blocking=False):
+        raise HTTPException(status_code=429,detail="The local Whisper service is busy. Try again in a moment.",headers={"Retry-After":"3"})
     try:
         with tempfile.NamedTemporaryFile(prefix="speech-",suffix=AUDIO_SUFFIXES[content_type]) as temp:
             temp.write(data); temp.flush()
@@ -135,6 +149,8 @@ async def transcribe_whisper(file: UploadFile=File(...),language: str=Form("auto
     except Exception:
         logger.exception("Local Whisper transcription failed")
         raise HTTPException(status_code=502,detail="Local speech recognition failed. Check the Whisper model setup and audio format.") from None
+    finally:
+        _inference_slots.release()
 
 @app.post("/api/speech/openai/transcriptions")
 async def transcribe_openai(file: UploadFile=File(...),language: str=Form("auto")):
