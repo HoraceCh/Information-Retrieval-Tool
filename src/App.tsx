@@ -2494,6 +2494,7 @@ export default function App() {
               <div className="flex items-center gap-3">
                 <AudioTranscriber
                   geminiKey={geminiApiKey}
+                  speechProxyUrl={import.meta.env.VITE_SPEECH_PROXY_URL}
                   onTranscribe={(transcribedText) => {
                     setInput((prev) => prev ? `${prev} ${transcribedText}` : transcribedText);
                   }}
