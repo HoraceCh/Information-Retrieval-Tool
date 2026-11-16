@@ -23,6 +23,9 @@ jobs:
   validate:
     name: Type check, production build and static SEO pages
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -36,7 +39,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
+          python-version: ${{ matrix.python-version }}
 
       - name: Install local Whisper API test dependencies
         run: python -m pip install -r services/speech-whisper/requirements-test.txt
@@ -129,3 +132,31 @@ jobs:
           path: artifacts/browser-smoke/
           if-no-files-found: warn
           retention-days: 7
+
+  speech-container:
+    name: CPU container build and runtime probe (no model download)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate independent CPU and GPU configurations
+        run: |
+          docker compose -f docker-compose.speech.yml config --quiet
+          docker compose -f docker-compose.speech.gpu.yml config --quiet
+      - name: Build CPU image
+        run: docker build -t speech-ci services/speech-whisper
+      - name: Probe non-root CPU runtime
+        run: |
+          docker run -d --name speech-ci --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:size=128m,mode=1777 -v speech-ci-model-cache:/models -p 127.0.0.1:18000:8000 speech-ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:18000/readyz; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:18000/healthz
+          curl -fsS http://127.0.0.1:18000/readyz
+          test "$(docker inspect speech-ci --format '{{.Config.User}}')" = '10001:10001'
+      - name: Container logs and cleanup
+        if: always()
+        run: |
+          docker logs speech-ci || true
+          docker rm -f speech-ci || true
+          docker volume rm speech-ci-model-cache || true
