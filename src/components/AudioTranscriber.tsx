@@ -346,7 +346,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
           ))}
         </select>
       )}
-      {selectedProvider.requiresProxy && !isRecording && !isTranscribing && (
+      {!isRecording && !isTranscribing && (
         <label className="flex items-center gap-1.5 text-[10px] text-slate-500">
           <span className="whitespace-nowrap">{uiLang === "zh" || uiLang === "mix" ? "服务地址" : "Service URL"}</span>
           <input
@@ -360,6 +360,14 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
             className="w-44 max-w-[34vw] rounded-lg border border-slate-600/30 bg-slate-800/70 px-2 py-1.5 text-[10px] text-slate-200 outline-none focus:border-cyan-500 placeholder:text-slate-500"
           />
         </label>
+      )}
+
+      {providerId === "gemini" && !isRecording && !isTranscribing && (
+        <span role="status" className="max-w-[220px] text-[10px] text-slate-400" title={uiLang === "en" ? "Prefer a trusted speech service with server-side keys. An empty service URL uses legacy browser BYOK." : "建议使用服务端保存密钥的可信语音服务。服务地址为空时，使用浏览器 BYOK 兼容模式。"}>
+          {effectiveProxyBaseUrl?.trim()
+            ? (uiLang === "en" ? "Gemini: server proxy" : "Gemini：服务端代理")
+            : (uiLang === "en" ? "BYOK compatibility · browser key" : "BYOK 兼容模式 · 密钥位于浏览器")}
+        </span>
       )}
 
       {/* Default State: Trigger Button */}
