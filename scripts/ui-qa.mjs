@@ -23,7 +23,8 @@ for(const theme of ['dark','light'])for(const [device,width,height] of [['deskto
  await page.addInitScript(({theme,result})=>{localStorage.setItem('visited-guided-search-v1.0','true');localStorage.setItem('ai_retrieval_theme',theme);localStorage.setItem('ai_retrieval_history',JSON.stringify([{id:'qa-fixture',timestamp:1700000000000,input:'QA fixture robotics motion planning',dbType:'Web of Science核心合集 (SCI-E/SSCI/CPCI-S)',langPref:'Bilingual (双语混合)',result}]))},{theme,result});
  await page.goto(report.base,{waitUntil:'networkidle'});
  await evidence(page,`${theme}-${device}-builder`);
- await page.locator('footer').getByText(/^HISTORY$/i).click();
+ console.log('builder captured',theme,device,page.url(),await page.locator('footer').innerText());
+ await page.locator('footer').getByText('HISTORY', {exact:true}).click();
  await page.getByText('QA fixture robotics motion planning',{exact:true}).click();
  await page.locator('.formula-code-box').waitFor();
  await evidence(page,`${theme}-${device}-result`);
