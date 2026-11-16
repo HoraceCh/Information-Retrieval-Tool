@@ -9,7 +9,7 @@ const BASE = process.env.SMOKE_BASE_URL || "http://127.0.0.1:4173/";
 const artifacts = path.resolve("artifacts/browser-smoke");
 fs.mkdirSync(artifacts, { recursive: true });
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH, args: ['--no-sandbox'] } : {}) });
 const errors = [];
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 page.on("pageerror", error => errors.push(error.message));
