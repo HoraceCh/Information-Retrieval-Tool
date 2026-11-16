@@ -154,7 +154,7 @@ export default function VisualQueryTree({
       </div>
 
       {/* SVG Canvas with aspect ratio container */}
-      <div className="w-full overflow-x-auto custom-scrollbar">
+      <div tabIndex={0} role="region" aria-label={uiLang === "en" ? "Scrollable Boolean query tree" : "可横向滚动的布尔检索树"} className="w-full overflow-x-auto custom-scrollbar">
         <div className="min-w-[600px] flex justify-center">
           <svg
             width="100%"
@@ -284,6 +284,15 @@ export default function VisualQueryTree({
                     <g 
                       key={`node-${node.data.id || i}`} 
                       transform={`translate(${cx}, ${cy})`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={uiLang === "en" ? `Exclude synonym ${label}` : `排除同义词 ${label}`}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          onToggleWord(isModelB, groupIdx, label);
+                        }
+                      }}
                       onClick={() => onToggleWord(isModelB, groupIdx, label)}
                       className="cursor-pointer group select-none"
                     >
