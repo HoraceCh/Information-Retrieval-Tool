@@ -306,3 +306,211 @@ html.theme-light,
     background: rgba(6, 182, 212, 0.5);
   }
 }
+
+/* Semantic foundations. Component aliases below keep both themes on the same
+   contract; legacy utility selectors above support views not yet migrated. */
+:root, .theme-dark {
+  color-scheme: dark;
+  --background: #080d16;
+  --surface: #111b2a;
+  --surface-elevated: #192638;
+  --surface-muted: #0c1422;
+  --border: #60748d;
+  --border-subtle: #2c3e55;
+  --text-primary: #f1f5f9;
+  --text-secondary: #c1ccdb;
+  --text-muted: #a3b2c7;
+  --primary: #67d9ef;
+  --primary-hover: #a5edfa;
+  --primary-active: #38bdd9;
+  --primary-solid: #08758e;
+  --on-primary: #ffffff;
+  --secondary-accent: #c8b6fa;
+  --brand-surface: #153542;
+  --success: #7de0b0;
+  --success-surface: #113428;
+  --warning: #f4cd83;
+  --warning-surface: #392b15;
+  --error: #ffa4ae;
+  --error-surface: #3e2029;
+  --info: #99caff;
+  --info-surface: #1a3049;
+  --overlay: rgb(2 6 15 / 76%);
+  --focus: #99e9fc;
+}
+html.theme-light, .theme-light {
+  color-scheme: light;
+  --background: #f4f7fb;
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-muted: #eef3f8;
+  --border: #76879c;
+  --border-subtle: #ccd5e1;
+  --text-primary: #172435;
+  --text-secondary: #3e526c;
+  --text-muted: #536780;
+  --primary: #07627b;
+  --primary-hover: #034b61;
+  --primary-active: #043e50;
+  --primary-solid: #086b83;
+  --on-primary: #ffffff;
+  --secondary-accent: #67439a;
+  --brand-surface: #e6f4f8;
+  --success: #17643c;
+  --success-surface: #e9f6ee;
+  --warning: #79500a;
+  --warning-surface: #fff4df;
+  --error: #a0283b;
+  --error-surface: #fff0f2;
+  --info: #235687;
+  --info-surface: #eaf3fd;
+  --overlay: rgb(15 23 42 / 58%);
+  --focus: #086b83;
+}
+:root, .theme-dark, .theme-light {
+  --button-background: var(--brand-surface);
+  --button-text: var(--primary);
+  --button-border: var(--primary);
+  --input-background: var(--surface-muted);
+  --input-text: var(--text-primary);
+  --input-border: var(--border);
+  --select-background: var(--surface-muted);
+  --select-text: var(--text-primary);
+  --card-background: var(--surface);
+  --card-border: var(--border-subtle);
+  --modal-background: var(--surface-elevated);
+  --modal-overlay: var(--overlay);
+  --navigation-background: var(--surface);
+  --navigation-active-background: var(--brand-surface);
+  --badge-background: var(--brand-surface);
+  --badge-text: var(--primary);
+  --code-background: var(--surface-muted);
+  --code-text: var(--text-primary);
+  --validation-success-background: var(--success-surface);
+  --validation-error-background: var(--error-surface);
+  --speech-background: var(--brand-surface);
+  --speech-text: var(--primary);
+}
+@theme inline {
+  --color-canvas: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-content: var(--text-primary);
+  --color-content-secondary: var(--text-secondary);
+  --color-content-muted: var(--text-muted);
+  --color-brand: var(--primary);
+}
+.app-shell, .theme-light .app-shell {
+  background: var(--background) !important;
+  color: var(--text-primary) !important;
+}
+.ui-header, .ui-navigation {
+  background: var(--navigation-background) !important;
+  border-color: var(--border-subtle) !important;
+}
+.ui-navigation button[aria-current="page"] {
+  color: var(--primary) !important;
+  background: var(--navigation-active-background) !important;
+  border-color: var(--primary) !important;
+}
+.ui-card, .ui-dialog {
+  background: var(--card-background) !important;
+  border-color: var(--card-border) !important;
+}
+.ui-dialog { background: var(--modal-background) !important; }
+.app-shell .ui-label { color: var(--text-secondary) !important; }
+.app-shell :is(input, textarea, select) {
+  color: var(--input-text) !important;
+  background-color: var(--input-background) !important;
+  border-color: var(--input-border) !important;
+  min-width: 0;
+  max-width: 100%;
+}
+.app-shell select { color: var(--select-text) !important; background-color: var(--select-background) !important; }
+.app-shell :is(input, textarea)::placeholder { color: var(--text-muted) !important; opacity: 1; }
+.app-shell .ui-query-input {
+  background: transparent !important;
+  border: 1px solid var(--input-border);
+  border-radius: .5rem;
+  padding: .65rem;
+  min-height: 90px;
+}
+.app-shell :is(select option, select optgroup) { background: var(--select-background) !important; color: var(--select-text) !important; }
+.app-shell :is(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 3px solid var(--focus) !important;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px var(--surface) !important;
+}
+.app-shell button:disabled {
+  background: var(--surface-muted) !important;
+  color: var(--text-muted) !important;
+  border-color: var(--border-subtle) !important;
+  opacity: 1 !important;
+  cursor: not-allowed;
+  box-shadow: none !important;
+}
+.app-shell .ui-button-primary {
+  background: var(--primary-solid) !important;
+  color: var(--on-primary) !important;
+  border-color: var(--primary-solid) !important;
+  box-shadow: none !important;
+}
+.app-shell .ui-button-primary:hover:not(:disabled) { background: var(--primary-hover) !important; color: var(--background) !important; }
+.app-shell .ui-button-primary:active:not(:disabled) { background: var(--primary-active) !important; }
+.app-shell .ui-button-error { background: #a0283b !important; color: white !important; box-shadow: none !important; }
+.app-shell .ui-speech-trigger { background: var(--speech-background) !important; color: var(--speech-text) !important; border-color: var(--primary) !important; box-shadow: none !important; }
+.app-shell .ui-speech-trigger span { color: inherit !important; }
+.app-shell .ui-speech-trigger span:last-child { background: var(--badge-background) !important; border-color: var(--primary) !important; }
+.app-shell .ui-speech-recording, .app-shell .ui-notice-error { background: var(--error-surface) !important; color: var(--error) !important; border-color: var(--error) !important; box-shadow: none !important; }
+.app-shell .ui-speech-processing { background: var(--speech-background) !important; color: var(--speech-text) !important; box-shadow: none !important; }
+.app-shell .ui-notice-success { background: var(--success-surface) !important; color: var(--success) !important; border-color: var(--success) !important; }
+.app-shell .ui-code-editor, .app-shell .formula-code-box { background: var(--code-background) !important; color: var(--code-text) !important; border-color: var(--input-border) !important; }
+.app-shell .ui-validation-success > div { background: var(--validation-success-background) !important; color: var(--success) !important; border-color: var(--success) !important; }
+.app-shell .ui-validation-error > div { background: var(--validation-error-background) !important; color: var(--error) !important; border-color: var(--error) !important; }
+/* Compatibility bridge for status utility classes in existing secondary views.
+   Brand cyan has a single purpose; status colors retain independent semantics. */
+.app-shell :is(.text-cyan-100,.text-cyan-200,.text-cyan-300,.text-cyan-400,.text-cyan-500,.text-sky-400) { color: var(--primary) !important; }
+.app-shell :is(.text-emerald-200,.text-emerald-300,.text-emerald-400,.text-emerald-500,.text-green-400) { color: var(--success) !important; }
+.app-shell :is(.text-amber-200,.text-amber-300,.text-amber-400,.text-yellow-300,.text-yellow-400) { color: var(--warning) !important; }
+.app-shell :is(.text-red-200,.text-red-300,.text-red-400,.text-rose-200,.text-rose-300,.text-rose-400) { color: var(--error) !important; }
+.app-shell :is(.text-purple-300,.text-purple-400,.text-violet-300) { color: var(--secondary-accent) !important; }
+.app-shell :is(.text-cyan-100\/70,.text-cyan-100\/80,.text-cyan-200\/70,.text-cyan-300\/70,.text-cyan-300\/80) { color: var(--primary) !important; }
+.app-shell :is(.text-emerald-500\/80,.text-rose-200\/70) { color: inherit !important; }
+.app-shell :is(.bg-cyan-950\/20,.bg-cyan-950\/30,.bg-cyan-950\/40,.bg-cyan-950\/50,.bg-cyan-950\/60) { background: var(--brand-surface) !important; }
+.app-shell :is(.bg-emerald-950\/20,.bg-emerald-950\/40) { background: var(--success-surface) !important; }
+.app-shell :is(.bg-rose-950\/20,.bg-rose-950\/40,.bg-red-950\/40) { background: var(--error-surface) !important; }
+.app-shell .text-content-secondary { color: var(--text-secondary) !important; }
+.app-shell .text-content-muted { color: var(--text-muted) !important; }
+.app-shell .bg-surface { background: var(--surface) !important; }
+.app-shell .bg-surface-elevated { background: var(--surface-elevated) !important; }
+.model-selector-row select { width: auto; flex: 1 1 auto; }
+.model-selector-row > * { min-width: 0; max-width: 100%; }
+.app-shell .query-input-heading > label { white-space: nowrap; }
+.app-shell .ui-speech :is(.ui-notice-success,.ui-notice-error) { max-width: min(350px, calc(100vw - 64px)); white-space: normal; }
+@media (max-width: 640px) {
+  .query-input-heading { align-items: flex-start; flex-direction: column; }
+  .query-speech-row { width: 100%; }
+  .model-selector-row > * { width: 100%; }
+  #guided-input-panel { padding: 1rem; }
+  #guided-input-panel > div, #guided-input-panel select { max-width: 100%; min-width: 0; }
+  .ui-navigation { scrollbar-width: thin; }
+  .ui-speech { width: 100%; }
+  .ui-speech select { flex: 1; }
+  .ui-dialog { max-height: 90dvh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *, .app-shell *::before, .app-shell *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* Secondary screens use the same neutral and brand components. Categories are
+   labels, not severity, so they no longer compete with validation/status colors. */
+.app-shell .ui-category-card { background: var(--surface) !important; border-color: var(--border-subtle) !important; }
+.app-shell .ui-category-badge { background: var(--badge-background) !important; color: var(--badge-text) !important; border-color: var(--primary) !important; }
+.app-shell button { min-height: 24px; min-width: 24px; }
+.app-shell button[title$="★"] { min-height: 28px; min-width: 28px; }
+.ui-skip-link { position: fixed; left: 1rem; top: -10rem; z-index: 1000; padding: .75rem 1rem; border-radius: .5rem; background: var(--surface); color: var(--primary); border: 2px solid var(--primary); }
+.ui-skip-link:focus { top: 1rem; }

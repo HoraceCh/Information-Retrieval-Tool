@@ -44,7 +44,7 @@ export default function SyntaxValidationAlert({
   // If valid with zero warnings, show a sleek positive reassurance banner or pill
   if (isValid && warnings.length === 0) {
     return (
-      <div className={`flex flex-col gap-1 ${className}`}>
+      <div className={`ui-validation ui-validation-success flex flex-col gap-1 ${className}`}>
         {/* Subtle green assurance line */}
         <div className="h-0.5 w-full bg-gradient-to-r from-emerald-500/10 via-emerald-500/40 to-emerald-500/10 rounded-full" />
         
@@ -57,7 +57,7 @@ export default function SyntaxValidationAlert({
             </span>
           </div>
 
-          <div className="flex items-center gap-2 text-[10px] text-slate-400">
+          <div className="flex items-center gap-2 text-[10px] text-content-secondary">
             <span>
               {isZh ? "括号:" : "Parens:"} <strong className="text-emerald-300 font-bold">{stats.openParens}/{stats.closeParens}</strong>
             </span>
@@ -67,7 +67,7 @@ export default function SyntaxValidationAlert({
             </span>
           </div>
         </div>
-        <p className="px-3 text-[10px] leading-relaxed text-slate-500">
+        <p className="px-3 text-[10px] leading-relaxed text-content-muted">
           {isZh
             ? "基础结构检查通过不等于数据库语法认证；正式检索前请在目标平台验证。"
             : "A structural pass is not database syntax certification; verify the query on the target platform."}
@@ -77,7 +77,7 @@ export default function SyntaxValidationAlert({
   }
 
   return (
-    <div className={`flex flex-col gap-2 ${className}`}>
+    <div className={`ui-validation ui-validation-error flex flex-col gap-2 ${className}`}>
       {/* 醒目的红色线条高亮提示 (Eye-catching red warning line with pulsing glow) */}
       <div className="relative w-full">
         <div 
@@ -120,7 +120,7 @@ export default function SyntaxValidationAlert({
               <button
                 type="button"
                 onClick={() => onApplyFix(fixedQuery)}
-                className="px-3 py-1 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-xs rounded-lg shadow-[0_0_10px_rgba(244,63,94,0.4)] transition-all flex items-center gap-1.5 cursor-pointer"
+                className="ui-button-error px-3 py-1 text-white font-bold text-xs rounded-lg shadow-[0_0_10px_rgba(244,63,94,0.4)] transition-all flex items-center gap-1.5 cursor-pointer"
                 title={isZh ? "仅规范化全角标点，不会改写检索逻辑" : "Normalize punctuation only; Boolean logic is preserved"}
               >
                 <Wrench size={12} />
@@ -131,7 +131,7 @@ export default function SyntaxValidationAlert({
             <button
               type="button"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="text-slate-400 hover:text-white p-1 rounded hover:bg-white/5 transition-colors cursor-pointer"
+              className="text-content-secondary hover:text-white p-1 rounded hover:bg-white/5 transition-colors cursor-pointer"
               title={isExpanded ? "收起详情" : "展开详情"}
             >
               {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -214,7 +214,7 @@ export default function SyntaxValidationAlert({
                     <button
                       type="button"
                       onClick={handleCopyFix}
-                      className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/10 transition-colors cursor-pointer"
+                      className="text-[10px] text-content-secondary hover:text-white flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/10 transition-colors cursor-pointer"
                     >
                       {copiedFix ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} />}
                       <span>{copiedFix ? (isZh ? "已复制" : "Copied") : (isZh ? "复制规范化结果" : "Copy")}</span>

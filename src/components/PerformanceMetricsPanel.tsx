@@ -69,7 +69,7 @@ export const PerformanceMetricsPanel: React.FC<PerformanceMetricsPanelProps> = (
   // Color theme based on latency
   const getLatencyColor = (ms?: number, fromCache?: boolean) => {
     if (fromCache) return 'text-sky-400 bg-sky-500/10 border-sky-500/30';
-    if (!ms) return 'text-slate-400 bg-slate-800/40 border-white/5';
+    if (!ms) return 'text-content-secondary bg-slate-800/40 border-white/5';
     if (ms < 1500) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
     if (ms < 3500) return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
     return 'text-purple-400 bg-purple-500/10 border-purple-500/30';
@@ -148,7 +148,7 @@ export const PerformanceMetricsPanel: React.FC<PerformanceMetricsPanelProps> = (
             ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-sm'
             : result && !loading
               ? 'bg-slate-800/60 hover:bg-slate-700/60 border-white/10 hover:border-cyan-500/40 text-slate-200'
-              : 'bg-slate-800/40 hover:bg-slate-800/70 border-white/5 text-slate-400'
+              : 'bg-slate-800/40 hover:bg-slate-800/70 border-white/5 text-content-secondary'
         }`}
         title="点击展开查看模型响应耗时 (Latency)、Token 吞吐及最优模型推荐"
         aria-label="Performance Metrics Panel"
@@ -161,7 +161,7 @@ export const PerformanceMetricsPanel: React.FC<PerformanceMetricsPanelProps> = (
                 ? 'text-amber-400 animate-spin' 
                 : result 
                   ? 'text-cyan-400 group-hover:scale-110 transition-transform' 
-                  : 'text-slate-500'
+                  : 'text-content-muted'
             }`} 
           />
           <span className="font-bold text-[11px] uppercase tracking-wider hidden sm:inline">
@@ -182,17 +182,17 @@ export const PerformanceMetricsPanel: React.FC<PerformanceMetricsPanelProps> = (
             </span>
 
             {/* Tokens Pill */}
-            <span className="text-slate-400 text-[10px] font-mono hidden md:inline">
+            <span className="text-content-secondary text-[10px] font-mono hidden md:inline">
               <span className="text-slate-300 font-bold">{totalTokens}</span> tok
             </span>
           </div>
         ) : (
-          <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">待命</span>
+          <span className="text-[10px] text-content-muted font-mono hidden sm:inline">待命</span>
         )}
 
         <ChevronDown 
           size={11} 
-          className={`transition-transform duration-200 text-slate-400 group-hover:text-cyan-400 ${isOpen ? 'rotate-180 text-cyan-300' : ''}`} 
+          className={`transition-transform duration-200 text-content-secondary group-hover:text-cyan-400 ${isOpen ? 'rotate-180 text-cyan-300' : ''}`}
         />
       </button>
 
@@ -210,7 +210,7 @@ export const PerformanceMetricsPanel: React.FC<PerformanceMetricsPanelProps> = (
                   <span>实时性能与效率指标</span>
                   <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-400 border border-cyan-500/30 font-mono">LIVE</span>
                 </h4>
-                <p className="text-[9px] text-slate-400">衡量响应延迟、词元吞吐及模型成本效益</p>
+                <p className="text-[9px] text-content-secondary">衡量响应延迟、词元吞吐及模型成本效益</p>
               </div>
             </div>
             
@@ -222,9 +222,9 @@ export const PerformanceMetricsPanel: React.FC<PerformanceMetricsPanelProps> = (
           {/* If no result generated yet */}
           {!result && (
             <div className="py-6 px-4 text-center flex flex-col items-center justify-center gap-2 bg-black/20 rounded-xl border border-white/5">
-              <Clock size={24} className="text-slate-600 animate-pulse" />
-              <p className="text-xs text-slate-400 font-medium">尚未生成检索式</p>
-              <p className="text-[10px] text-slate-500">点击主界面【生成布尔检索式】后，此处将即时记录往返耗时 (Latency) 与 Token 消耗效率。</p>
+              <Clock size={24} className="text-content-muted animate-pulse" />
+              <p className="text-xs text-content-secondary font-medium">尚未生成检索式</p>
+              <p className="text-[10px] text-content-muted">点击主界面【生成布尔检索式】后，此处将即时记录往返耗时 (Latency) 与 Token 消耗效率。</p>
             </div>
           )}
 
@@ -235,7 +235,7 @@ export const PerformanceMetricsPanel: React.FC<PerformanceMetricsPanelProps> = (
               <div className="grid grid-cols-3 gap-2">
                 {/* Metric 1: Latency */}
                 <div className="p-2.5 bg-black/40 rounded-xl border border-white/5 flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                  <div className="flex items-center justify-between text-[10px] text-content-secondary">
                     <span className="flex items-center gap-1">
                       <Zap size={11} className="text-cyan-400" />
                       响应耗时
@@ -248,14 +248,14 @@ export const PerformanceMetricsPanel: React.FC<PerformanceMetricsPanelProps> = (
                       formatLatency(latency)
                     )}
                   </div>
-                  <span className="text-[9px] text-slate-500 leading-none">
+                  <span className="text-[9px] text-content-muted leading-none">
                     {isFromCache ? "命中本地高速缓存" : (latency && latency < 1500) ? "⚡ 极速响应" : (latency && latency < 3500) ? "🟢 标准耗时" : "🧠 深度思考"}
                   </span>
                 </div>
 
                 {/* Metric 2: Total Tokens */}
                 <div className="p-2.5 bg-black/40 rounded-xl border border-white/5 flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                  <div className="flex items-center justify-between text-[10px] text-content-secondary">
                     <span className="flex items-center gap-1">
                       <Cpu size={11} className="text-purple-400" />
                       Token 总耗
@@ -263,16 +263,16 @@ export const PerformanceMetricsPanel: React.FC<PerformanceMetricsPanelProps> = (
                   </div>
                   <div className="text-base sm:text-lg font-mono font-bold text-white tracking-tight">
                     {totalTokens}
-                    <span className="text-[10px] font-normal text-slate-400 ml-1">tok</span>
+                    <span className="text-[10px] font-normal text-content-secondary ml-1">tok</span>
                   </div>
-                  <span className="text-[9px] text-slate-500 leading-none">
+                  <span className="text-[9px] text-content-muted leading-none">
                     入: {promptTokens} | 出: {completionTokens}
                   </span>
                 </div>
 
                 {/* Metric 3: Token Efficiency Ratio */}
                 <div className="p-2.5 bg-black/40 rounded-xl border border-white/5 flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                  <div className="flex items-center justify-between text-[10px] text-content-secondary">
                     <span className="flex items-center gap-1">
                       <Sparkles size={11} className="text-amber-400" />
                       概念能效比
@@ -280,9 +280,9 @@ export const PerformanceMetricsPanel: React.FC<PerformanceMetricsPanelProps> = (
                   </div>
                   <div className="text-base sm:text-lg font-mono font-bold text-white tracking-tight">
                     {tokensPerConcept}
-                    <span className="text-[10px] font-normal text-slate-400 ml-1">/概念</span>
+                    <span className="text-[10px] font-normal text-content-secondary ml-1">/概念</span>
                   </div>
-                  <span className="text-[9px] text-slate-500 leading-none">
+                  <span className="text-[9px] text-content-muted leading-none">
                     产出 {keywordCount} 组学术概念
                   </span>
                 </div>
@@ -293,7 +293,7 @@ export const PerformanceMetricsPanel: React.FC<PerformanceMetricsPanelProps> = (
                 <div className="flex items-center gap-2">
                   <Cpu size={14} className="text-cyan-400 shrink-0" />
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-mono block leading-none mb-0.5">当前模型与提供商</span>
+                    <span className="text-[10px] text-content-secondary uppercase font-mono block leading-none mb-0.5">当前模型与提供商</span>
                     <span className="font-bold text-white font-mono text-xs">{result._modelUsed || activeModel}</span>
                   </div>
                 </div>
@@ -314,14 +314,14 @@ export const PerformanceMetricsPanel: React.FC<PerformanceMetricsPanelProps> = (
 
                   <div className="grid grid-cols-2 gap-2 text-xs font-mono">
                     <div className="p-2 bg-black/40 rounded-lg border border-white/5 flex flex-col gap-0.5">
-                      <span className="text-[9px] text-slate-400">Model A ({activeModel})</span>
+                      <span className="text-[9px] text-content-secondary">Model A ({activeModel})</span>
                       <div className="font-bold text-cyan-300">
                         {formatLatency(latency)} · {totalTokens} tok
                       </div>
                     </div>
 
                     <div className="p-2 bg-black/40 rounded-lg border border-white/5 flex flex-col gap-0.5">
-                      <span className="text-[9px] text-slate-400">Model B ({compareModel || 'Model B'})</span>
+                      <span className="text-[9px] text-content-secondary">Model B ({compareModel || 'Model B'})</span>
                       <div className="font-bold text-purple-300">
                         {formatLatency(compareLatency)} · {compareTotalTokens} tok
                       </div>
@@ -345,7 +345,7 @@ export const PerformanceMetricsPanel: React.FC<PerformanceMetricsPanelProps> = (
 
           {/* Quick Footer Action to Settings */}
           <div className="flex items-center justify-between pt-1 border-t border-white/10 text-[11px]">
-            <span className="text-slate-500 text-[10px] flex items-center gap-1">
+            <span className="text-content-muted text-[10px] flex items-center gap-1">
               <HelpCircle size={11} />
               数据基于实时请求计算
             </span>
