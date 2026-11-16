@@ -4,7 +4,7 @@ AI_RETRIEVAL_X separates speech recognition from the LLM provider used to genera
 
 ## Provider choices
 
-- **Gemini**: existing direct Gemini transcription adapter; uses the Gemini key already configured in app settings.
+- **Gemini**: prefers the trusted server speech proxy when a service URL is configured. Without a URL, the existing direct Gemini BYOK adapter remains available; this compatibility mode uses a browser-accessible key and does not satisfy strict server-only key storage.
 - **OpenAI**: cloud transcription adapter contract; requires a separately operated trusted proxy.
 - **Deepgram**: cloud transcription adapter contract; requires a separately operated trusted proxy.
 - **Whisper local service**: a user-operated FastAPI service running faster-whisper. Model inference runs on the machine hosting the service, not in the browser.
@@ -14,6 +14,8 @@ AI_RETRIEVAL_X separates speech recognition from the LLM provider used to genera
 Select a proxy-backed engine in the voice input control and enter its base URL in Service URL. The URL is saved in this browser local storage; it is an endpoint address, not a provider secret. Clearing the field restores the build-time VITE_SPEECH_PROXY_URL fallback.
 
 The browser sends multipart form data containing file and language=auto to one of:
+
+- POST /api/speech/gemini/transcriptions
 
 - POST /api/speech/openai/transcriptions
 - POST /api/speech/deepgram/transcriptions
@@ -77,3 +79,10 @@ The bundled FastAPI service implements OpenAI and Deepgram endpoint contracts. C
 The browser sends only audio and a language hint to the configured service URL. The proxy adds provider authorization server-side and returns a normalized JSON text response. Health status reports whether each provider is configured, never its secret.
 
 Do not expose this unauthenticated service beyond loopback. Shared remote hosting requires user authentication, rate limiting, abuse controls, HTTPS, and secret management before provider keys are enabled.
+
+
+## GPU and reproducible evaluation
+
+See [CPU/GPU runtime and local validation](WHISPER_GPU.md). The GPU configuration is standalone (`docker-compose.speech.gpu.yml`) and does not modify CPU dependencies. A fixed prompt specification is provided; actual audio must be recorded/frozen and hashed before formal performance evaluation. No WER/CER claim follows from mocked tests.
+
+Gemini proxy setup uses server-only GEMINI_API_KEY and GEMINI_TRANSCRIPTION_MODEL (default gemini-2.5-flash). OpenAI/Deepgram keys also remain server-side. A configured Gemini proxy failure never causes a direct BYOK retry. Clear the service URL only when intentionally returning to legacy direct Gemini mode. The app still supports browser BYOK for text generation; that residual boundary is recorded separately rather than described as server-only key storage.

@@ -53,3 +53,17 @@ def test_audio_path_resolves_existing_file(tmp_path: Path):
     audio = tmp_path / "sample.wav"
     audio.write_bytes(b"audio")
     assert resolve_audio_path(tmp_path, "sample.wav") == audio.resolve()
+
+
+def test_manifest_rejects_infinite_duration(tmp_path):
+    manifest=tmp_path / "manifest.json"
+    manifest.write_text(json.dumps([{"audio":"a.wav","reference":"hello","duration_seconds":float("inf")}]))
+    with pytest.raises(ValueError, match="duration_seconds"):
+        load_manifest(manifest)
+
+
+def test_audio_manifest_hash_checked_before_request(tmp_path):
+    from scripts.evaluate_whisper import transcribe
+    (tmp_path / "a.wav").write_bytes(b"changed recording")
+    with pytest.raises(ValueError, match="SHA256"):
+        transcribe("http://127.0.0.1:1", {"audio":"a.wav", "sha256":"wrong"}, tmp_path, 1)

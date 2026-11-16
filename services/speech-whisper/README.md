@@ -47,7 +47,7 @@ CI deliberately mocks inference to avoid downloading weights. Prepare a private 
 From services/speech-whisper:
 
     python -m pip install -r requirements-test.txt
-    python scripts/evaluate_whisper.py --manifest evaluation/manifest.json --base-url http://127.0.0.1:8000 --model-size small --device cpu --compute-type int8 --hardware "CPU model / RAM" --output evaluation/results.json
+    python scripts/evaluate_whisper.py --manifest evaluation/manifest.json --dataset-version private-corpus-v1 --base-url http://127.0.0.1:8000 --model-size small --device cpu --compute-type int8 --hardware "CPU model / RAM" --output evaluation/results.json
 
 The report includes WER, CER, latency, and real-time factor. WER is most useful for whitespace-separated languages. CER is calculated over NFKC/casefolded Unicode code points after removing whitespace; punctuation is retained. Review both metric definitions before comparing results. Compare cold-start and warm runs separately; do not include first-time model download in steady-state latency.
 
@@ -76,3 +76,12 @@ Endpoints:
 Both accept multipart file and language fields and return a JSON text field. language=auto uses provider-side automatic language detection; explicit language codes are forwarded.
 
 These proxy endpoints do not implement user authentication or per-user quotas. Keep the service loopback-only for local use. Any shared/remote deployment must add authentication, rate limiting, abuse controls, HTTPS, and secret management before enabling cloud providers.
+
+
+## CPU/GPU validation and benchmark guide
+
+See [the CPU/GPU runtime guide](../../docs/WHISPER_GPU.md) for the independent GPU Compose file, pinned CUDA compatibility evidence, preflight, fixed bilingual recording prompts, hash-based corpus freezing, cold/warm benchmark methodology, sampled resource metrics, and stop/cleanup commands. GPU runtime is not implied by a healthy CPU service.
+
+All speech uploads now have a pre-multipart request limit (audio limit plus 64 KiB multipart overhead), a 30-second upload deadline, and a global non-waiting request concurrency limit (default one, including cloud requests). MAX_AUDIO_BYTES still applies to the actual file. MAX_CONCURRENT_REQUESTS and UPLOAD_TIMEOUT_SECONDS configure these boundaries. Local model concurrency retains its own MAX_CONCURRENT_INFERENCES bound. Cancellation stops browser waiting; it does not guarantee stopping already running model inference or upstream billing.
+
+Gemini also supports the trusted server proxy at `/api/speech/gemini/transcriptions`. Set GEMINI_API_KEY only in the server environment; GEMINI_TRANSCRIPTION_MODEL defaults to gemini-2.5-flash. When a service URL is configured, the Gemini speech adapter uses it and never falls back after a proxy error. Without a service URL, legacy direct Gemini BYOK remains available. That compatibility mode uses a browser-accessible key, so it does **not** meet a strict server-only secret-storage policy. Prefer the proxy for speech; existing text-generation BYOK is a separate legacy boundary.

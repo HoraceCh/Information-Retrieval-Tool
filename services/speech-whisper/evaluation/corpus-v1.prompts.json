@@ -1,0 +1,16 @@
+[
+  {"id":"zh-ordinary","language":"zh","condition":"clean","reference":"请帮我查找近年来关于城市公共交通发展的研究。"},
+  {"id":"zh-long","language":"zh","condition":"long","reference":"我希望检索同时讨论机器人路径规划、多传感器融合以及复杂环境下动态避障的方法，并比较这些方法在工业场景中的可靠性。"},
+  {"id":"zh-mixed","language":"zh","condition":"mixed-language","reference":"请比较 reinforcement learning 和模型预测控制在移动机器人中的应用。"},
+  {"id":"zh-mechanical","language":"zh","condition":"technical","reference":"机械臂末端执行器的运动学标定需要考虑齿轮传动误差和关节刚度。"},
+  {"id":"zh-retrieval","language":"zh","condition":"academic","reference":"请使用布尔运算符构建检索式，限制标题和摘要字段，并检查括号与引号是否匹配。"},
+  {"id":"zh-noise","language":"zh","condition":"background-noise","reference":"机械臂末端执行器的运动学标定需要考虑齿轮传动误差和关节刚度。"},
+  {"id":"zh-short","language":"zh","condition":"short","reference":"机器人路径规划。"},
+  {"id":"en-ordinary","language":"en","condition":"clean","reference":"Please help me find recent studies on urban public transportation."},
+  {"id":"en-technical","language":"en","condition":"technical","reference":"The robot uses simultaneous localization and mapping with sensor fusion for dynamic obstacle avoidance."},
+  {"id":"en-academic","language":"en","condition":"academic","reference":"Construct a Boolean search query with title and abstract fields and check balanced parentheses."},
+  {"id":"en-long","language":"en","condition":"long","reference":"I would like to compare model predictive control and reinforcement learning for industrial manipulators while considering calibration errors, joint stiffness, reliability, and computational cost."},
+  {"id":"en-noise","language":"en","condition":"background-noise","reference":"The robot uses simultaneous localization and mapping with sensor fusion for dynamic obstacle avoidance."},
+  {"id":"en-low-quality","language":"en","condition":"low-quality","reference":"Search for peer reviewed papers about mechanical engineering and robotics."},
+  {"id":"en-short","language":"en","condition":"short","reference":"Robotic path planning."}
+]
