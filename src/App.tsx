@@ -2043,6 +2043,7 @@ export default function App() {
 
   return (
     <div className={`app-shell min-h-screen flex flex-col font-sans transition-colors duration-200 overflow-x-hidden ${theme === 'light' ? 'theme-light bg-[#f8fafc] text-slate-900' : 'bg-canvas text-slate-100'}`}>
+      <a href="#main-content" className="ui-skip-link">{uiLang === "en" ? "Skip to main content" : "跳至主要内容"}</a>
       {/* Header Section */}
       <header className="ui-header flex items-center justify-between border-b border-white/10 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 shrink-0 bg-surface backdrop-blur-sm z-50 gap-2 sm:gap-4 transition-colors relative">
         {/* Brand Logo & Title */}
@@ -2176,6 +2177,7 @@ export default function App() {
                 setIsConfigOpen(true);
               }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800/40 hover:bg-slate-700/60 text-slate-300 hover:text-cyan-300 border border-white/5 hover:border-cyan-500/30 rounded-xl transition-all cursor-pointer shrink-0 font-mono text-xs font-bold"
+              aria-label="Settings"
               title="大模型API配置、检索模板管理与AI优化轨迹"
             >
               <Settings size={13} className="text-cyan-400" />
@@ -2186,6 +2188,7 @@ export default function App() {
             <button
               onClick={() => setIsHistoryOpen(true)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800/40 hover:bg-slate-700/60 text-slate-300 hover:text-cyan-300 border border-white/5 hover:border-cyan-500/30 rounded-xl transition-all cursor-pointer shrink-0 font-mono text-xs font-bold"
+              aria-label="History"
               title="查看历史检索式生成记录"
             >
               <History size={13} className="text-cyan-400" />
@@ -2532,7 +2535,7 @@ export default function App() {
       </nav>
 
       {activeTab === 'ai' ? (
-        <main className="flex-1 flex flex-col xl:flex-row gap-4 sm:gap-6 p-3 sm:p-4 lg:p-6 min-h-0 overflow-y-auto container mx-auto max-w-[1680px]">
+        <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col xl:flex-row gap-4 sm:gap-6 p-3 sm:p-4 lg:p-6 min-h-0 overflow-y-auto container mx-auto max-w-[1680px]">
         
         {/* Left Column: Input & Formula Result */}
         <div className="flex-1 flex flex-col gap-4 sm:gap-6 min-w-0">
@@ -3619,7 +3622,7 @@ export default function App() {
         </aside>
       </main>
       ) : activeTab === 'whitelist' ? (
-        <main className="flex-1 flex flex-col gap-6 p-3 sm:p-6 overflow-y-auto min-h-0 container mx-auto max-w-[1680px]">
+        <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col gap-6 p-3 sm:p-6 overflow-y-auto min-h-0 container mx-auto max-w-[1680px]">
           <OfficialWhitelist />
         </main>
       ) : (
@@ -3637,18 +3640,18 @@ export default function App() {
             {t('sysOpt')}
           </div>
           <div className="flex items-center gap-3 sm:gap-4 text-[10px] text-content-muted font-mono tracking-tighter flex-wrap">
-            <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsHistoryOpen(true)}>
+            <button type="button" className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsHistoryOpen(true)}>
               <History size={12} className="mr-1" /> {t('historyButton')}
-            </span>
-            <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsConfigOpen(true)}>
+            </button>
+            <button type="button" className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsConfigOpen(true)}>
               <Settings size={12} className="mr-1" /> {t('settings')}
-            </span>
-            <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsStatsOpen(true)}>
+            </button>
+            <button type="button" className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsStatsOpen(true)}>
               <BarChart2 size={12} className="mr-1" /> {t('statsButton')}
-            </span>
-            <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setActiveTab('about')}>
+            </button>
+            <button type="button" className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setActiveTab('about')}>
               <BookOpen size={12} className="mr-1" /> {uiLang === 'en' ? 'About' : '项目介绍'}
-            </span>
+            </button>
             <a href="https://github.com/HoraceCh/Information-Retrieval-Tool#readme" target="_blank" rel="noreferrer" className="hover:text-cyan-400 transition-colors">README</a>
             <span className="hover:text-cyan-400 cursor-pointer transition-colors hidden sm:inline">DB_STATUS: OK</span>
           </div>

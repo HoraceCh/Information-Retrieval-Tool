@@ -252,7 +252,7 @@ export default function ProjectOverview({
   const bodyClass = "text-sm leading-7 text-slate-300 [.theme-light_&]:text-content-muted";
 
   return (
-    <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-8 overflow-y-auto px-3 py-5 sm:px-6 sm:py-8 lg:px-8">
+    <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-8 overflow-y-auto px-3 py-5 sm:px-6 sm:py-8 lg:px-8">
       <section id="project-intro" aria-labelledby="project-overview-title" className="relative overflow-hidden rounded-3xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/15 via-slate-900/80 to-indigo-500/15 p-6 sm:p-9 lg:p-12 [.theme-light_&]:border-cyan-200 [.theme-light_&]:from-cyan-50 [.theme-light_&]:via-white [.theme-light_&]:to-indigo-50">
         <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="relative grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
