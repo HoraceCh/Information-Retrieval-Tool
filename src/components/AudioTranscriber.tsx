@@ -317,8 +317,10 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
       } catch (_) {}
       setErrorMsg(details);
     } finally {
-      if (transcriptionAbortRef.current === controller) transcriptionAbortRef.current = null;
-      if (mountedRef.current) setIsTranscribing(false);
+      if (transcriptionAbortRef.current === controller) {
+        transcriptionAbortRef.current = null;
+        if (mountedRef.current) setIsTranscribing(false);
+      }
     }
   };
 

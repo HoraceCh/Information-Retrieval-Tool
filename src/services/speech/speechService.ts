@@ -19,8 +19,8 @@ class SpeechServiceResponseError extends Error {}
 /** Provider-neutral transcription. Cloud credentials remain on a trusted server proxy. */
 export async function transcribeWithProvider(providerId: SpeechProviderId, audioBlob: Blob, options: SpeechTranscriptionOptions = {}): Promise<string> {
   if (!(audioBlob instanceof Blob) || audioBlob.size === 0) throw new Error("No audio data was recorded. Please record again.");
-  if (providerId === "gemini") return normalizeTranscript(await transcribeAudio(audioBlob, options.geminiKey, options.signal));
-  const url = buildSpeechProxyUrl(options.proxyBaseUrl, providerId);
+  const directGemini = providerId === "gemini" && !options.proxyBaseUrl?.trim();
+  const url = directGemini ? null : buildSpeechProxyUrl(options.proxyBaseUrl, providerId);
   const form = new FormData();
   form.append("file", audioBlob, "recording");
   form.append("language", "auto");
@@ -32,7 +32,12 @@ export async function transcribeWithProvider(providerId: SpeechProviderId, audio
   else options.signal?.addEventListener("abort", abortFromCaller, { once: true });
   const timeoutId = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
   try {
-    const response = await fetch(url, { method: "POST", body: form, headers: { Accept: "application/json" }, signal: controller.signal });
+    if (directGemini) {
+      const transcript = normalizeTranscript(await transcribeAudio(audioBlob, options.geminiKey, controller.signal));
+      if (!transcript) throw new SpeechServiceResponseError("No speech was recognized. Please try again.");
+      return transcript;
+    }
+    const response = await fetch(url!, { method: "POST", body: form, headers: { Accept: "application/json" }, signal: controller.signal });
     if (!response.ok) throw new SpeechServiceResponseError(await readProxyError(response));
     let payload: unknown;
     try { payload = await response.json(); }
@@ -48,6 +53,7 @@ export async function transcribeWithProvider(providerId: SpeechProviderId, audio
     if (timedOut || (error instanceof Error && error.name === "AbortError")) {
       throw new Error(`Speech service request timed out after ${Math.round(timeoutMs / 1000)} seconds. Try a shorter recording or another provider.`);
     }
+    if (directGemini && error instanceof Error) throw error;
     if (error instanceof SpeechServiceResponseError) throw new Error(error.message);
     throw new Error("Could not reach the speech service. Check that it is running, the URL is correct, and browser network access is allowed.");
   } finally {

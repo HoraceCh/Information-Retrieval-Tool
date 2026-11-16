@@ -122,3 +122,62 @@ def test_deepgram_malformed_payload_is_sanitized(monkeypatch):
     r=client.post("/api/speech/deepgram/transcriptions",files={"file":("a.wav",b"x","audio/wav")})
     assert r.status_code==502
     assert "unexpected" not in r.text
+
+
+def test_request_limit_applies_before_multipart_parser(monkeypatch):
+    monkeypatch.setattr(main, "MAX_AUDIO_BYTES", 4)
+    response = client.post("/api/speech/whisper/transcriptions", content=b"x" * 65541,
+                           headers={"Content-Type": "multipart/form-data; boundary=broken"})
+    assert response.status_code == 413
+
+
+def test_cloud_requests_share_global_busy_limit(monkeypatch):
+    # Locate the real middleware instance; hold its global slot before sending.
+    middleware = main.app.middleware_stack
+    while not isinstance(middleware, main.SpeechRequestLimits):
+        middleware = middleware.app
+    assert middleware.slots.acquire(blocking=False)
+    try:
+        response = client.post("/api/speech/openai/transcriptions", files={"file": ("a.wav", b"audio", "audio/wav")})
+        assert response.status_code == 429 and response.headers["retry-after"] == "3"
+    finally:
+        middleware.slots.release()
+
+
+def test_gpu_missing_device_gives_explicit_diagnostic(monkeypatch):
+    # No actual CUDA library or model is used by this unit test.
+    import sys
+    from types import SimpleNamespace
+    monkeypatch.setattr(main, "_model", None)
+    monkeypatch.setattr(main, "MODEL_DEVICE", "cuda")
+    monkeypatch.setitem(sys.modules, "faster_whisper", SimpleNamespace(WhisperModel=lambda *_a, **_k: None))
+    monkeypatch.setitem(sys.modules, "ctranslate2", SimpleNamespace(get_cuda_device_count=lambda: 0))
+    import pytest
+    with pytest.raises(RuntimeError, match="CUDA device is unavailable"):
+        main.get_whisper_model()
+
+
+def test_gemini_proxy_keeps_key_server_side(monkeypatch):
+    monkeypatch.setattr(main, "GEMINI_API_KEY", "test-only-key")
+    async def fake(url, **kwargs):
+        assert url.startswith("https://generativelanguage.googleapis.com/")
+        assert kwargs["headers"] == {"x-goog-api-key": "test-only-key"}
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "你好 robotics"}]}}]}, request=httpx.Request("POST", url))
+    install_fake_client(monkeypatch, fake)
+    r=client.post("/api/speech/gemini/transcriptions", files={"file": ("a.wav", b"audio", "audio/wav")})
+    assert r.status_code == 200 and r.json() == {"text": "你好 robotics"}
+    assert "test-only-key" not in r.text
+
+
+def test_gemini_proxy_missing_key_is_explicit(monkeypatch):
+    monkeypatch.setattr(main, "GEMINI_API_KEY", "")
+    assert client.post("/api/speech/gemini/transcriptions", files={"file": ("a.wav", b"audio", "audio/wav")}).status_code == 503
+
+
+def test_gpu_readiness_fails_without_device(monkeypatch):
+    import sys
+    from types import SimpleNamespace
+    monkeypatch.setattr(main, "MODEL_DEVICE", "cuda")
+    monkeypatch.setitem(sys.modules, "ctranslate2", SimpleNamespace(get_cuda_device_count=lambda: 0))
+    r=client.get("/readyz")
+    assert r.status_code == 503 and "passthrough" in r.json()["detail"]

@@ -1,5 +1,7 @@
 from __future__ import annotations
-import logging, os, re, tempfile, threading
+import base64
+import asyncio, logging, os, re, tempfile, threading, time
+from importlib.metadata import version
 from pathlib import Path
 from urllib.parse import urlencode
 import httpx
@@ -17,11 +19,15 @@ def positive_int_env(name: str, default: int) -> int:
         return default
 
 MAX_AUDIO_BYTES = positive_int_env("MAX_AUDIO_BYTES", 20 * 1024 * 1024)
+MAX_CONCURRENT_REQUESTS = positive_int_env("MAX_CONCURRENT_REQUESTS", 1)
+UPLOAD_TIMEOUT_SECONDS = positive_int_env("UPLOAD_TIMEOUT_SECONDS", 30)
 MAX_CONCURRENT_INFERENCES = positive_int_env("MAX_CONCURRENT_INFERENCES", 1)
 MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "small")
 MODEL_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
 MODEL_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
 MODEL_DOWNLOAD_ROOT = os.getenv("WHISPER_DOWNLOAD_ROOT", "/models")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_TRANSCRIPTION_MODEL = os.getenv("GEMINI_TRANSCRIPTION_MODEL", "gemini-2.5-flash")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_TRANSCRIPTION_MODEL = os.getenv("OPENAI_TRANSCRIPTION_MODEL", "whisper-1")
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY", "")
@@ -30,7 +36,50 @@ UPSTREAM_TIMEOUT_SECONDS = positive_int_env("SPEECH_UPSTREAM_TIMEOUT_SECONDS", 9
 DEFAULT_ORIGINS = "https://horacech.github.io,http://localhost:3000,http://127.0.0.1:3000,http://localhost:4173,http://127.0.0.1:4173"
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("SPEECH_ALLOWED_ORIGINS", DEFAULT_ORIGINS).split(",") if o.strip()]
 AUDIO_SUFFIXES = {"audio/webm":".webm","audio/mp4":".mp4","audio/ogg":".ogg","audio/wav":".wav","audio/x-wav":".wav","audio/mpeg":".mp3","audio/flac":".flac","audio/aac":".aac","audio/3gpp":".3gp"}
+class SpeechRequestLimits:
+    """Bound uploads before multipart parsing and cap all provider work, including cloud spend."""
+    def __init__(self, app):
+        self.app = app
+        self.slots = threading.BoundedSemaphore(MAX_CONCURRENT_REQUESTS)
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope["method"] != "POST" or not scope["path"].startswith("/api/speech/"):
+            return await self.app(scope, receive, send)
+        if not self.slots.acquire(blocking=False):
+            return await JSONResponse({"detail": "Speech service is busy. Try again shortly."}, 429, headers={"Retry-After": "3"})(scope, receive, send)
+        try:
+            # Includes a bounded allowance for multipart headers and language fields.
+            limit = MAX_AUDIO_BYTES + 65536
+            chunks, size = [], 0
+            async with asyncio.timeout(UPLOAD_TIMEOUT_SECONDS):
+                while True:
+                    message = await receive()
+                    if message["type"] == "http.disconnect":
+                        return
+                    data = message.get("body", b"")
+                    size += len(data)
+                    if size > limit:
+                        return await JSONResponse({"detail": "Upload exceeds the request size limit."}, 413)(scope, receive, send)
+                    chunks.append(data)
+                    if not message.get("more_body", False):
+                        break
+            body = b"".join(chunks)
+            del chunks
+            sent = False
+            async def replay():
+                nonlocal sent
+                if not sent:
+                    sent = True
+                    return {"type": "http.request", "body": body, "more_body": False}
+                return await receive()
+            await self.app(scope, replay, send)
+        except TimeoutError:
+            await JSONResponse({"detail": "Audio upload timed out."}, 408)(scope, receive, send)
+        finally:
+            self.slots.release()
+
 app = FastAPI(title="AI_RETRIEVAL_X Speech API", version="1.1.0", docs_url=None, redoc_url=None)
+app.add_middleware(SpeechRequestLimits)
 app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_credentials=False, allow_methods=["GET","POST","OPTIONS"], allow_headers=["Accept","Content-Type"])
 
 @app.middleware("http")
@@ -42,20 +91,27 @@ async def enforce_allowed_browser_origin(request: Request, call_next):
         return JSONResponse(status_code=403, content={"detail": "Browser origin is not allowed."})
     return await call_next(request)
 _model = None
+_model_load_seconds = None
 _model_lock = threading.Lock()
 _inference_slots = threading.BoundedSemaphore(MAX_CONCURRENT_INFERENCES)
 
 def get_whisper_model():
-    global _model
+    global _model, _model_load_seconds
     if _model is None:
         with _model_lock:
             if _model is None:
                 from faster_whisper import WhisperModel
+                if MODEL_DEVICE == "cuda":
+                    import ctranslate2
+                    if ctranslate2.get_cuda_device_count() < 1:
+                        raise RuntimeError("CUDA device is unavailable; check NVIDIA Container Toolkit and driver.")
+                started = time.perf_counter()
                 kwargs = {"device":MODEL_DEVICE,"compute_type":MODEL_COMPUTE_TYPE}
                 if MODEL_DOWNLOAD_ROOT:
                     Path(MODEL_DOWNLOAD_ROOT).mkdir(parents=True,exist_ok=True)
                     kwargs["download_root"] = MODEL_DOWNLOAD_ROOT
                 _model = WhisperModel(MODEL_SIZE,**kwargs)
+                _model_load_seconds = time.perf_counter() - started
     return _model
 
 def transcribe_file(file_path: str, language: str) -> str:
@@ -81,6 +137,34 @@ async def read_audio(file: UploadFile) -> tuple[bytes,str]:
     finally:
         await file.close()
 
+async def forward_gemini(data: bytes, content_type: str, language: str) -> str:
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=503, detail="Gemini speech provider is not configured on this service.")
+    # Fixed upstream host; model is service configuration, never a browser-supplied URL.
+    if not re.fullmatch(r"[a-zA-Z0-9._-]+", GEMINI_TRANSCRIPTION_MODEL):
+        raise HTTPException(status_code=503, detail="Gemini speech model configuration is invalid.")
+    prompt = "Transcribe this audio verbatim. Output only the transcription without commentary."
+    if language != "auto": prompt += " The language code is " + language + "."
+    try:
+        async with httpx.AsyncClient(timeout=UPSTREAM_TIMEOUT_SECONDS) as client:
+            response = await client.post(
+                "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_TRANSCRIPTION_MODEL + ":generateContent",
+                headers={"x-goog-api-key": GEMINI_API_KEY},
+                json={"contents": [{"parts": [{"inline_data": {"mime_type": content_type, "data": base64.b64encode(data).decode("ascii")}}, {"text": prompt}]}]},
+            )
+        response.raise_for_status()
+        payload = response.json()
+        candidates = payload.get("candidates", [])
+        parts = candidates[0]["content"]["parts"]
+        transcript = " ".join(part["text"].strip() for part in parts if isinstance(part.get("text"), str)).strip()
+        if not transcript: raise ValueError("empty transcript")
+        return transcript
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Gemini speech request timed out.") from None
+    except (httpx.HTTPError, ValueError, KeyError, TypeError, IndexError, AttributeError):
+        logger.warning("Gemini upstream request failed")
+        raise HTTPException(status_code=502, detail="Gemini speech provider returned an invalid result or rejected the request.") from None
+
 async def forward_openai(data: bytes, content_type: str, language: str) -> str:
     if not OPENAI_API_KEY: raise HTTPException(status_code=503,detail="OpenAI speech provider is not configured on this service.")
     fields={"model":OPENAI_TRANSCRIPTION_MODEL}
@@ -98,8 +182,8 @@ async def forward_openai(data: bytes, content_type: str, language: str) -> str:
     except httpx.HTTPStatusError as error:
         logger.warning("OpenAI upstream returned HTTP %s",error.response.status_code)
         raise HTTPException(status_code=502,detail="OpenAI speech provider rejected the transcription request.") from None
-    except (httpx.HTTPError,ValueError,KeyError):
-        logger.exception("OpenAI upstream request failed")
+    except (httpx.HTTPError,ValueError,KeyError,TypeError,AttributeError):
+        logger.warning("OpenAI upstream request failed")
         raise HTTPException(status_code=502,detail="OpenAI speech provider request failed.") from None
 
 async def forward_deepgram(data: bytes, content_type: str, language: str) -> str:
@@ -126,12 +210,16 @@ async def forward_deepgram(data: bytes, content_type: str, language: str) -> str
         logger.warning("Deepgram upstream returned HTTP %s",error.response.status_code)
         raise HTTPException(status_code=502,detail="Deepgram speech provider rejected the transcription request.") from None
     except (httpx.HTTPError,ValueError,KeyError,IndexError,TypeError,AttributeError):
-        logger.exception("Deepgram upstream request failed")
+        logger.warning("Deepgram upstream request failed")
         raise HTTPException(status_code=502,detail="Deepgram speech provider request failed.") from None
 
 @app.get("/healthz")
 async def healthz():
-    return {"status":"ok","model_loaded":_model is not None,"model":MODEL_SIZE,"device":MODEL_DEVICE,"compute_type":MODEL_COMPUTE_TYPE,"max_concurrent_inferences":MAX_CONCURRENT_INFERENCES,"providers":{"whisper-local":True,"openai":bool(OPENAI_API_KEY),"deepgram":bool(DEEPGRAM_API_KEY)}}
+    packages = {}
+    for package in ("faster-whisper", "ctranslate2"):
+        try: packages[package] = version(package)
+        except Exception: packages[package] = "not installed"
+    return {"versions":packages,"model_load_seconds":_model_load_seconds,"max_concurrent_requests":MAX_CONCURRENT_REQUESTS,"status":"ok","model_loaded":_model is not None,"model":MODEL_SIZE,"device":MODEL_DEVICE,"compute_type":MODEL_COMPUTE_TYPE,"max_concurrent_inferences":MAX_CONCURRENT_INFERENCES,"providers":{"gemini":bool(GEMINI_API_KEY),"whisper-local":True,"openai":bool(OPENAI_API_KEY),"deepgram":bool(DEEPGRAM_API_KEY)}}
 
 @app.post("/api/speech/whisper/transcriptions")
 async def transcribe_whisper(file: UploadFile=File(...),language: str=Form("auto")):
@@ -147,8 +235,8 @@ async def transcribe_whisper(file: UploadFile=File(...),language: str=Form("auto
     except HTTPException:
         raise
     except Exception:
-        logger.exception("Local Whisper transcription failed")
-        raise HTTPException(status_code=502,detail="Local speech recognition failed. Check the Whisper model setup and audio format.") from None
+        logger.warning("Local Whisper transcription failed; device=%s", MODEL_DEVICE)
+        raise HTTPException(status_code=502,detail="Local speech recognition failed. Check GPU passthrough and CUDA libraries if using cuda, or the model setup and audio format.") from None
     finally:
         _inference_slots.release()
 
@@ -163,3 +251,23 @@ async def transcribe_deepgram(file: UploadFile=File(...),language: str=Form("aut
     language=validate_language(language)
     data,content_type=await read_audio(file)
     return {"text":await forward_deepgram(data,content_type,language)}
+
+@app.post("/api/speech/gemini/transcriptions")
+async def transcribe_gemini(file: UploadFile=File(...), language: str=Form("auto")):
+    language=validate_language(language)
+    data,content_type=await read_audio(file)
+    return {"text":await forward_gemini(data,content_type,language)}
+
+@app.get("/readyz")
+async def readyz():
+    # Checks runtime support without downloading weights; transcription remains a separate gate.
+    try:
+        import ctranslate2
+        if MODEL_DEVICE == "cuda" and ctranslate2.get_cuda_device_count() < 1:
+            raise RuntimeError("GPU unavailable")
+        supported = ctranslate2.get_supported_compute_types(MODEL_DEVICE)
+        if MODEL_COMPUTE_TYPE not in supported:
+            raise RuntimeError("Compute type unavailable")
+    except Exception:
+        return JSONResponse(status_code=503, content={"status": "unavailable", "detail": "Speech runtime is unavailable. Check device passthrough, CUDA libraries and compute type."})
+    return {"status": "ready", "model_loaded": _model is not None, "note": "Runtime probe only; real transcription has not been verified by this endpoint."}

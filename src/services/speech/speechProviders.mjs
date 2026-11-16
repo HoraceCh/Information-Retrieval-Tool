@@ -7,7 +7,7 @@ export const SPEECH_PROVIDERS = Object.freeze([
 export const SPEECH_PROVIDER_IDS = Object.freeze(SPEECH_PROVIDERS.map(provider => provider.id));
 export function isSpeechProviderId(value) { return SPEECH_PROVIDER_IDS.includes(value); }
 export function getSpeechProxyPath(providerId) {
-  const paths = { openai: "/api/speech/openai/transcriptions", deepgram: "/api/speech/deepgram/transcriptions", "whisper-local": "/api/speech/whisper/transcriptions" };
+  const paths = { gemini: "/api/speech/gemini/transcriptions", openai: "/api/speech/openai/transcriptions", deepgram: "/api/speech/deepgram/transcriptions", "whisper-local": "/api/speech/whisper/transcriptions" };
   return paths[providerId] || null;
 }
 export function normalizeTranscript(value) {
