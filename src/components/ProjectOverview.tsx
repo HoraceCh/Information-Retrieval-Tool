@@ -68,8 +68,8 @@ export default function ProjectOverview({
       icon: Mic,
       title: copy("语音输入与快捷检索", "Voice and quick access"),
       description: copy(
-        "可口述研究意图，并从官方数据库入口快速打开目标平台。",
-        "Dictate a research intent and jump to official database portals."
+        "独立选择语音引擎录入研究意图；非 Gemini 引擎需另行配置可信代理。通过官方入口打开目标数据库。",
+        "Select a speech engine independently; non-Gemini engines require a separately configured trusted proxy. Open databases through official portals."
       ),
     },
     {
@@ -524,8 +524,8 @@ export default function ProjectOverview({
           </p>
           <p className="mt-3 text-xs leading-6 text-amber-300/90 [.theme-light_&]:text-amber-700">
             {copy(
-              "语音转文字功能使用 Gemini，需要单独配置可用的 Gemini API Key。",
-              "Voice transcription uses Gemini and requires a valid Gemini API key."
+              "语音引擎可独立选择 Gemini、OpenAI、Deepgram 或 Whisper 本地服务。Gemini 使用现有浏览器端 Key；其他引擎需自行配置可信服务端，菜单可选不代表服务已就绪。",
+              "Choose Gemini, OpenAI, Deepgram or local Whisper independently. Gemini uses the existing browser key; other engines require your own trusted server. An available adapter does not establish service readiness."
             )}
           </p>
         </div>
@@ -537,8 +537,8 @@ export default function ProjectOverview({
           </div>
           <p className={bodyClass}>
             {copy(
-              "当前版本是静态前端应用，不提供自建模型代理服务。API Key 与部分偏好设置保存在当前浏览器的 localStorage 中；这不是加密保险库。检索意图、语音内容和 API 请求会发送给你选择的模型服务商，并受其数据政策约束。",
-              "This version is a static client-side app with no self-hosted model proxy. API keys and some preferences are stored in this browser's localStorage, which is not an encrypted vault. Search prompts, audio and API requests are sent to the provider you select and are subject to that provider's data policies."
+              "GitHub Pages 只托管静态前端，不托管语音代理或 Whisper。现有文本模型及 Gemini Key 保存在浏览器 localStorage 中，这不是加密保险库；OpenAI / Deepgram 语音专用密钥只应保存在可信服务端。检索意图发送给所选文本模型，录音发送给独立选择的语音引擎或代理。",
+              "GitHub Pages hosts only the static frontend, not a speech proxy or Whisper. Existing text-model and Gemini keys remain in browser localStorage, which is not an encrypted vault; OpenAI/Deepgram speech secrets belong only on a trusted server. Prompts go to the selected text model; audio goes to the independently selected speech engine or proxy."
             )}
           </p>
           <p className="mt-3 text-xs leading-6 text-emerald-300/90 [.theme-light_&]:text-emerald-700">

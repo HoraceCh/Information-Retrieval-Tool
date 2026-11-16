@@ -47,7 +47,7 @@
 | 检索式结构检查与可视化 | 检查括号、引号、算符连接与可疑缺项，并展示关键词关系和布尔逻辑树；不代表数据库已接受该语法 |
 | 离线官方网址速查 | 导出单文件 HTML，离线搜索内置数据库/专利网址目录；访问外部网站仍需网络 |
 | 检索模板库 | 使用或管理不同学科和研究任务的检索框架 |
-| 语音输入 | 通过 Gemini 语音转写输入研究意图 |
+| 独立语音引擎选择 | Gemini 直接转写；OpenAI、Deepgram、Local Whisper 通过另行配置的可信服务端；适配器不代表托管服务已就绪 |
 | 官方网址速查 | 快速访问内置的学术数据库、专利与标准平台入口 |
 | 本地历史与统计 | 在当前浏览器保存历史记录、调用统计和优化轨迹 |
 
@@ -131,6 +131,7 @@ npm run build    # 构建生产版本
 npm run preview  # 本地预览生产构建
 npm run test:validator  # 布尔检索式结构回归测试
 npm run test:security   # 存储恢复与安全回归测试
+npm run test:speech     # 语音适配器与路由测试
 ~~~
 
 更多配置与操作细节见 [使用指南](docs/USER_GUIDE.md) 和 [开发者文档](docs/DEVELOPMENT.md)。
@@ -141,17 +142,24 @@ npm run test:security   # 存储恢复与安全回归测试
 
 支持的预设服务商包括 Google Gemini、DeepSeek、SiliconFlow、Moonshot / Kimi、Zhipu GLM、Alibaba DashScope / Qwen、OpenAI 和 OpenRouter，也可以配置兼容 OpenAI API 格式的自定义服务。
 
-模型服务商可能按调用量收费，具体价格、速率限制和可用模型以服务商公布的信息为准。语音转写功能使用 Gemini，需要单独配置可用的 Gemini API Key。
+模型服务商可能按调用量收费，具体价格、速率限制和可用模型以服务商公布的信息为准。
+
+### 语音识别与本地 Whisper
+
+语音引擎与检索式生成模型独立选择，并在当前浏览器记住选择。Gemini 沿用浏览器端 BYOK 转写；OpenAI、Deepgram 和 Local Whisper 需要用户另行运行并配置可信服务端，服务凭据只放在该服务端，不放在 Vite 变量或 localStorage。未配置代理时会报错，不会自动改用其他引擎。详见 [Speech Provider 架构与代理协议](docs/SPEECH_PROVIDERS.md)。
+
+[PR #14：Local Whisper Runtime](https://github.com/HoraceCh/Information-Retrieval-Tool/pull/14) 仍为独立 Draft 工作流，尚未并入主分支。CPU 默认 small / int8 / 单路并发，GPU 使用独立 Docker 配置；部署命令、WSL2 / NVIDIA 检查与真实模型 benchmark 说明以该 PR 内的 [runtime README](https://github.com/HoraceCh/Information-Retrieval-Tool/blob/feat/local-whisper-runtime/services/speech-whisper/README.md) 为准。主分支或 GitHub Pages 不会自动安装、下载或启动 Whisper。CI 的模拟推理不代表真实模型、GPU 或四个服务已经验收。
 
 <a id="privacy-and-security"></a>
 
 ## 隐私与安全
 
-当前部署是 **静态前端应用**，模型请求由浏览器直接发送给使用者选择的模型服务商；项目没有自建的模型代理后端。
+当前部署是 **静态前端应用**。文本生成和 Gemini 语音请求由浏览器直接发送给使用者选择的模型服务商；其他语音引擎需要另行配置的可信代理。GitHub Pages 不托管代理或 Whisper 模型。
 
-- API Key 和部分用户配置保存在当前浏览器的 localStorage 中。
+- 现有文本模型和 Gemini BYOK API Key，以及部分用户配置，保存在当前浏览器的 localStorage 中。OpenAI / Deepgram 语音专用密钥必须只保存在可信服务端。
 - localStorage 不是加密保险库。拥有当前浏览器本地访问权限的用户或恶意注入的脚本可能读取其中的数据。
-- 检索意图、语音内容和 API 请求会发送到所选模型服务商，并受该服务商的数据处理、日志和隐私政策约束。
+- 检索意图会发送到所选文本模型服务商；语音会发送到所选语音引擎的服务商或可信代理。本地 Whisper 的音频在本地推理，首次下载模型仍需网络。请审查实际 endpoint 和服务的数据处理政策。
+- 未认证的本地 Whisper API 必须保持 loopback 绑定；CORS / Origin 检查不是身份认证，不足以保护公开 API。
 - 不要在公共或共享设备上保存个人 API Key；不要提交不适合发送给模型服务商的敏感资料。
 - GitHub Pages 的公开前端构建不需要注入模型 API Key。请勿通过 Vite 的 define、公开构建变量或提交源码的方式把密钥打包进浏览器资源。
 
@@ -193,7 +201,7 @@ npm run test:security   # 存储恢复与安全回归测试
 
 The standalone HTML export provides an offline-searchable directory of academic database, patent and standards URLs. Custom file entries store filenames only; the corresponding files must sit beside the exported HTML. Opening external sites and generating AI queries still require a network connection. The app does not crawl databases or host papers.
 
-Users bring their own model API keys. Requests are sent directly from the browser to the selected provider, and keys are stored in browser localStorage without application-level encryption. Please review the provider's data policy and avoid entering sensitive information.
+Users bring their own text-model API keys; these and the legacy Gemini speech key are stored in browser localStorage without application-level encryption. Speech selection is independent: Gemini uses the existing direct adapter, while OpenAI, Deepgram and local Whisper require a separately configured trusted proxy. Cloud speech secrets belong only on that server. Adapters and mocked CI tests do not establish real-service readiness. The Draft runtime in PR #14 is not hosted by GitHub Pages. Review the actual endpoint and provider data policy before recording.
 
 - [Open the live app](https://horacech.github.io/Information-Retrieval-Tool/)
 - [User guide](docs/USER_GUIDE.md)
