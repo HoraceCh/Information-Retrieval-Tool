@@ -514,3 +514,13 @@ html.theme-light, .theme-light {
 .app-shell button[title$="★"] { min-height: 28px; min-width: 28px; }
 .ui-skip-link { position: fixed; left: 1rem; top: -10rem; z-index: 1000; padding: .75rem 1rem; border-radius: .5rem; background: var(--surface); color: var(--primary); border: 2px solid var(--primary); }
 .ui-skip-link:focus { top: 1rem; }
+/* Flex items must remain shrinkable when users enlarge their browser text.
+   Width clipping on the page is not a substitute for reflow inside the form. */
+#guided-input-panel div { min-width: 0; max-width: 100%; }
+#guided-input-panel select { flex-shrink: 1; min-width: 0; max-width: 100%; }
+#guided-input-panel [title^="目标数据库"],
+#guided-input-panel [title^="语言偏好"],
+#guided-input-panel [title^="检索式逻辑框架"] { max-width: 100%; min-width: 0; }
+#guided-input-panel [title^="目标数据库"] select,
+#guided-input-panel [title^="语言偏好"] select,
+#guided-input-panel [title^="检索式逻辑框架"] select { width: auto; flex: 1 1 0; }

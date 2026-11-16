@@ -2095,6 +2095,18 @@ export default function App() {
                 e.currentTarget.querySelector('.dropdown-menu')?.classList.toggle('-translate-y-2');
               }}
               tabIndex={0}
+              onKeyDown={(event) => {
+                const menu = event.currentTarget.querySelector('.dropdown-menu, .provider-dropdown');
+                if (event.key === 'Escape') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  menu?.classList.add('hidden', 'opacity-0', '-translate-y-2');
+                  event.currentTarget.focus();
+                } else if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                  event.preventDefault();
+                  event.currentTarget.click();
+                }
+              }}
               onBlur={(e) => {
                 if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                   e.currentTarget.querySelector('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
@@ -3890,6 +3902,18 @@ export default function App() {
                         e.currentTarget.querySelector('.provider-dropdown')?.classList.toggle('-translate-y-2');
                       }}
                       tabIndex={0}
+              onKeyDown={(event) => {
+                const menu = event.currentTarget.querySelector('.dropdown-menu, .provider-dropdown');
+                if (event.key === 'Escape') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  menu?.classList.add('hidden', 'opacity-0', '-translate-y-2');
+                  event.currentTarget.focus();
+                } else if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                  event.preventDefault();
+                  event.currentTarget.click();
+                }
+              }}
                       onBlur={(e) => {
                         if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                           e.currentTarget.querySelector('.provider-dropdown')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
