@@ -1,0 +1,7 @@
+-r requirements.txt
+# Matched to the CT2 v4.9.0 Linux wheel's CUDA 12.8 build.
+nvidia-cublas-cu12==12.8.4.1
+nvidia-cuda-runtime-cu12==12.8.90
+nvidia-curand-cu12==10.3.9.90
+# CT2 >=4.6.3 uses pure CUDA conv1d; cuDNN is optional. Include for compatibility.
+nvidia-cudnn-cu12==9.10.2.21
