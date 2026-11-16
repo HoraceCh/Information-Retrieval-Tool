@@ -534,3 +534,4 @@ html.theme-light, .theme-light {
 .app-shell .ui-validation-snippet-error { background: var(--error-surface) !important; color: var(--error) !important; border-color: var(--error) !important; }
 .app-shell .ui-validation-snippet-warning { background: var(--warning-surface) !important; color: var(--warning) !important; border-color: var(--warning) !important; }
 .app-shell .ui-normalized-query { background: var(--success-surface) !important; color: var(--success) !important; border-color: var(--success) !important; }
+.app-shell .ui-offline-content { background: var(--surface-muted) !important; }
