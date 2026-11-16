@@ -697,19 +697,20 @@ export default function OfficialWhitelist({
       <div className="flex-1 flex flex-col gap-4 overflow-hidden h-full">
         {/* Simple refine search bar */}
         <div className="relative shrink-0">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-content-muted" />
           <input
             type="text"
+            aria-label="Search official links and local files"
             value={searchKw}
             onChange={(e) => setSearchKw(e.target.value)}
             onKeyDown={handleKwKeyDown}
             placeholder="输入您的匹配词、简写拼音或一段需求句... (如：高考/知网/北京统计局)"
-            className="w-full bg-[#05070a]/80 border border-white/10 rounded-xl pl-10 pr-10 py-3 text-xs text-cyan-200 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 transition-all font-mono"
+            className="w-full bg-[#05070a]/80 border border-white/10 rounded-xl pl-10 pr-10 py-3 text-xs text-cyan-200 placeholder:text-content-muted focus:outline-none focus:border-cyan-500/50 transition-all font-mono"
           />
           {searchKw && (
             <button 
               onClick={() => setSearchKw("")} 
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-content-muted hover:text-white transition-colors"
             >
               <X size={14} />
             </button>
@@ -811,7 +812,7 @@ export default function OfficialWhitelist({
                         <ExternalLink size={11} className="text-cyan-400 mt-0.5 shrink-0" />
                       </div>
                       <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-white/5">
-                        <span className="text-[9px] text-slate-500 truncate max-w-[140px] font-mono">
+                        <span className="text-[9px] text-content-muted truncate max-w-[140px] font-mono">
                           {item.url}
                         </span>
                         <span className="text-[9px] font-mono font-black bg-cyan-950/60 px-1.5 py-0.5 rounded text-cyan-400 shrink-0">
@@ -826,9 +827,9 @@ export default function OfficialWhitelist({
           ) : (
             searchKw.trim() === "" ? (
               // Warm guiding view
-              <div className="flex flex-col items-center justify-center py-20 text-slate-400 border border-dashed border-white/5 bg-black/10 rounded-2xl gap-2">
+              <div className="flex flex-col items-center justify-center py-20 text-content-secondary border border-dashed border-white/5 bg-black/10 rounded-2xl gap-2">
                 <Globe size={32} className="opacity-30 mb-1 animate-bounce text-cyan-400" />
-                <p className="text-xs font-mono font-bold text-slate-400">请输入您想查找的网站（拼音、缩写均高度秒级匹配）</p>
+                <p className="text-xs font-mono font-bold text-content-secondary">请输入您想查找的网站（拼音、缩写均高度秒级匹配）</p>
                 <div className="mt-4 flex flex-wrap justify-center gap-2 max-w-md px-6">
                   {["知网", "万方", "最高法院公报", "PubMed", "arXiv", "百度学术"].map(pop => (
                     <button
@@ -843,10 +844,10 @@ export default function OfficialWhitelist({
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-slate-500 border border-dashed border-white/5 bg-black/10 rounded-2xl gap-2">
+              <div className="flex flex-col items-center justify-center py-20 text-content-muted border border-dashed border-white/5 bg-black/10 rounded-2xl gap-2">
                 <Globe size={32} className="opacity-30 mb-1 animate-pulse" />
-                <p className="text-xs font-mono font-bold text-slate-400 mb-0.5">未检索到高精度的智能匹配推荐</p>
-                <p className="text-[10px] text-slate-500">您可以尝试缩短中文词，或者拼音缩写（例如：【zgzw】检索【中国知网】）</p>
+                <p className="text-xs font-mono font-bold text-content-secondary mb-0.5">未检索到高精度的智能匹配推荐</p>
+                <p className="text-[10px] text-content-muted">您可以尝试缩短中文词，或者拼音缩写（例如：【zgzw】检索【中国知网】）</p>
               </div>
             )
           )}
@@ -859,22 +860,23 @@ export default function OfficialWhitelist({
     <div className="flex-1 flex flex-col gap-6 overflow-hidden min-h-0">
       
       {/* Top Search & Actions Bar */}
-      <div className="bg-slate-900/40 rounded-2xl border border-white/5 p-4 flex flex-col sm:flex-row gap-4 items-center justify-between shrink-0 shadow-lg">
+      <div className="bg-surface rounded-2xl border border-white/5 p-4 flex flex-col sm:flex-row gap-4 items-center justify-between shrink-0 shadow-lg">
         {/* Search Engine Look */}
         <div className="flex-1 w-full relative">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-content-muted" />
           <input
             type="text"
+            aria-label="Search official links and local files"
             value={searchKw}
             onChange={(e) => setSearchKw(e.target.value)}
             onKeyDown={handleKwKeyDown}
             placeholder="在官方网址与本地文献中极速检索... (若没有对应匹配，按 Enter 回车键可一键扩展搜索必应/百度)"
-            className="w-full bg-black/40 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-cyan-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 transition-all font-mono"
+            className="w-full bg-black/40 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-cyan-100 placeholder:text-content-muted focus:outline-none focus:border-cyan-500/50 transition-all font-mono"
           />
           {searchKw && (
             <button 
               onClick={() => setSearchKw("")} 
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-content-muted hover:text-white transition-colors"
             >
               <X size={16} />
             </button>
@@ -898,13 +900,15 @@ export default function OfficialWhitelist({
           </button>
 
           <button
+            aria-label="Whitelist usage help"
             onClick={() => setIsHelpOpen(true)}
-            className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-slate-400 hover:text-white transition-all uppercase tracking-wider title='使用说明'"
+            className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-content-secondary hover:text-white transition-all uppercase tracking-wider title='使用说明'"
           >
             <HelpCircle size={16} />
           </button>
 
           <button
+            aria-label="Restore default whitelist"
             onClick={handleReset}
             className="p-2.5 bg-red-950/20 hover:bg-red-950/40 border border-red-500/20 hover:border-red-500/55 rounded-xl text-red-400 transition-all uppercase tracking-wider title='恢复默认白名单'"
           >
@@ -964,7 +968,7 @@ export default function OfficialWhitelist({
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
-            className="bg-[#0b0f19]/80 backdrop-blur-md border border-cyan-500/25 rounded-2xl p-4 flex flex-col gap-3 shrink-0 shadow-[0_0_20px_rgba(6,182,212,0.08)]"
+            className="bg-surface/80 backdrop-blur-md border border-cyan-500/25 rounded-2xl p-4 flex flex-col gap-3 shrink-0 shadow-[0_0_20px_rgba(6,182,212,0.08)]"
           >
             <div className="flex items-center justify-between border-b border-white/5 pb-2">
               <h4 className="text-xs font-black uppercase text-cyan-400 tracking-widest flex items-center gap-2">
@@ -997,10 +1001,10 @@ export default function OfficialWhitelist({
                     <span className="text-xs font-bold text-slate-100 group-hover:text-cyan-400 transition-colors line-clamp-2">
                       {item.name}
                     </span>
-                    <ExternalLink size={10} className="text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0 mt-0.5" />
+                    <ExternalLink size={10} className="text-content-muted group-hover:text-cyan-400 transition-colors shrink-0 mt-0.5" />
                   </div>
                   <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-white/5">
-                    <span className="text-[9px] text-slate-500 truncate max-w-[120px] font-mono group-hover:text-slate-400">
+                    <span className="text-[9px] text-content-muted truncate max-w-[120px] font-mono group-hover:text-content-secondary">
                       {item.url}
                     </span>
                     <span className="text-[9px] font-mono font-black bg-cyan-950/60 px-1.5 py-0.5 rounded text-cyan-400 text-right shrink-0">
@@ -1040,20 +1044,20 @@ export default function OfficialWhitelist({
                     exit={{ opacity: 0, scale: 0.95, y: -15 }}
                     transition={{ type: "spring", stiffness: 220, damping: 24 }}
                     key={cat} 
-                    className={`bg-gradient-to-br ${theme.text} rounded-2xl border p-5 flex flex-col gap-4 group transition-all duration-300 shadow-md hover:shadow-cyan-950/20`}
+                    className={`ui-category-card ${theme.text} rounded-2xl border p-5 flex flex-col gap-4 group transition-all duration-300 shadow-md hover:shadow-cyan-950/20`}
                   >
                     {/* Category Title Header */}
                     <div className="flex items-center justify-between">
-                      <span className={`inline-block text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-lg border border-white/10 ${theme.title}`}>
+                      <span className={`ui-category-badge inline-block text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-lg border border-white/10 ${theme.title}`}>
                         {cat}
                       </span>
-                      <span className="text-[10px] font-mono text-slate-500 font-bold uppercase">{listInCat.length} links</span>
+                      <span className="text-[10px] font-mono text-content-muted font-bold uppercase">{listInCat.length} links</span>
                     </div>
 
                     {/* Links container */}
                     <div className="flex-1 flex flex-col gap-2">
                       {listInCat.length === 0 ? (
-                        <p className="text-xs text-slate-600 italic py-2">无网站数据</p>
+                        <p className="text-xs text-content-muted italic py-2">无网站数据</p>
                       ) : (
                         <AnimatePresence mode="popLayout">
                           {listInCat.map((item) => (
@@ -1087,28 +1091,28 @@ export default function OfficialWhitelist({
                                 className="text-xs text-slate-200 hover:text-cyan-400 font-bold font-mono transition-colors flex-1 pr-6 flex items-center gap-1.5 truncate"
                               >
                                 <span className="truncate">{item.name}</span>
-                                <ExternalLink size={10} className="text-slate-600 group-hover/item:text-cyan-400 transition-colors shrink-0" />
+                                <ExternalLink size={10} className="text-content-muted group-hover/item:text-cyan-400 transition-colors shrink-0" />
                               </a>
 
                               {/* Float hovering actions block - perfect cursor + touch screen curation accessibility */}
                               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-slate-900 border border-white/15 rounded-lg p-0.5 shadow-xl opacity-0 group-hover/item:opacity-100 transition-opacity z-10">
                                 <button
                                   onClick={() => triggerEditName(item)}
-                                  className="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-white/5 rounded transition-all"
+                                  className="p-1.5 text-content-secondary hover:text-cyan-400 hover:bg-white/5 rounded transition-all"
                                   title="修改名称"
                                 >
                                   <Edit3 size={11} />
                                 </button>
                                 <button
                                   onClick={() => triggerEditUrl(item)}
-                                  className="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-white/5 rounded transition-all"
+                                  className="p-1.5 text-content-secondary hover:text-cyan-400 hover:bg-white/5 rounded transition-all"
                                   title="修改网址"
                                 >
                                   <Globe size={11} />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteLink(item)}
-                                  className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-all"
+                                  className="p-1.5 text-content-secondary hover:text-red-400 hover:bg-red-500/10 rounded transition-all"
                                   title="删除网址"
                                 >
                                   <Trash2 size={11} />
@@ -1127,11 +1131,11 @@ export default function OfficialWhitelist({
         </div>
 
         {/* Right Column: Files listing Panel */}
-        <aside className="w-full lg:w-80 shrink-0 bg-slate-900/40 rounded-2xl border border-white/5 p-5 flex flex-col overflow-hidden shadow-2xl relative">
+        <aside className="w-full lg:w-80 shrink-0 bg-surface rounded-2xl border border-white/5 p-5 flex flex-col overflow-hidden shadow-2xl relative">
           <div className="pb-4 border-b border-white/5 mb-4 flex justify-between items-center">
             <div className="space-y-1">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">📁 本地上传文件</h3>
-              <p className="text-[9px] text-slate-500 uppercase tracking-tighter">Local Document Vault</p>
+              <p className="text-[9px] text-content-muted uppercase tracking-tighter">Local Document Vault</p>
             </div>
             <span className="text-[10px] font-mono text-cyan-400 font-bold px-2 py-0.5 bg-cyan-950/30 border border-cyan-500/20 rounded">
               {filteredFiles().length} files
@@ -1140,7 +1144,7 @@ export default function OfficialWhitelist({
 
           <div className="flex-1 overflow-y-auto space-y-2.5 custom-scrollbar pr-1">
             {filteredFiles().length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 opacity-30 text-slate-500 border border-dashed border-white/5 rounded-xl bg-black/10">
+              <div className="flex flex-col items-center justify-center py-16 text-content-muted border border-dashed border-white/5 rounded-xl bg-black/10">
                 <FileText size={32} className="mb-2" />
                 <p className="text-xs font-bold tracking-widest text-center px-4 leading-relaxed">
                   暂无配套文件<br />可点击顶部“上传本地文件”添加
@@ -1188,7 +1192,7 @@ export default function OfficialWhitelist({
                       {/* Curation button */}
                       <button
                         onClick={() => handleDeleteFile(idx)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-red-400 rounded hover:bg-red-500/10 transition-all opacity-0 group-hover/file:opacity-100"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-content-muted hover:text-red-400 rounded hover:bg-red-500/10 transition-all opacity-0 group-hover/file:opacity-100"
                         title="移除文件记录"
                       >
                         <Trash2 size={12} />
@@ -1200,7 +1204,7 @@ export default function OfficialWhitelist({
             )}
           </div>
 
-          <div className="pt-3 border-t border-white/5 text-[9px] text-slate-500 font-mono tracking-tight leading-relaxed">
+          <div className="pt-3 border-t border-white/5 text-[9px] text-content-muted font-mono tracking-tight leading-relaxed">
             💡 提示：本地添加的文件与本工具 HTML 文件处于同一路径文件夹下时，点击即可直接在浏览器新标签页中秒开预览。
           </div>
         </aside>
@@ -1227,36 +1231,36 @@ export default function OfficialWhitelist({
                   <Plus size={16} className="text-cyan-400" />
                   添加自定义网站 Link
                 </h4>
-                <button onClick={() => setIsAddOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                <button onClick={() => setIsAddOpen(false)} className="text-content-secondary hover:text-white transition-colors">
                   <X size={16} />
                 </button>
               </div>
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-[10px] text-slate-500 uppercase font-black block mb-1">网站名称 Location Name</label>
+                  <label className="text-[10px] text-content-muted uppercase font-black block mb-1">网站名称 Location Name</label>
                   <input
                     type="text"
                     value={newLinkName}
                     onChange={(e) => setNewLinkName(e.target.value)}
                     placeholder="如：国家法律规章数据库"
-                    className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-cyan-100 placeholder:text-slate-600 focus:outline-none"
+                    className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-cyan-100 placeholder:text-content-muted focus:outline-none"
                   />
                 </div>
                 
                 <div>
-                  <label className="text-[10px] text-slate-500 uppercase font-black block mb-1">网页网址 Endpoint URL</label>
+                  <label className="text-[10px] text-content-muted uppercase font-black block mb-1">网页网址 Endpoint URL</label>
                   <input
                     type="text"
                     value={newLinkUrl}
                     onChange={(e) => setNewLinkUrl(e.target.value)}
                     placeholder="https://..."
-                    className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-cyan-100 placeholder:text-slate-600 focus:outline-none font-mono"
+                    className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-cyan-100 placeholder:text-content-muted focus:outline-none font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-slate-500 uppercase font-black block mb-1">所属分类 Category Pillar</label>
+                  <label className="text-[10px] text-content-muted uppercase font-black block mb-1">所属分类 Category Pillar</label>
                   <select
                     value={newLinkCat}
                     onChange={(e) => setNewLinkCat(e.target.value)}
@@ -1272,7 +1276,7 @@ export default function OfficialWhitelist({
               <div className="flex justify-end gap-2 pt-2">
                 <button 
                   onClick={() => setIsAddOpen(false)}
-                  className="px-4 py-2 rounded-lg text-[10px] uppercase font-bold text-slate-400 hover:text-white bg-white/5 transition-all"
+                  className="px-4 py-2 rounded-lg text-[10px] uppercase font-bold text-content-secondary hover:text-white bg-white/5 transition-all"
                 >
                   取消
                 </button>
@@ -1302,25 +1306,25 @@ export default function OfficialWhitelist({
                   <Edit3 size={16} className="text-cyan-400" />
                   修改网站名称 Edit Title
                 </h4>
-                <button onClick={() => { setIsEditNameOpen(false); setTargetItem(null); }} className="text-slate-400 hover:text-white transition-colors">
+                <button onClick={() => { setIsEditNameOpen(false); setTargetItem(null); }} className="text-content-secondary hover:text-white transition-colors">
                   <X size={16} />
                 </button>
               </div>
 
               <div>
-                <label className="text-[10px] text-slate-500 uppercase font-black block mb-1">新网站名称 Description</label>
+                <label className="text-[10px] text-content-muted uppercase font-black block mb-1">新网站名称 Description</label>
                 <input
                   type="text"
                   value={editedName}
                   onChange={(e) => setEditedName(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-cyan-100 placeholder:text-slate-600 focus:outline-none"
+                  className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-cyan-100 placeholder:text-content-muted focus:outline-none"
                 />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
                 <button 
                   onClick={() => { setIsEditNameOpen(false); setTargetItem(null); }}
-                  className="px-4 py-2 rounded-lg text-[10px] uppercase font-bold text-slate-400 hover:text-white bg-white/5 transition-all"
+                  className="px-4 py-2 rounded-lg text-[10px] uppercase font-bold text-content-secondary hover:text-white bg-white/5 transition-all"
                 >
                   取消
                 </button>
@@ -1350,25 +1354,25 @@ export default function OfficialWhitelist({
                   <Globe size={16} className="text-cyan-400" />
                   修改网页网址 Edit URL
                 </h4>
-                <button onClick={() => { setIsEditUrlOpen(false); setTargetItem(null); }} className="text-slate-400 hover:text-white transition-colors">
+                <button onClick={() => { setIsEditUrlOpen(false); setTargetItem(null); }} className="text-content-secondary hover:text-white transition-colors">
                   <X size={16} />
                 </button>
               </div>
 
               <div>
-                <label className="text-[10px] text-slate-500 uppercase font-black block mb-1">新链接端点 Endpoint URL</label>
+                <label className="text-[10px] text-content-muted uppercase font-black block mb-1">新链接端点 Endpoint URL</label>
                 <input
                   type="text"
                   value={editedUrl}
                   onChange={(e) => setEditedUrl(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-cyan-100 placeholder:text-slate-600 focus:outline-none font-mono"
+                  className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-cyan-100 placeholder:text-content-muted focus:outline-none font-mono"
                 />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
                 <button 
                   onClick={() => { setIsEditUrlOpen(false); setTargetItem(null); }}
-                  className="px-4 py-2 rounded-lg text-[10px] uppercase font-bold text-slate-400 hover:text-white bg-white/5 transition-all"
+                  className="px-4 py-2 rounded-lg text-[10px] uppercase font-bold text-content-secondary hover:text-white bg-white/5 transition-all"
                 >
                   取消
                 </button>
@@ -1398,7 +1402,7 @@ export default function OfficialWhitelist({
                   <HelpCircle size={16} className="text-cyan-400" />
                   📖 使用指南 (Whitelist Manual)
                 </h4>
-                <button onClick={() => setIsHelpOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                <button onClick={() => setIsHelpOpen(false)} className="text-content-secondary hover:text-white transition-colors">
                   <X size={16} />
                 </button>
               </div>
@@ -1459,7 +1463,7 @@ export default function OfficialWhitelist({
                 <h4 className="font-bold text-white text-base flex justify-center items-center gap-1.5">
                   🔍 扩展搜索引擎 
                 </h4>
-                <p className="text-xs text-slate-400 leading-relaxed font-mono">
+                <p className="text-xs text-content-secondary leading-relaxed font-mono">
                   没有在本地库中匹配到与 “<span className="text-cyan-400 font-black">{searchKw}</span>” 相关的官方路线，请选择搜索引擎进一步查找：
                 </p>
                 {isDomesticOfficialPredict() && (
@@ -1486,7 +1490,7 @@ export default function OfficialWhitelist({
 
               <button 
                 onClick={() => setIsEngineChoiceOpen(false)}
-                className="text-[10px] uppercase font-bold text-slate-500 hover:text-white transition-colors"
+                className="text-[10px] uppercase font-bold text-content-muted hover:text-white transition-colors"
               >
                 取消 (Cancel)
               </button>

@@ -249,7 +249,7 @@ export default function ProjectOverview({
   const cardClass =
     "rounded-2xl border border-white/10 bg-slate-900/45 p-5 shadow-sm [.theme-light_&]:border-slate-200 [.theme-light_&]:bg-white";
   const headingClass = "text-white [.theme-light_&]:text-slate-900";
-  const bodyClass = "text-sm leading-7 text-slate-300 [.theme-light_&]:text-slate-600";
+  const bodyClass = "text-sm leading-7 text-slate-300 [.theme-light_&]:text-content-muted";
 
   return (
     <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-8 overflow-y-auto px-3 py-5 sm:px-6 sm:py-8 lg:px-8">
@@ -295,7 +295,7 @@ export default function ProjectOverview({
                 href={REPO_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-slate-300 transition hover:text-cyan-300 [.theme-light_&]:text-slate-600"
+                className="inline-flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-slate-300 transition hover:text-cyan-300 [.theme-light_&]:text-content-muted"
               >
                 <Github size={16} />
                 GitHub
@@ -311,7 +311,7 @@ export default function ProjectOverview({
             </div>
             <div className="space-y-3 font-mono text-xs">
               <div className="rounded-xl border border-white/10 bg-white/5 p-3 [.theme-light_&]:border-slate-200 [.theme-light_&]:bg-slate-50">
-                <div className="mb-1 text-[10px] text-slate-500">01 / RESEARCH INTENT</div>
+                <div className="mb-1 text-[10px] text-content-muted">01 / RESEARCH INTENT</div>
                 <div className="text-slate-200 [.theme-light_&]:text-slate-700">“Robotics for photovoltaic panel cleaning”</div>
               </div>
               <div className="flex justify-center text-cyan-400">↓</div>
@@ -328,11 +328,11 @@ export default function ProjectOverview({
               </div>
               <div className="flex justify-center text-cyan-400">↓</div>
               <div className="rounded-xl border border-white/10 bg-white/5 p-3 [.theme-light_&]:border-slate-200 [.theme-light_&]:bg-slate-50">
-                <div className="mb-1 text-[10px] text-slate-500">04 / DATABASE SEARCH</div>
+                <div className="mb-1 text-[10px] text-content-muted">04 / DATABASE SEARCH</div>
                 <div className="text-slate-200 [.theme-light_&]:text-slate-700">Review · Copy · Search</div>
               </div>
             </div>
-            <p className="mt-4 text-[10px] leading-5 text-slate-500">
+            <p className="mt-4 text-[10px] leading-5 text-content-muted">
               {copy(
                 "示意流程，仅用于说明产品工作方式；示例检索式不是经过数据库验证的结果。",
                 "Illustrative workflow only; the sample query is not a database-validated result."
@@ -375,7 +375,7 @@ export default function ProjectOverview({
               "Explore the tool by product category, search methods, implemented features, database coverage and research use cases."
             )}
           </p>
-          <p className="mt-2 text-xs leading-6 text-slate-500">
+          <p className="mt-2 text-xs leading-6 text-content-muted">
             {copy(
               "索引词描述的是本项目实际定位与功能，不代表本工具直接提供论文全文、自动抓取数据库内容，或保证每个数据库的检索语法始终完全兼容。",
               "These terms describe the product's scope and implemented capabilities. The app does not crawl databases, provide full-text papers or guarantee permanent compatibility with every database syntax."
@@ -398,7 +398,7 @@ export default function ProjectOverview({
                   <ExternalLink size={13} />
                 </a>
               </div>
-              <p className="mb-3 text-xs leading-5 text-slate-400 [.theme-light_&]:text-slate-600">{group.description}</p>
+              <p className="mb-3 text-xs leading-5 text-content-secondary [.theme-light_&]:text-content-muted">{group.description}</p>
               <div className="flex flex-wrap gap-1.5" aria-label={group.title}>
                 {group.terms.map((term) => (
                   <a
@@ -492,7 +492,7 @@ export default function ProjectOverview({
                   {group.items.map((item) => (
                     <span
                       key={item}
-                      className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-slate-400 [.theme-light_&]:border-slate-200 [.theme-light_&]:bg-slate-50 [.theme-light_&]:text-slate-600"
+                      className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-content-secondary [.theme-light_&]:border-slate-200 [.theme-light_&]:bg-slate-50 [.theme-light_&]:text-content-muted"
                     >
                       {item}
                     </span>
@@ -501,7 +501,7 @@ export default function ProjectOverview({
               </div>
             ))}
           </div>
-          <p className="mt-4 text-[11px] leading-5 text-slate-500">
+          <p className="mt-4 text-[11px] leading-5 text-content-muted">
             {copy(
               "语法适配基于项目内置规则与提示。不同数据库的功能、字段和语法可能变化，正式检索前请核对平台官方帮助。",
               "Syntax guidance is based on built-in rules. Database syntax and field support can change; verify queries against each platform's official documentation."
@@ -582,14 +582,14 @@ export default function ProjectOverview({
                   <ExternalLink size={13} className="opacity-50 transition group-hover:opacity-100" />
                 </div>
                 <h4 className={"mb-1 text-sm font-bold " + headingClass}>{resource.title}</h4>
-                <p className="text-xs leading-5 text-slate-400 [.theme-light_&]:text-slate-600">{resource.description}</p>
+                <p className="text-xs leading-5 text-content-secondary [.theme-light_&]:text-content-muted">{resource.description}</p>
               </a>
             );
           })}
         </div>
       </section>
 
-      <div className="flex flex-col gap-2 border-t border-white/10 py-4 text-center text-[11px] leading-5 text-slate-500 [.theme-light_&]:border-slate-200">
+      <div className="flex flex-col gap-2 border-t border-white/10 py-4 text-center text-[11px] leading-5 text-content-muted [.theme-light_&]:border-slate-200">
         <p>
           {copy(
             "AI 检索力用于辅助构建检索策略，不代替研究者判断，也不直接提供数据库检索结果或全文。",
