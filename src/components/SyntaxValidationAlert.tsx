@@ -77,11 +77,11 @@ export default function SyntaxValidationAlert({
   }
 
   return (
-    <div className={`ui-validation ui-validation-error flex flex-col gap-2 ${className}`}>
+    <div className={`ui-validation ${errors.length ? 'ui-validation-error' : 'ui-validation-warning'} flex flex-col gap-2 ${className}`}>
       {/* 醒目的红色线条高亮提示 (Eye-catching red warning line with pulsing glow) */}
       <div className="relative w-full">
         <div 
-          className="h-1.5 w-full bg-gradient-to-r from-rose-600 via-red-500 to-rose-600 rounded-full shadow-[0_0_15px_rgba(244,63,94,0.7)] animate-pulse"
+          className="ui-validation-stripe h-1.5 w-full bg-gradient-to-r from-rose-600 via-red-500 to-rose-600 rounded-full shadow-[0_0_15px_rgba(244,63,94,0.7)] animate-pulse"
         />
         <div className="ui-validation-badge absolute -top-1 left-1/2 -translate-x-1/2 px-2.5 py-0.2 bg-rose-600 text-white font-black font-mono text-[9px] uppercase tracking-widest rounded-full shadow-md flex items-center gap-1">
           <ShieldAlert size={10} />
@@ -120,7 +120,7 @@ export default function SyntaxValidationAlert({
               <button
                 type="button"
                 onClick={() => onApplyFix(fixedQuery)}
-                className="ui-button-error px-3 py-1 text-white font-bold text-xs rounded-lg shadow-[0_0_10px_rgba(244,63,94,0.4)] transition-all flex items-center gap-1.5 cursor-pointer"
+                className="ui-button-primary px-3 py-1 text-white font-bold text-xs rounded-lg shadow-[0_0_10px_rgba(244,63,94,0.4)] transition-all flex items-center gap-1.5 cursor-pointer"
                 title={isZh ? "仅规范化全角标点，不会改写检索逻辑" : "Normalize punctuation only; Boolean logic is preserved"}
               >
                 <Wrench size={12} />

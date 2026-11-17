@@ -66,3 +66,20 @@ test("escapes HTML script end tags and parser-sensitive characters in embedded J
 test("rejects values that JSON cannot serialize", () => {
   assert.throws(() => serializeJsonForInlineScript(undefined), TypeError);
 });
+
+// Synthetic labels only; formerly bundled credential values are never fixtures.
+const { sanitizeLegacyResourceLabel } = await import('../src/utils/legacyResourceLabel.mjs');
+test('removes credential-like annotations from the formerly bundled resource', () => {
+  const item = { name: '用户名: example-user 密码: example-placeholder', url: 'https://www.fenqubiao.com/', cat: 'Academic' };
+  const cleaned = sanitizeLegacyResourceLabel(item);
+  assert.equal(cleaned.name, '期刊分区表（请使用本人获授权的账号）');
+  assert.equal(cleaned.url, item.url);
+  assert.equal(cleaned.cat, item.cat);
+});
+test('preserves unrelated custom resource names and avoids a lookalike host', () => {
+  const item = { name: '密码学资料', url: 'https://fenqubiao.com.example.com/' };
+  assert.equal(sanitizeLegacyResourceLabel(item), item);
+});
+test('legacy label migration tolerates malformed data without inventing URLs', () => {
+  for (const item of [null, {}, { name: 'username', url: 'not a URL' }]) assert.equal(sanitizeLegacyResourceLabel(item), item);
+});

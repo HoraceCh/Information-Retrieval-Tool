@@ -119,6 +119,12 @@ try {
   assert(await offlinePage.locator('#catGrid a').count() === 1, 'Offline URL search did not find the stored safe entry');
   await offlinePage.locator('#searchBar').fill('');
   assert(await offlinePage.locator('#catGrid a').count() === 1, 'Clearing offline search did not restore entries');
+  await offlinePage.evaluate(() => localStorage.setItem('ai_info_literacy_offline_db_v6', JSON.stringify({
+    links: [{name:'用户名: example-user 密码: example-placeholder',url:'https://www.fenqubiao.com/',cat:'九、学术写作'}],files:[]
+  })));
+  await offlinePage.reload({waitUntil:'domcontentloaded'});
+  assert((await offlinePage.locator('#catGrid').innerText()).includes('请使用本人获授权的账号'), 'Offline legacy label migration was not applied');
+  assert(!(await offlinePage.locator('#catGrid').innerText()).includes('example-placeholder'), 'Legacy credential-like annotation remained visible');
   assert(offlineErrors.length === 0, "Generated HTML runtime errors:\n" + offlineErrors.join("\n"));
   await offlinePage.close();
   console.log("Offline HTML security passed: unsafe URLs/markup filtered, valid content preserved.");

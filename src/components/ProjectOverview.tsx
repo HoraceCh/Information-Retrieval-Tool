@@ -321,7 +321,7 @@ export default function ProjectOverview({
               </div>
               <div className="flex justify-center text-cyan-400">↓</div>
               <div className="rounded-xl border border-indigo-400/25 bg-indigo-400/10 p-3">
-                <div className="mb-1 text-[10px] text-indigo-300">03 / BOOLEAN STRATEGY</div>
+                <div className="mb-1 text-[10px] text-brand">03 / BOOLEAN STRATEGY</div>
                 <div className="break-words text-slate-200 [.theme-light_&]:text-slate-700">
                   (robot* OR cleaning robot*) AND (photovoltaic OR solar panel*)
                 </div>
