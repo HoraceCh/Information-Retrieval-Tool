@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { sanitizeLegacyResourceLabel } from "../utils/legacyResourceLabel.mjs";
 import { findFuzzyScore } from "../utils/pinyinMatcher";
 import { 
   Search, 
@@ -259,7 +260,7 @@ export const DEFAULT_LINKS: LinkItem[] = [
 
   // 九、学术写作
   { name: "国家新闻出版署从业机构和产品查询（图书/期刊等）", url: "https://www.nppa.gov.cn/bsfw/cyjghcpcx/", cat: "九、学术写作" },
-  { name: "中国科学院文献情报中心期刊分区表（用户名cupetro，密码cup_beijing）", url: "https://www.fenqubiao.com", cat: "九、学术写作" },
+  { name: "期刊分区表（请使用本人获授权的账号）", url: "https://www.fenqubiao.com", cat: "九、学术写作" },
   { name: "万方诚信学堂/万方科研诚信服务平台", url: "https://cx.wanfangdata.com.cn/e-training", cat: "九、学术写作" },
 
   // 十、科研工具
@@ -433,7 +434,11 @@ export default function OfficialWhitelist({
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.links) setLinks(parsed.links);
+        if (Array.isArray(parsed.links)) {
+          const cleanedLinks = parsed.links.map(sanitizeLegacyResourceLabel);
+          setLinks(cleanedLinks);
+          localStorage.setItem("suYangFinalV6_react", JSON.stringify({ ...parsed, links: cleanedLinks }));
+        }
         if (parsed.files) setFiles(parsed.files);
       } catch (e) {
         setLinks(DEFAULT_LINKS);

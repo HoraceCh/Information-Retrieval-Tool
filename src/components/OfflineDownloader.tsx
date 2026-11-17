@@ -13,6 +13,7 @@ import {
   Server
 } from "lucide-react";
 import { DEFAULT_LINKS, DEFAULT_CATEGORIES } from "./OfficialWhitelist";
+import { sanitizeLegacyResourceLabel } from "../utils/legacyResourceLabel.mjs";
 import { getPinyinMeta } from "../utils/pinyinMatcher";
 import { serializeJsonForInlineScript } from "../utils/inlineScriptJson.mjs";
 
@@ -457,6 +458,7 @@ export default function OfflineDownloader() {
   <script>
     const DEFAULT_CATEGORIES = ${categoriesJson};
     const DEFAULT_LINKS = ${linksJson};
+    const sanitizeLegacyResourceLabel = ${sanitizeLegacyResourceLabel.toString()};
 
     const storageKey = 'ai_info_literacy_offline_db_v6';
 
@@ -493,7 +495,7 @@ export default function OfflineDownloader() {
     try {
       const stored = JSON.parse(localStorage.getItem(storageKey));
       db = {
-        links: Array.isArray(stored && stored.links) ? stored.links : DEFAULT_LINKS,
+        links: Array.isArray(stored && stored.links) ? stored.links.map(sanitizeLegacyResourceLabel) : DEFAULT_LINKS,
         files: Array.isArray(stored && stored.files) ? stored.files : []
       };
     } catch {
