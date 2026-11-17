@@ -9,6 +9,7 @@ const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH
 const report={time:new Date().toISOString(),source:process.env.QA_SOURCE||'local-built-preview',base:process.env.QA_BASE||'http://127.0.0.1:4173/',fixture:'rendering-only; no live AI, speech or database claims',states:[],errors:[]};
 const result={keywords:[{original:'机器人',zhSynonyms:['机器人','机械臂'],enSynonyms:['robotics','robotic arm']}],booleanQuery:'("robotics" OR "robotic arm") AND "motion planning"',fieldSpecificQuery:'TS=(("robotics" OR "robotic arm") AND "motion planning")',schemaMapping:[{field:'TS',mappedConcept:'Topic',reason:'Fixture field mapping'}],explanation:'QA fixture: robotics motion planning; verify the query on the target database.',suggestedUrls:[]};
 async function evidence(page,name){
+ await page.evaluate(()=>document.activeElement?.blur?.());
  await page.screenshot({path:path.join(out,name+'.png'),fullPage:true});
  const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();
  const geometry=await page.evaluate(()=>({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('main select, main input, main textarea')].filter(e=>{const r=e.getBoundingClientRect();return r.right>innerWidth+2||r.left< -2}).map(e=>({tag:e.tagName,label:e.getAttribute('aria-label'),id:e.id}))}));
@@ -20,7 +21,7 @@ for(const theme of ['dark','light'])for(const [device,width,height] of [['deskto
  const context=await browser.newContext({viewport:{width,height},reducedMotion:'reduce'});
  const page=await context.newPage();
  page.on('pageerror',e=>report.errors.push(e.message));
- await page.addInitScript(({theme,result})=>{localStorage.setItem('visited-guided-search-v1.0','true');localStorage.setItem('ai_retrieval_theme',theme);localStorage.setItem('ai_retrieval_history',JSON.stringify([{id:'qa-fixture',timestamp:1700000000000,input:'QA fixture robotics motion planning',dbType:'Web of Science核心合集 (SCI-E/SSCI/CPCI-S)',langPref:'Bilingual (双语混合)',result}]))},{theme,result});
+ await page.addInitScript(({theme,result})=>{localStorage.setItem('visited-guided-search-v1.0','true');localStorage.setItem('ai_retrieval_theme',theme);localStorage.setItem('ai_retrieval_history',JSON.stringify([{id:'qa-fixture',timestamp:1700000000000,input:'QA fixture robotics motion planning',dbType:'Web of Science核心合集 (SCI-E/SSCI/CPCI-S)',langPref:'Bilingual (双语混合)',result},{id:'qa-warning',timestamp:1700000000000,input:'QA fixture warning only',dbType:'自动智能匹配 (Auto Match Engine)',langPref:'Bilingual',result:{...result,keywords:[],booleanQuery:'robotics motion',fieldSpecificQuery:''}}]))},{theme,result});
  await page.goto(report.base,{waitUntil:'networkidle'});
  await evidence(page,`${theme}-${device}-builder`);
  console.log('builder captured',theme,device,page.url(),await page.locator('footer').innerText());
@@ -37,6 +38,11 @@ for(const theme of ['dark','light'])for(const [device,width,height] of [['deskto
  if(device==='desktop'){
   await page.getByRole('button',{name:/测试检测|Test Check/}).click();
   await evidence(page,`${theme}-validation-error`);
+  await page.locator('footer').getByText('HISTORY',{exact:true}).click();
+  await page.getByText('QA fixture warning only',{exact:true}).click();
+  await page.locator('.ui-validation-warning').waitFor();
+  if(!(await page.locator('main').innerText()).includes('结构有预警'))throw new Error('Warning-only query was presented as an unconditional pass');
+  await evidence(page,`${theme}-warning-only`);
   await page.getByRole('button',{name:/^SETTINGS$/i}).first().click();
   await evidence(page,`${theme}-settings`);
   // Leave the modal via its close control using the current DOM, then navigate.

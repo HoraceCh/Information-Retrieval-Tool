@@ -39,6 +39,7 @@ import {
   TrendingUp,
   GitCommit,
   ShieldAlert,
+  AlertTriangle,
   CheckCircle2,
   Wrench,
   Cpu,
@@ -2983,13 +2984,17 @@ export default function App() {
                     {syntaxValidation && (
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider font-mono ${
                         syntaxValidation.isValid
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                          ? syntaxValidation.warnings.length
+                            ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
+                            : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                           : 'bg-rose-500/20 text-rose-300 border border-rose-500/50 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.3)]'
                       }`}>
                         {syntaxValidation.isValid ? (
                           <>
-                            <CheckCircle2 size={11} className="text-emerald-400" />
-                            <span>{uiLang === 'zh' || i18n.language === 'mix' ? "实时语法验证通过" : "Syntax Valid"}</span>
+                            {syntaxValidation.warnings.length ? <AlertTriangle size={11} /> : <CheckCircle2 size={11} className="text-emerald-400" />}
+                            <span>{syntaxValidation.warnings.length
+                              ? (uiLang === 'en' ? `Review warnings (${syntaxValidation.warnings.length})` : `结构有预警 (${syntaxValidation.warnings.length})`)
+                              : (uiLang === 'zh' || i18n.language === 'mix' ? "实时语法验证通过" : "Syntax Valid")}</span>
                           </>
                         ) : (
                           <>

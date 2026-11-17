@@ -488,6 +488,13 @@ html.theme-light, .theme-light {
 .app-shell .query-input-heading > label { white-space: nowrap; }
 .app-shell .ui-speech :is(.ui-notice-success,.ui-notice-error) { max-width: min(350px, calc(100vw - 64px)); white-space: normal; }
 .app-shell .ui-speech label { color: var(--text-muted); }
+.app-shell .ui-validation-warning {
+  --error: var(--warning);
+  --error-surface: var(--warning-surface);
+}
+.app-shell .ui-validation-warning > div { background: var(--warning-surface) !important; border-color: var(--warning) !important; }
+.app-shell .ui-validation-warning .ui-validation-stripe { background: var(--warning) !important; box-shadow: none !important; }
+.app-shell .ui-validation-warning .ui-validation-badge { background: var(--warning) !important; color: var(--background) !important; }
 @media (max-width: 640px) {
   .query-input-heading { align-items: flex-start; flex-direction: column; }
   .query-speech-row { width: 100%; }
