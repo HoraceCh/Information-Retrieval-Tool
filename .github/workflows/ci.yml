@@ -10,6 +10,7 @@ on:
       - main
       - master
       - feat/local-whisper-runtime
+      - integration/rc-review
   workflow_dispatch:
 
 permissions:
@@ -95,7 +96,7 @@ jobs:
 
   browser-smoke:
     name: Browser interaction and responsive smoke test
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/feat/local-whisper-runtime'
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/feat/local-whisper-runtime' || github.ref == 'refs/heads/integration/rc-review'
     # Playwright 1.56.1 supports Ubuntu 24.04, not the moving 26.04 image.
     runs-on: ubuntu-24.04
     steps:
