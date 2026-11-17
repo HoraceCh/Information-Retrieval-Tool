@@ -124,12 +124,15 @@ jobs:
             sleep 1
           done
           node scripts/browser-smoke.mjs
+          node scripts/speech-browser-qa.mjs
       - name: Upload browser screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: browser-smoke-screenshots
-          path: artifacts/browser-smoke/
+          path: |
+            artifacts/browser-smoke/
+            artifacts/speech-browser-qa/
           if-no-files-found: warn
           retention-days: 7
 
