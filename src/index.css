@@ -487,6 +487,7 @@ html.theme-light, .theme-light {
 .model-selector-row > * { min-width: 0; max-width: 100%; }
 .app-shell .query-input-heading > label { white-space: nowrap; }
 .app-shell .ui-speech :is(.ui-notice-success,.ui-notice-error) { max-width: min(350px, calc(100vw - 64px)); white-space: normal; }
+.app-shell .ui-speech label { color: var(--text-muted); }
 @media (max-width: 640px) {
   .query-input-heading { align-items: flex-start; flex-direction: column; }
   .query-speech-row { width: 100%; }

@@ -115,6 +115,7 @@ jobs:
           done
           node scripts/browser-smoke.mjs
           node scripts/ui-qa.mjs
+          node scripts/keyboard-qa.mjs
       - name: Upload browser screenshots
         if: always()
         uses: actions/upload-artifact@v4

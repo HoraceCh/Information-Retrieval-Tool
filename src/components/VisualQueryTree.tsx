@@ -139,7 +139,7 @@ export default function VisualQueryTree({
   const nodes = d3Tree ? d3Tree.descendants() : [];
 
   return (
-    <div className="w-full bg-slate-950/45 border border-cyan-500/10 rounded-xl p-4 mt-4 animate-fade-in text-left">
+    <div className="ui-card w-full bg-surface border border-cyan-500/10 rounded-xl p-4 mt-4 animate-fade-in text-left">
       {/* Visual Header */}
       <div className="flex justify-between items-center mb-3 border-b border-white/5 pb-2">
         <div className="flex items-center gap-1.5">
