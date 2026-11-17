@@ -33,6 +33,7 @@ for(const theme of ['dark','light'])for(const [device,width,height] of [['deskto
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => !document.querySelector('.formula-code-box')?.textContent.includes('"robotics"'));
   if (!(await page.locator('.formula-code-box').innerText()).includes('robotic arm')) throw new Error('Excluding one synonym removed the remaining term');
+  await evidence(page,`${theme}-${device}-keyword-edit`);
  if(device==='desktop'){
   await page.getByRole('button',{name:/测试检测|Test Check/}).click();
   await evidence(page,`${theme}-validation-error`);
