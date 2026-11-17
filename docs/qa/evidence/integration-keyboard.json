@@ -1,0 +1,61 @@
+{
+  "time": "2026-11-17T00:34:40.996Z",
+  "checks": [
+    {
+      "name": "Skip navigation is first focus target and focuses main",
+      "status": "PASS"
+    },
+    {
+      "name": "Configuration dialog focus entry, forward/reverse trap, Escape and return",
+      "status": "PASS"
+    },
+    {
+      "name": "Keyboard focus indicator has visible outline",
+      "status": "PASS"
+    },
+    {
+      "name": "Query history: focus entry, trap, Escape and return",
+      "status": "PASS"
+    },
+    {
+      "name": "Offline installation: focus entry, trap, Escape and return",
+      "status": "PASS"
+    },
+    {
+      "name": "dark: 200% root font with 640px reflow",
+      "status": "PASS",
+      "geometry": {
+        "viewport": 640,
+        "document": 640,
+        "overflow": []
+      }
+    },
+    {
+      "name": "light: 200% root font with 640px reflow",
+      "status": "PASS",
+      "geometry": {
+        "viewport": 640,
+        "document": 640,
+        "overflow": []
+      }
+    }
+  ],
+  "limits": [
+    "Root font 200% plus 640px reflow scenario; not OS magnification, screen-reader or full-browser zoom certification."
+  ],
+  "lastGeometry": {
+    "viewport": 640,
+    "document": 640,
+    "overflow": []
+  },
+  "source": {
+    "integrationHeadObserved": "66560dc9c8bb4ca8daa20595526b548a0fd6fe22",
+    "runtimeChanges": [
+      "794e6c1",
+      "a135a65"
+    ],
+    "bundle": "dist/assets/index-bSx1AqeP.js",
+    "bundleSha256": "f52bf53887e64ac22da525382df2a311c730740c45a07d6893255cf6ea52cc2b",
+    "indexSha256": "49252452f4dee3e47fb592e2875db82e41205802bbe6d00650f8444da3ac7ded"
+  }
+}

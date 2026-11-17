@@ -1,0 +1,76 @@
+[
+  {
+    "id": "color-contrast",
+    "impact": "serious",
+    "tags": [
+      "cat.color",
+      "wcag2aa",
+      "wcag143",
+      "TTv5",
+      "TT13.c",
+      "EN-301-549",
+      "EN-9.1.4.3",
+      "ACT",
+      "RGAAv4",
+      "RGAA-3.2.1"
+    ],
+    "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright",
+    "nodes": [
+      {
+        "any": [
+          {
+            "id": "color-contrast",
+            "data": {
+              "contrastRatio": 0,
+              "fontSize": "9.0pt (12px)",
+              "fontWeight": "bold",
+              "messageKey": "bgGradient",
+              "expectedContrastRatio": "4.5:1"
+            },
+            "relatedNodes": [
+              {
+                "html": "<button class=\"flex items-center ga...\" title=\"交互式检索学步引导 (Interacti...\">",
+                "target": [
+                  ".hover\\:from-cyan-500\\/20"
+                ]
+              }
+            ],
+            "impact": "serious",
+            "message": "Element's background color could not be determined due to a background gradient"
+          }
+        ],
+        "all": [],
+        "none": [],
+        "impact": "serious",
+        "html": "<span class=\"text-xs font-extrabold tracking-wider uppercase font-mono\">新手引导</span>",
+        "target": [
+          ".font-extrabold"
+        ],
+        "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+      },
+      {
+        "any": [
+          {
+            "id": "color-contrast",
+            "data": {
+              "messageKey": "nonBmp"
+            },
+            "relatedNodes": [],
+            "impact": "serious",
+            "message": "Element content contains only non-text characters"
+          }
+        ],
+        "all": [],
+        "none": [],
+        "impact": "serious",
+        "html": "<button type=\"button\" class=\"text-[11px] text-content-secondary hover:text-white cursor-pointer px-1 py-0.5 rounded hover:bg-white/10 transition-colors\" title=\"清除模板约束\">✕</button>",
+        "target": [
+          "button[title=\"清除模板约束\"]"
+        ],
+        "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+      }
+    ]
+  }
+]

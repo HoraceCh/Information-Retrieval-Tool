@@ -1,0 +1,136 @@
+{
+  "time": "2026-11-17T00:36:43.181Z",
+  "base": "http://127.0.0.1:4181/",
+  "kind": "MOCKED PROXY + SYNTHETIC MICROPHONE; not real provider E2E",
+  "browser": "156.0.8078.79",
+  "checks": [
+    {
+      "name": "gemini: record/stop/multipart/proxy route/result insertion",
+      "status": "PASS",
+      "evidence": "mocked response"
+    },
+    {
+      "name": "openai: record/stop/multipart/proxy route/result insertion",
+      "status": "PASS",
+      "evidence": "mocked response"
+    },
+    {
+      "name": "deepgram: record/stop/multipart/proxy route/result insertion",
+      "status": "PASS",
+      "evidence": "mocked response"
+    },
+    {
+      "name": "whisper-local: record/stop/multipart/proxy route/result insertion",
+      "status": "PASS",
+      "evidence": "mocked response"
+    },
+    {
+      "name": "Provider and endpoint persist across reload",
+      "status": "PASS"
+    },
+    {
+      "name": "Cancel recording discards audio",
+      "status": "PASS"
+    },
+    {
+      "name": "Cancel pending request returns to idle without inserting text",
+      "status": "PASS"
+    },
+    {
+      "name": "invalid-json: visible error and idle recovery",
+      "status": "PASS",
+      "evidence": "mocked failure; 504 is upstream error mapping, not an elapsed client timeout"
+    },
+    {
+      "name": "network: visible error and idle recovery",
+      "status": "PASS",
+      "evidence": "mocked failure; 504 is upstream error mapping, not an elapsed client timeout"
+    },
+    {
+      "name": "unavailable: visible error and idle recovery",
+      "status": "PASS",
+      "evidence": "mocked failure; 504 is upstream error mapping, not an elapsed client timeout"
+    },
+    {
+      "name": "timeout-response: visible error and idle recovery",
+      "status": "PASS",
+      "evidence": "mocked failure; 504 is upstream error mapping, not an elapsed client timeout"
+    },
+    {
+      "name": "Repeated recordings recover after failures",
+      "status": "PASS"
+    }
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "path": "/api/speech/gemini/transcriptions",
+      "bytes": 14462,
+      "contentType": "multipart/form-data; boundary=----WebKitFormBoundaryI8UcIB2SRm1QLIcA"
+    },
+    {
+      "path": "/api/speech/openai/transcriptions",
+      "bytes": 10901,
+      "contentType": "multipart/form-data; boundary=----WebKitFormBoundary7pwABGQtzDIKGuqa"
+    },
+    {
+      "path": "/api/speech/deepgram/transcriptions",
+      "bytes": 11215,
+      "contentType": "multipart/form-data; boundary=----WebKitFormBoundaryJgBBfvUolVVv9bAv"
+    },
+    {
+      "path": "/api/speech/whisper/transcriptions",
+      "bytes": 9297,
+      "contentType": "multipart/form-data; boundary=----WebKitFormBoundaryOrjL4lUAPvA9j6FA"
+    },
+    {
+      "path": "/api/speech/whisper/transcriptions",
+      "bytes": 10887,
+      "contentType": "multipart/form-data; boundary=----WebKitFormBoundaryrrLqufgNAPuIVtGl"
+    },
+    {
+      "path": "/api/speech/whisper/transcriptions",
+      "bytes": 13177,
+      "contentType": "multipart/form-data; boundary=----WebKitFormBoundarySIUV9j57RwWkNXLU"
+    },
+    {
+      "path": "/api/speech/whisper/transcriptions",
+      "bytes": 13481,
+      "contentType": "multipart/form-data; boundary=----WebKitFormBoundaryOZKf6mUKc4BkvX9r"
+    },
+    {
+      "path": "/api/speech/whisper/transcriptions",
+      "bytes": 9617,
+      "contentType": "multipart/form-data; boundary=----WebKitFormBoundaryoMEBbv1PXAH9A1Vu"
+    },
+    {
+      "path": "/api/speech/whisper/transcriptions",
+      "bytes": 11881,
+      "contentType": "multipart/form-data; boundary=----WebKitFormBoundaryeOxPeo765nPYtqFv"
+    },
+    {
+      "path": "/api/speech/whisper/transcriptions",
+      "bytes": 15760,
+      "contentType": "multipart/form-data; boundary=----WebKitFormBoundaryyONBc7MQrXqCCvdw"
+    },
+    {
+      "path": "/api/speech/whisper/transcriptions",
+      "bytes": 10583,
+      "contentType": "multipart/form-data; boundary=----WebKitFormBoundarybbOtUYapJEphZwLj"
+    }
+  ],
+  "source": {
+    "integrationHeadObserved": "66560dc9c8bb4ca8daa20595526b548a0fd6fe22",
+    "runtimeChanges": [
+      "794e6c1",
+      "a135a65"
+    ],
+    "bundle": "dist/assets/index-bSx1AqeP.js",
+    "bundleSha256": "f52bf53887e64ac22da525382df2a311c730740c45a07d6893255cf6ea52cc2b",
+    "indexSha256": "49252452f4dee3e47fb592e2875db82e41205802bbe6d00650f8444da3ac7ded"
+  },
+  "retryEvidence": {
+    "firstAttempt": "../integration-speech-attempt1/report.json",
+    "reason": "15s locator timeout after reload; failure screenshot shows recording state with stop control; second run retained same assertions and timing and passed."
+  }
+}

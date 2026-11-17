@@ -1,0 +1,420 @@
+[
+  {
+    "phase": "before",
+    "state": "dark-desktop-builder",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/dark-desktop-builder.png",
+    "sha256": "6d2149bc7fa9dcd9c822f47f658169406ecf6c6a2f28d8d38ca2ae21caeaa50b"
+  },
+  {
+    "phase": "before",
+    "state": "dark-desktop-result",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/dark-desktop-result.png",
+    "sha256": "be8839edd01b1001386faa10f4a6b1ee94d79fa2059e722acf6bd4be3b46a3da"
+  },
+  {
+    "phase": "before",
+    "state": "dark-desktop-keyword-edit",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/dark-desktop-keyword-edit.png",
+    "sha256": "bcf7d702e36a32b77c5c991562b173a6f05407092f87acfeccb5f12eb3338f3a"
+  },
+  {
+    "phase": "before",
+    "state": "dark-validation-error",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/dark-validation-error.png",
+    "sha256": "eed4bfa5f05b86770fe8cba7ff9566250e5c5092bdfb176930f227d65c20bcf9"
+  },
+  {
+    "phase": "before",
+    "state": "dark-warning-only",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/dark-warning-only.png",
+    "sha256": "a82df7b5e71159ace20dbe1371225dd77a6e25fbccbbf12d30776d3af3a67fce"
+  },
+  {
+    "phase": "before",
+    "state": "dark-settings",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/dark-settings.png",
+    "sha256": "dda6f1c1f83e04644fdf6bcc0e4912e17e5e1a87d72d5cc50b4edc2d608a6e6f"
+  },
+  {
+    "phase": "before",
+    "state": "dark-about",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/dark-about.png",
+    "sha256": "77dc98f89b5e0e042d90e1987f6c0d0486bb3d07be493ac5f0e2f7769ec5c202"
+  },
+  {
+    "phase": "before",
+    "state": "dark-whitelist",
+    "status": "BLOCKED",
+    "reason": "Withheld to avoid republishing legacy credential-like resource annotations."
+  },
+  {
+    "phase": "before",
+    "state": "dark-offline-dialog",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/dark-offline-dialog.png",
+    "sha256": "9d1ab989a82f08e0cfbe82f89b0a123630853709cf684b8e661e28a8d09eba00"
+  },
+  {
+    "phase": "before",
+    "state": "dark-tablet-builder",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/dark-tablet-builder.png",
+    "sha256": "f100cc43f8e6da7028cf6adad5edad6a4109cd09f794b760761e567be4e8141f"
+  },
+  {
+    "phase": "before",
+    "state": "dark-tablet-result",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/dark-tablet-result.png",
+    "sha256": "86e1d8afafe55576c8e3b2bc3fbbfbb84f2926900f274c716d0ce31a55957ca8"
+  },
+  {
+    "phase": "before",
+    "state": "dark-tablet-keyword-edit",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/dark-tablet-keyword-edit.png",
+    "sha256": "b3cc7a6e8232853d9bf836cea7ede48a87940f7ca2b8e989257ea6e4a5dbba2f"
+  },
+  {
+    "phase": "before",
+    "state": "dark-mobile-builder",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/dark-mobile-builder.png",
+    "sha256": "11302fea5c9520701a312e5bbc74196c7388cb5e1479f341a22b10e85bc77f53"
+  },
+  {
+    "phase": "before",
+    "state": "dark-mobile-result",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/dark-mobile-result.png",
+    "sha256": "ac0b0253c7d8bc1fd204ac790ff27b8dd2fffdaedfafff2cb579cc2d3afdfb10"
+  },
+  {
+    "phase": "before",
+    "state": "dark-mobile-keyword-edit",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/dark-mobile-keyword-edit.png",
+    "sha256": "a71c1ee68f753512ed4877c50686e4196194f077051c58d48d7bb465f488713b"
+  },
+  {
+    "phase": "before",
+    "state": "light-desktop-builder",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/light-desktop-builder.png",
+    "sha256": "fd03b93c3eba5a074ea6863d121388f67a4bc36bf935e8a5b7eb9ea6f8eac401"
+  },
+  {
+    "phase": "before",
+    "state": "light-desktop-result",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/light-desktop-result.png",
+    "sha256": "938ab2e2530a6ff1ad264a2d3decbbdf00dff1356ad65deda5f45eb4a8c902ae"
+  },
+  {
+    "phase": "before",
+    "state": "light-desktop-keyword-edit",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/light-desktop-keyword-edit.png",
+    "sha256": "aad7d449e8974b73a2b6eba7cf4329e1f8f0af6f0f5659f6e7b1986232c94f52"
+  },
+  {
+    "phase": "before",
+    "state": "light-validation-error",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/light-validation-error.png",
+    "sha256": "257b0364c2b76811aa1424bff31db217d4d670dbf083578ee6fdb2c8897e5645"
+  },
+  {
+    "phase": "before",
+    "state": "light-warning-only",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/light-warning-only.png",
+    "sha256": "f629169d7717795763ac8649ec67a9f3208ff95918ff4176ebdef8ca27cb1d1b"
+  },
+  {
+    "phase": "before",
+    "state": "light-settings",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/light-settings.png",
+    "sha256": "980ff5908c0d510405461a83f774f9191763e79027236a2e5f14a300aadaa245"
+  },
+  {
+    "phase": "before",
+    "state": "light-about",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/light-about.png",
+    "sha256": "d09e018c832a9003b01544e5124fbbda20db779c38bb13900f1a7864ad8a09ea"
+  },
+  {
+    "phase": "before",
+    "state": "light-whitelist",
+    "status": "BLOCKED",
+    "reason": "Withheld to avoid republishing legacy credential-like resource annotations."
+  },
+  {
+    "phase": "before",
+    "state": "light-offline-dialog",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/light-offline-dialog.png",
+    "sha256": "f4f77c331bef28218f562774bbbd464198dc59098290efba47312d77755009e2"
+  },
+  {
+    "phase": "before",
+    "state": "light-tablet-builder",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/light-tablet-builder.png",
+    "sha256": "73e17ffaf60cd5ac4def6609f8b4274f82669e45b1f36cedd788d014c9897786"
+  },
+  {
+    "phase": "before",
+    "state": "light-tablet-result",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/light-tablet-result.png",
+    "sha256": "2178b5bc1177647e2fdf0586d3a874f11808a245c5e4514ff3d2b6e0b0d3c5c0"
+  },
+  {
+    "phase": "before",
+    "state": "light-tablet-keyword-edit",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/light-tablet-keyword-edit.png",
+    "sha256": "4f7a4dbd4c9c3aa75c70c40989c9214ed7e856fda3b2b80572be37e7c2d7995e"
+  },
+  {
+    "phase": "before",
+    "state": "light-mobile-builder",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/light-mobile-builder.png",
+    "sha256": "7ea7735203f83f16b0cef84477c2e5aa06e7f52107cf2378cd8601bf37435d94"
+  },
+  {
+    "phase": "before",
+    "state": "light-mobile-result",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/light-mobile-result.png",
+    "sha256": "840f3559d86d59b4c327799bf74ac31f91b320bedf54796b6877d334af2b856a"
+  },
+  {
+    "phase": "before",
+    "state": "light-mobile-keyword-edit",
+    "source": "baseline-57739e1",
+    "file": "screenshots/before/light-mobile-keyword-edit.png",
+    "sha256": "0894a193f79ee55284278b9c12c5ca212110721197e417f1f8aa32f0f2622a07"
+  },
+  {
+    "phase": "after",
+    "state": "dark-desktop-builder",
+    "source": "ui-421c456",
+    "file": "screenshots/after/dark-desktop-builder.png",
+    "sha256": "32f3e4fef1047f13b0674f3aeb48a83c8018a7817f8a6fc9cb7bc4b557a658c5"
+  },
+  {
+    "phase": "after",
+    "state": "dark-desktop-result",
+    "source": "ui-421c456",
+    "file": "screenshots/after/dark-desktop-result.png",
+    "sha256": "a7bfdf6bb9b14682328e75b64b918afb4de44765c06e861a58573486e392c91b"
+  },
+  {
+    "phase": "after",
+    "state": "dark-desktop-keyword-edit",
+    "source": "ui-421c456",
+    "file": "screenshots/after/dark-desktop-keyword-edit.png",
+    "sha256": "890f4a858a11c0406d191402386297afd20a7bb6844a477fc0effdb4360b40c9"
+  },
+  {
+    "phase": "after",
+    "state": "dark-validation-error",
+    "source": "ui-421c456",
+    "file": "screenshots/after/dark-validation-error.png",
+    "sha256": "9d1020403a6b9cc7ae5129f928849f792044228aaa3569fd13127949785eaae7"
+  },
+  {
+    "phase": "after",
+    "state": "dark-warning-only",
+    "source": "ui-421c456",
+    "file": "screenshots/after/dark-warning-only.png",
+    "sha256": "de78d405f8c584442fe2a7ba6e2f1893f6769188660ac44b0d6906263ef91233"
+  },
+  {
+    "phase": "after",
+    "state": "dark-settings",
+    "source": "ui-421c456",
+    "file": "screenshots/after/dark-settings.png",
+    "sha256": "3a91ebc107143f68460a33bb49baba32fc0b37ae9e9f6e36e65468a8afae2f03"
+  },
+  {
+    "phase": "after",
+    "state": "dark-about",
+    "source": "ui-421c456",
+    "file": "screenshots/after/dark-about.png",
+    "sha256": "68bb21a9da054d4dac31c8b0b87f3454fd9423a034f21e8c677210354ba1bbcd"
+  },
+  {
+    "phase": "after",
+    "state": "dark-whitelist",
+    "source": "ui-421c456",
+    "file": "screenshots/after/dark-whitelist.png",
+    "sha256": "57840438551b524faa1a100e1d136d9403ff597f65e1de76bbfa52204d10157f"
+  },
+  {
+    "phase": "after",
+    "state": "dark-offline-dialog",
+    "source": "ui-421c456",
+    "file": "screenshots/after/dark-offline-dialog.png",
+    "sha256": "97ef971119c89335605846acaaf5808970a169be870e8d9b21d31323a4322889"
+  },
+  {
+    "phase": "after",
+    "state": "dark-tablet-builder",
+    "source": "ui-421c456",
+    "file": "screenshots/after/dark-tablet-builder.png",
+    "sha256": "a9c8080cf6549ce2fd22489f2b9cd0f96dea9233e61b279b50a8e190715aa111"
+  },
+  {
+    "phase": "after",
+    "state": "dark-tablet-result",
+    "source": "ui-421c456",
+    "file": "screenshots/after/dark-tablet-result.png",
+    "sha256": "cd1d4508f441fdd3f76f155eb4c932deb1973b2d868fd73ace2078d96da3435e"
+  },
+  {
+    "phase": "after",
+    "state": "dark-tablet-keyword-edit",
+    "source": "ui-421c456",
+    "file": "screenshots/after/dark-tablet-keyword-edit.png",
+    "sha256": "3ad6a33bc5fc18ef8069865a1a67842cf7ae895ce61dbf69b630168f13ac8bf8"
+  },
+  {
+    "phase": "after",
+    "state": "dark-mobile-builder",
+    "source": "ui-421c456",
+    "file": "screenshots/after/dark-mobile-builder.png",
+    "sha256": "92b914bec4c6405c9e0cba81cc4773fe600b0ad3365d2797e11af239b1dcf079"
+  },
+  {
+    "phase": "after",
+    "state": "dark-mobile-result",
+    "source": "ui-421c456",
+    "file": "screenshots/after/dark-mobile-result.png",
+    "sha256": "e3d3f783f3de9e63591433e6534d4138846f1b54190a4e33df6ddc2f172db130"
+  },
+  {
+    "phase": "after",
+    "state": "dark-mobile-keyword-edit",
+    "source": "ui-421c456",
+    "file": "screenshots/after/dark-mobile-keyword-edit.png",
+    "sha256": "4735e583fee92a89773c72ff7116d9862d6f1c920b699ebde02440c241380a5b"
+  },
+  {
+    "phase": "after",
+    "state": "light-desktop-builder",
+    "source": "ui-421c456",
+    "file": "screenshots/after/light-desktop-builder.png",
+    "sha256": "9dcc9151cad170fb159eee3b55fb35a1b93ca1a8bdd939fa10119df3cbef6ec5"
+  },
+  {
+    "phase": "after",
+    "state": "light-desktop-result",
+    "source": "ui-421c456",
+    "file": "screenshots/after/light-desktop-result.png",
+    "sha256": "53fa5e06eac0a6fe3d62c2ea0d77b0a84332bb7f8f6473d585f874833f8dcc6e"
+  },
+  {
+    "phase": "after",
+    "state": "light-desktop-keyword-edit",
+    "source": "ui-421c456",
+    "file": "screenshots/after/light-desktop-keyword-edit.png",
+    "sha256": "285cd0d56f4abd64c48fa0c0ef59c92e522fb8fb7cb01ebf3fca047b2720c6a1"
+  },
+  {
+    "phase": "after",
+    "state": "light-validation-error",
+    "source": "ui-421c456",
+    "file": "screenshots/after/light-validation-error.png",
+    "sha256": "18af8ce16805a121a807c2cf712826ca87deb4d9dbe54bdd5535882c6d76c639"
+  },
+  {
+    "phase": "after",
+    "state": "light-warning-only",
+    "source": "ui-421c456",
+    "file": "screenshots/after/light-warning-only.png",
+    "sha256": "6591331b42fb286617be4b511bcc305bd2cb65dc6dabcdf2a30387afcd935714"
+  },
+  {
+    "phase": "after",
+    "state": "light-settings",
+    "source": "ui-421c456",
+    "file": "screenshots/after/light-settings.png",
+    "sha256": "b979710d05fc78a78b24b1d9a1375ef227b47369cdcb608df6da12f9c280f236"
+  },
+  {
+    "phase": "after",
+    "state": "light-about",
+    "source": "ui-421c456",
+    "file": "screenshots/after/light-about.png",
+    "sha256": "4dc6e96da9ddbdeab687472ee05cbf5cb2773f8a3ad15b8f81973c7cebea142a"
+  },
+  {
+    "phase": "after",
+    "state": "light-whitelist",
+    "source": "ui-421c456",
+    "file": "screenshots/after/light-whitelist.png",
+    "sha256": "3db89a74e93d3cdceef10023f98706ee64bb04e21b9f658c7b9749c0ae1c964a"
+  },
+  {
+    "phase": "after",
+    "state": "light-offline-dialog",
+    "source": "ui-421c456",
+    "file": "screenshots/after/light-offline-dialog.png",
+    "sha256": "49dd2a41349e7e5e2752b46741a77ee7fedf1e6a677cf7d1914121d117d5c398"
+  },
+  {
+    "phase": "after",
+    "state": "light-tablet-builder",
+    "source": "ui-421c456",
+    "file": "screenshots/after/light-tablet-builder.png",
+    "sha256": "64ecf219c325214f21e7614246826a9da0b588ce4fb4c6b18ba4a2ee911494f6"
+  },
+  {
+    "phase": "after",
+    "state": "light-tablet-result",
+    "source": "ui-421c456",
+    "file": "screenshots/after/light-tablet-result.png",
+    "sha256": "91e59d68e30c4cad1b40843474b81c02b0a091a66fee24565030262d06fd9c2b"
+  },
+  {
+    "phase": "after",
+    "state": "light-tablet-keyword-edit",
+    "source": "ui-421c456",
+    "file": "screenshots/after/light-tablet-keyword-edit.png",
+    "sha256": "2d0243916d2e1221857c06d687140fc1ee82ba4d217f28c67b5fdc24f8ecb2f1"
+  },
+  {
+    "phase": "after",
+    "state": "light-mobile-builder",
+    "source": "ui-421c456",
+    "file": "screenshots/after/light-mobile-builder.png",
+    "sha256": "73156c7e4cc5b994ec3ef2584ff2876c66af76c2133e7dd2c648f23ad96959c0"
+  },
+  {
+    "phase": "after",
+    "state": "light-mobile-result",
+    "source": "ui-421c456",
+    "file": "screenshots/after/light-mobile-result.png",
+    "sha256": "2cd43c0f9b81f2a9b88ef0c8a3536f2068e76ff3b43d13acc3ef32419b560af4"
+  },
+  {
+    "phase": "after",
+    "state": "light-mobile-keyword-edit",
+    "source": "ui-421c456",
+    "file": "screenshots/after/light-mobile-keyword-edit.png",
+    "sha256": "69918e692746229bb9aad9cfc1d20e1c32f25618d9ae40ce3dc48cc85c60ea42"
+  }
+]

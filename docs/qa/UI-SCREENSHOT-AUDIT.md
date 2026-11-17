@@ -33,3 +33,13 @@ Exact screenshots are retained with the delivery evidence, identified by state/t
 | V10 | P2 | small labels / motion | Tiny all-caps helper text and ornamental glow reduce hierarchy | Remove excess glow, strengthen text hierarchy; honor reduced motion |
 
 No P0 observed in inspected local screenshots. This is not a statement that all application states are defect-free. Screenshots alone cannot certify WCAG 2.2 AA. Automated checks, DOM/keyboard checks and screen-reader/manual device checks have separate status in the final QA record.
+
+## Final disposition
+
+The audit expanded to 30 states per version, including keyword-exclusion and warning-only interactions. **58 original PNGs are published; two Before Whitelist images are withheld for privacy.** Baseline screenshots come from a separate immutable main worktree; source and hashes are retained in [the screenshot index](BEFORE_AFTER.md). Production capture remains BLOCKED, as authorized for local-only continuation.
+
+V01–V09 were repaired in the checked local scope. V10 was addressed for meaningful copy/focus/reduced motion; unmeasured confidence/debug telemetry was removed; legacy utility-color bridges and spacious category layouts remain P2 maintenance work. A newly exposed V11 (excluded keyword buttons reduced to 40% opacity) was repaired with full readable text, strike-through and selected-state semantics. Enlarged-text reflow, query-tree keyboard access, service URL label contrast and the type contract were verified after their fixes.
+
+[Final responsive/accessibility record](ACCESSIBILITY-RESPONSIVE-QA.md) documents zero detected violations/overflow for the checked states, and the incomplete/manual checks that still limit any compliance claim. [Design token specification](../DESIGN_TOKENS.md) records light/dark values, component aliases and measured token contrasts.
+
+Manual review additionally found low-contrast workflow text, warning-only red/green status conflict and a credential-like legacy resource annotation. These were repaired and rechecked. Original annotation values are not reproduced, and the two corresponding Before images are not published. New screenshot captures reset the document scroll origin so a fixed off-screen skip link is not accidentally drawn into a full-page image.
