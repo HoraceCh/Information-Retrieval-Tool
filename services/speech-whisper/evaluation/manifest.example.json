@@ -1,0 +1,4 @@
+[
+  {"audio":"english.wav","reference":"Replace this with the exact spoken English reference transcript.","language":"en","content_type":"audio/wav","duration_seconds":5.0},
+  {"audio":"chinese.wav","reference":"请替换为录音中的准确中文参考文本。","language":"zh","content_type":"audio/wav","duration_seconds":5.0}
+]

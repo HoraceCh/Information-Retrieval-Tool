@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import { transcribeGeminiAudio } from "./speech/geminiTranscription.mjs";
 
 function getGeminiClient(key?: string): GoogleGenAI {
   const apiKey = key || "";
@@ -440,46 +441,24 @@ Return JSON format:
  */
 export async function transcribeAudio(
   audioBlob: Blob,
-  geminiKey?: string
+  geminiKey?: string,
+  signal?: AbortSignal
 ): Promise<string> {
   try {
-    const currentAi = getGeminiClient(geminiKey);
-
-    // Convert blob to base64
-    const base64Data = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        const base64 = result.split(',')[1] || "";
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(audioBlob);
-    });
-
-    // Clean MIME type (strip codecs parameters for clean format, default to audio/webm)
-    let rawMime = audioBlob.type || "audio/webm";
-    let mimeType = rawMime.split(';')[0].trim();
-    if (!mimeType.startsWith("audio/")) {
-      mimeType = "audio/webm";
+    if (signal?.aborted) {
+      const cancellation = new Error("Speech transcription was cancelled.");
+      cancellation.name = "AbortError";
+      throw cancellation;
     }
-
-    const response = await currentAi.models.generateContent({
-      model: "gemini-3.5-transcribe",
-      contents: [
-        {
-          inlineData: {
-            mimeType,
-            data: base64Data,
-          },
-        },
-        "Transcribe this spoken audio into text accurately. Output only the verbatim transcribed speech text without commentary, conversational preamble, quotation marks, or markdown code blocks."
-      ],
+    const currentAi = getGeminiClient(geminiKey);
+    return await transcribeGeminiAudio(audioBlob, {
+      signal,
+      generateContent: (request) => currentAi.models.generateContent(request)
     });
-
-    const transcript = (response.text || "").trim();
-    return transcript;
   } catch (error: any) {
+    if (signal?.aborted || error?.name === "AbortError") {
+      throw new Error("Speech transcription was cancelled.");
+    }
     console.error("Transcription Error:", error);
 
     try {

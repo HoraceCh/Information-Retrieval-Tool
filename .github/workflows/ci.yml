@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - master
+      - feat/local-whisper-runtime
   workflow_dispatch:
 
 permissions:
@@ -22,6 +23,9 @@ jobs:
   validate:
     name: Type check, production build and static SEO pages
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -35,7 +39,15 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install local Whisper API test dependencies
+        run: python -m pip install -r services/speech-whisper/requirements-test.txt
+
+      - name: Test local Whisper API (model mocked; no model download)
+        run: python -m pytest -q services/speech-whisper/tests
+      - name: Test Whisper benchmark harness
+        run: python -m pytest -q services/speech-whisper/tests/test_evaluation.py
 
       - name: Install dependencies
         run: npm ci
@@ -83,8 +95,8 @@ jobs:
 
   browser-smoke:
     name: Browser interaction and responsive smoke test
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/feat/local-whisper-runtime'
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -112,11 +124,58 @@ jobs:
             sleep 1
           done
           node scripts/browser-smoke.mjs
+          node scripts/speech-browser-qa.mjs
       - name: Upload browser screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: browser-smoke-screenshots
-          path: artifacts/browser-smoke/
+          path: |
+            artifacts/browser-smoke/
+            artifacts/speech-browser-qa/
           if-no-files-found: warn
           retention-days: 7
+
+  speech-container:
+    name: CPU container build and runtime probe (no model download)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate independent CPU and GPU configurations
+        run: |
+          docker compose -f docker-compose.speech.yml config --quiet
+          docker compose -f docker-compose.speech.gpu.yml config --quiet
+      - name: Build CPU image
+        run: docker build -t speech-ci services/speech-whisper
+      - name: Probe non-root CPU runtime
+        run: |
+          docker run -d --name speech-ci --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:size=128m,mode=1777 -v speech-ci-model-cache:/models -p 127.0.0.1:18000:8000 speech-ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:18000/readyz; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:18000/healthz
+          curl -fsS http://127.0.0.1:18000/readyz
+          test "$(docker inspect speech-ci --format '{{.Config.User}}')" = '10001:10001'
+      - name: Audit resolved CPU image Python dependencies
+        run: |
+          docker exec speech-ci python -c 'import importlib.metadata; print("\n".join(p.metadata["Name"] + "==" + p.version for p in importlib.metadata.distributions()))' > "$RUNNER_TEMP/speech-resolved.txt"
+          python3 -m venv "$RUNNER_TEMP/speech-audit"
+          "$RUNNER_TEMP/speech-audit/bin/pip" install pip-audit==2.10.1
+          "$RUNNER_TEMP/speech-audit/bin/pip-audit" -r "$RUNNER_TEMP/speech-resolved.txt" --no-deps --disable-pip --strict --progress-spinner off --format json --output "$RUNNER_TEMP/speech-python-audit.json"
+      - name: Upload Python dependency audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: speech-python-dependency-audit
+          path: |
+            ${{ runner.temp }}/speech-resolved.txt
+            ${{ runner.temp }}/speech-python-audit.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Container logs and cleanup
+        if: always()
+        run: |
+          docker logs speech-ci || true
+          docker rm -f speech-ci || true
+          docker volume rm speech-ci-model-cache || true
