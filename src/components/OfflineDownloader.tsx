@@ -956,10 +956,9 @@ npm run dev`;
   };
 
   return (
-    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8 bg-slate-950/20 rounded-2xl border border-white/5">
+    <div className="ui-offline-content flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8 rounded-2xl border border-white/5">
       {/* Overview Block */}
-      <div className="border border-cyan-500/10 bg-cyan-950/10 rounded-2xl p-6 relative overflow-hidden backdrop-blur-xl">
-        <div className="absolute -right-16 -top-16 opacity-10 blur-2xl w-48 h-48 bg-cyan-400 rounded-full"></div>
+      <div className="ui-card border rounded-2xl p-6 relative overflow-hidden">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-1.5 max-w-4xl">
             <div className="inline-flex items-center gap-1.5 bg-cyan-950/60 border border-cyan-500/35 px-2.5 py-1 rounded text-[10px] font-bold text-cyan-400 separator-cyan tracking-widest leading-none">
