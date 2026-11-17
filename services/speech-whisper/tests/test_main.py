@@ -181,3 +181,38 @@ def test_gpu_readiness_fails_without_device(monkeypatch):
     monkeypatch.setitem(sys.modules, "ctranslate2", SimpleNamespace(get_cuda_device_count=lambda: 0))
     r=client.get("/readyz")
     assert r.status_code == 503 and "passthrough" in r.json()["detail"]
+
+
+def test_model_acquisition_size_revision_and_load_metrics(monkeypatch, tmp_path):
+    import sys
+    from types import SimpleNamespace
+    snapshot=tmp_path / "snapshots" / ("a" * 40)
+    snapshot.mkdir(parents=True)
+    (snapshot / "model.bin").write_bytes(b"weights")
+    (snapshot / "config.json").write_bytes(b"{}")
+    seen={}
+    loaded=object()
+    def download(model, **kwargs):
+        seen.update(model=model, **kwargs)
+        return str(snapshot)
+    def construct(path, **kwargs):
+        assert path == str(snapshot) and kwargs == {"device":"cpu", "compute_type":"int8"}
+        return loaded
+    monkeypatch.setitem(sys.modules, "faster_whisper", SimpleNamespace(WhisperModel=construct))
+    monkeypatch.setitem(sys.modules, "faster_whisper.utils", SimpleNamespace(download_model=download))
+    for name in ("_model", "_model_load_seconds", "_model_acquisition_seconds", "_model_initialization_seconds", "_model_artifact_bytes", "_model_revision"):
+        monkeypatch.setattr(main, name, None)
+    monkeypatch.setattr(main, "MODEL_DEVICE", "cpu")
+    monkeypatch.setattr(main, "MODEL_COMPUTE_TYPE", "int8")
+    monkeypatch.setattr(main, "MODEL_DOWNLOAD_ROOT", str(tmp_path))
+    monkeypatch.setattr(main, "MODEL_REVISION", "a" * 40)
+    times=iter([10., 12., 15.])
+    monkeypatch.setattr(main.time, "perf_counter", lambda: next(times))
+    assert main.get_whisper_model() is loaded
+    assert main.get_whisper_model() is loaded  # Cached model does not acquire/load again.
+    assert seen["revision"] == "a" * 40
+    assert main._model_artifact_bytes == 9
+    assert main._model_revision == "a" * 40
+    assert main._model_acquisition_seconds == 2
+    assert main._model_load_seconds == 3
+    assert main._model_initialization_seconds == 5

@@ -68,7 +68,7 @@ The report records actual service model/device/compute/version metadata, dataset
 
 GPU memory is a 100ms sampled **device-wide** high-water mark across visible devices; it includes other processes and may miss short spikes. Keep other GPU workloads idle. CPU/RSS requires `--service-pid` with the API process PID on the same host and optional psutil; native CPU percentages can exceed 100% across cores. Docker users can additionally capture `docker stats`; never substitute client CPU use for server CPU use. Unavailable resource values are null, not zero.
 
-`--model-cache` records on-disk cache bytes only. Actual model download traffic is null until separately measured (e.g. controlled network counters); it must not be inferred from cache size. The model-load time includes download when uncached. Pin/cache the model snapshot and save its hash/revision with the report when doing formal model comparisons.
+`--model-cache` records on-disk cache bytes only. Actual model download traffic is null until separately measured (e.g. controlled network counters); it must not be inferred from cache size. The service separately reports `model_acquisition_seconds` (download/cache lookup), `model_load_seconds` (local construction and model-file metadata), `model_initialization_seconds` (both phases), `model_artifact_bytes` (the acquired snapshot file footprint), and the resolved model revision. Artifact size is the model download payload size for comparison purposes, including cache hits; it is not measured network traffic. Set `WHISPER_MODEL_REVISION` to an immutable Hugging Face commit for formal comparisons. Failed acquisition leaves measurements null.
 
 ## Stop and clean
 
