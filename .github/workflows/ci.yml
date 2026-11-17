@@ -157,6 +157,22 @@ jobs:
           curl -fsS http://127.0.0.1:18000/healthz
           curl -fsS http://127.0.0.1:18000/readyz
           test "$(docker inspect speech-ci --format '{{.Config.User}}')" = '10001:10001'
+      - name: Audit resolved CPU image Python dependencies
+        run: |
+          docker exec speech-ci python -c 'import importlib.metadata; print("\n".join(p.metadata["Name"] + "==" + p.version for p in importlib.metadata.distributions()))' > "$RUNNER_TEMP/speech-resolved.txt"
+          python3 -m venv "$RUNNER_TEMP/speech-audit"
+          "$RUNNER_TEMP/speech-audit/bin/pip" install pip-audit==2.10.1
+          "$RUNNER_TEMP/speech-audit/bin/pip-audit" -r "$RUNNER_TEMP/speech-resolved.txt" --no-deps --disable-pip --strict --progress-spinner off --format json --output "$RUNNER_TEMP/speech-python-audit.json"
+      - name: Upload Python dependency audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: speech-python-dependency-audit
+          path: |
+            ${{ runner.temp }}/speech-resolved.txt
+            ${{ runner.temp }}/speech-python-audit.json
+          if-no-files-found: warn
+          retention-days: 7
       - name: Container logs and cleanup
         if: always()
         run: |
