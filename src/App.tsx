@@ -76,7 +76,7 @@ const UI_STRINGS = {
     generate: "GENERATE_QUERY",
     waitingInput: "Waiting for input...",
     formulaTitle: "Search Formula",
-    processedWith: "PROCESSED_WITH_GEMINI_AI // CONFIDENCE: HIGH",
+    processedWith: "检索前请在目标数据库复核 / Verify before search",
     copyCode: "COPY_TO_CLIPBOARD",
     copied: "COPIED",
     semanticMap: "Semantic Map",
@@ -85,7 +85,7 @@ const UI_STRINGS = {
     insightTitle: "Logic Insight",
     insightDesc: "分析用户的检索语境，提取其中的学术主轴，并利用大规模语义语言模型针对性地补充相关领域的高频同义词与术语，以极大地提升检索覆盖面。",
     recallBoost: "RECALL_BOOST: GAIN_ENHANCED",
-    sysOpt: "SYSTEM_RESOURCES_OPTIMIZED",
+    sysOpt: "QUERY WORKSPACE",
     processing: "PROCESSING...",
     genComplete: "GEN_COMPLETE",
     waitInit: "WAIT_INIT",
@@ -200,7 +200,7 @@ const UI_STRINGS = {
     generate: "GENERATE QUERY",
     waitingInput: "Waiting for input...",
     formulaTitle: "Search Formula",
-    processedWith: "PROCESSED BY AI // CONFIDENCE: HIGH",
+    processedWith: "VERIFY ON TARGET DATABASE",
     copyCode: "COPY TO CLIPBOARD",
     copied: "COPIED",
     semanticMap: "Semantic Map",
@@ -3672,11 +3672,10 @@ export default function App() {
               <BookOpen size={12} className="mr-1" /> {uiLang === 'en' ? 'About' : '项目介绍'}
             </button>
             <a href="https://github.com/HoraceCh/Information-Retrieval-Tool#readme" target="_blank" rel="noreferrer" className="hover:text-cyan-400 transition-colors">README</a>
-            <span className="hover:text-cyan-400 cursor-pointer transition-colors hidden sm:inline">DB_STATUS: OK</span>
           </div>
         </div>
         <div className="text-[10px] text-content-muted font-mono uppercase tracking-tighter hidden md:block">
-          CTX_ID: {loading ? t('processing') : (result ? t('genComplete') : t('waitInit'))} // BUILD_HASH: 0x55F2A
+          {loading ? t('processing') : (result ? t('genComplete') : t('waitInit'))}
         </div>
       </footer>
 

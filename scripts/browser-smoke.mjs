@@ -16,6 +16,9 @@ page.on("pageerror", error => errors.push(error.message));
 // Suppress the first-run tour overlay while exercising stable navigation.
 await page.addInitScript(() => {
   try { localStorage.setItem("visited-guided-search-v1.0", "true"); } catch {}
+  localStorage.setItem('suYangFinalV6_react', JSON.stringify({links:[{
+    name:'用户名: example-user 密码: example-placeholder',url:'https://www.fenqubiao.com/',cat:'九、学术写作'
+  }],files:[]}));
 });
 const assert = (condition, description) => {
   if (!condition) throw new Error(description);
@@ -50,6 +53,9 @@ try {
   await returnButton.click({ timeout: 15000 });
   await page.getByRole("button", { name: /官方网址速查|Official Whitelist/ }).first().click();
   await page.locator("main").first().waitFor();
+  await page.getByText('期刊分区表（请使用本人获授权的账号）',{exact:true}).waitFor();
+  assert(!(await page.locator('main').innerText()).includes('example-placeholder'), 'Hosted whitelist retained the legacy credential-like label');
+  assert(await page.evaluate(() => !localStorage.getItem('suYangFinalV6_react').includes('example-placeholder')), 'Hosted whitelist did not migrate persisted legacy labels');
 
   for (const slug of ["academic-literature-search", "boolean-search", "keyword-expansion"]) {
     const url = new URL("guides/" + slug + "/", BASE).toString();
