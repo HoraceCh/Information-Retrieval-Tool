@@ -22,6 +22,7 @@ MAX_AUDIO_BYTES = positive_int_env("MAX_AUDIO_BYTES", 20 * 1024 * 1024)
 MAX_CONCURRENT_REQUESTS = positive_int_env("MAX_CONCURRENT_REQUESTS", 1)
 UPLOAD_TIMEOUT_SECONDS = positive_int_env("UPLOAD_TIMEOUT_SECONDS", 30)
 MAX_CONCURRENT_INFERENCES = positive_int_env("MAX_CONCURRENT_INFERENCES", 1)
+MODEL_REVISION = os.getenv("WHISPER_MODEL_REVISION") or None
 MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "small")
 MODEL_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
 MODEL_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
@@ -92,11 +93,15 @@ async def enforce_allowed_browser_origin(request: Request, call_next):
     return await call_next(request)
 _model = None
 _model_load_seconds = None
+_model_acquisition_seconds = None
+_model_initialization_seconds = None
+_model_artifact_bytes = None
+_model_revision = None
 _model_lock = threading.Lock()
 _inference_slots = threading.BoundedSemaphore(MAX_CONCURRENT_INFERENCES)
 
 def get_whisper_model():
-    global _model, _model_load_seconds
+    global _model, _model_load_seconds, _model_acquisition_seconds, _model_initialization_seconds, _model_artifact_bytes, _model_revision
     if _model is None:
         with _model_lock:
             if _model is None:
@@ -106,12 +111,24 @@ def get_whisper_model():
                     if ctranslate2.get_cuda_device_count() < 1:
                         raise RuntimeError("CUDA device is unavailable; check NVIDIA Container Toolkit and driver.")
                 started = time.perf_counter()
-                kwargs = {"device":MODEL_DEVICE,"compute_type":MODEL_COMPUTE_TYPE}
-                if MODEL_DOWNLOAD_ROOT:
-                    Path(MODEL_DOWNLOAD_ROOT).mkdir(parents=True,exist_ok=True)
-                    kwargs["download_root"] = MODEL_DOWNLOAD_ROOT
-                _model = WhisperModel(MODEL_SIZE,**kwargs)
-                _model_load_seconds = time.perf_counter() - started
+                if Path(MODEL_SIZE).is_dir():
+                    model_path = Path(MODEL_SIZE)
+                else:
+                    from faster_whisper.utils import download_model
+                    if MODEL_DOWNLOAD_ROOT:
+                        Path(MODEL_DOWNLOAD_ROOT).mkdir(parents=True, exist_ok=True)
+                    model_path = Path(download_model(MODEL_SIZE, cache_dir=MODEL_DOWNLOAD_ROOT or None, revision=MODEL_REVISION))
+                acquired = time.perf_counter()
+                # stat follows the snapshot's cached symlinks; count model files, not the entire cache.
+                artifact_bytes = sum(path.stat().st_size for path in model_path.rglob("*") if path.is_file())
+                loaded = WhisperModel(str(model_path), device=MODEL_DEVICE, compute_type=MODEL_COMPUTE_TYPE)
+                finished = time.perf_counter()
+                _model_load_seconds = finished - acquired
+                _model_acquisition_seconds = acquired - started
+                _model_initialization_seconds = finished - started
+                _model_artifact_bytes = artifact_bytes
+                _model_revision = model_path.name if model_path.parent.name == "snapshots" else MODEL_REVISION
+                _model = loaded
     return _model
 
 def transcribe_file(file_path: str, language: str) -> str:
@@ -219,7 +236,7 @@ async def healthz():
     for package in ("faster-whisper", "ctranslate2"):
         try: packages[package] = version(package)
         except Exception: packages[package] = "not installed"
-    return {"versions":packages,"model_load_seconds":_model_load_seconds,"max_concurrent_requests":MAX_CONCURRENT_REQUESTS,"status":"ok","model_loaded":_model is not None,"model":MODEL_SIZE,"device":MODEL_DEVICE,"compute_type":MODEL_COMPUTE_TYPE,"max_concurrent_inferences":MAX_CONCURRENT_INFERENCES,"providers":{"gemini":bool(GEMINI_API_KEY),"whisper-local":True,"openai":bool(OPENAI_API_KEY),"deepgram":bool(DEEPGRAM_API_KEY)}}
+    return {"versions":packages,"model_load_seconds":_model_load_seconds,"model_acquisition_seconds":_model_acquisition_seconds,"model_initialization_seconds":_model_initialization_seconds,"model_artifact_bytes":_model_artifact_bytes,"model_revision":_model_revision,"max_concurrent_requests":MAX_CONCURRENT_REQUESTS,"status":"ok","model_loaded":_model is not None,"model":MODEL_SIZE,"device":MODEL_DEVICE,"compute_type":MODEL_COMPUTE_TYPE,"max_concurrent_inferences":MAX_CONCURRENT_INFERENCES,"providers":{"gemini":bool(GEMINI_API_KEY),"whisper-local":True,"openai":bool(OPENAI_API_KEY),"deepgram":bool(DEEPGRAM_API_KEY)}}
 
 @app.post("/api/speech/whisper/transcriptions")
 async def transcribe_whisper(file: UploadFile=File(...),language: str=Form("auto")):

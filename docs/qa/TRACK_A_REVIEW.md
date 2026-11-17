@@ -1,6 +1,6 @@
 # Track A — PR #14 engineering and runtime review
 
-Evidence date: 2026-11-16. Repository: `HoraceCh/Information-Retrieval-Tool`.
+Evidence captured 2026-11-16; acceptance scope and CI record updated 2026-11-17. Repository: `HoraceCh/Information-Retrieval-Tool`.
 
 ## Immutable baseline and branch history
 
@@ -28,11 +28,11 @@ Declared MIME is checked, but it is not file-content attestation. Whisper decodi
 
 ## Verification performed
 
-- Python API/benchmark tests: **35 passed**, model/upstream inference mocked. No model quality claim follows.
+- Python API/benchmark tests: **37 passed**, model/upstream inference mocked. No model quality claim follows.
 - Node speech tests: **23 passed**, including actual browser service routing, no fallback, invalid JSON, timeout, caller cancellation and recovery; network responses mocked.
 - Existing security helpers: **6 passed**. Boolean validator: **28 passed**.
 - TypeScript, production build, guide/SEO validation and bundle budget passed locally.
-- Python 3.11 and 3.12 test jobs plus CPU Docker build/readiness job added to CI; the main branch's existing checks are retained. PR #14 remains Draft. Final CI result must be checked against the final head, not inferred from an earlier head.
+- Python 3.11 and 3.12 test jobs plus CPU Docker build/readiness job added to CI; the main branch's existing checks are retained. PR #14 remains Draft. Head `91e3511` passed both [run 43785589274](https://github.com/HoraceCh/Information-Retrieval-Tool/actions/runs/43785589274) and [run 43785583983](https://github.com/HoraceCh/Information-Retrieval-Tool/actions/runs/43785583983). The earlier Ubuntu 26.04 / Playwright 1.56.1 package-install incompatibility was repaired by pinning the browser runner to supported Ubuntu 24.04; no assertions were weakened. Subsequent model-metric and browser-regression commits must also pass final-head CI before integration approval.
 - Local `npm ci` encountered package tarball integrity failures in this cloud environment. Type/build checks reused the existing installed workspace dependencies; that is not described as a successful clean install. GitHub CI remains the clean-install gate.
 
 ## Actual CPU/GPU container evidence
@@ -57,17 +57,27 @@ The normal Dockerfile's initial package install correctly rejected an untrusted 
 
 | Gate | Status | Remaining evidence |
 | --- | --- | --- |
-| G1 Speech code review | BLOCKED | Final-head GitHub CI and integration review still required at this report's creation. Local checks above passed. |
-| G2 CPU/GPU runtime | BLOCKED | CPU container and GPU image/library probes completed; actual GPU device/inference unavailable. |
+| G1 Speech code review | PASS WITH WARNINGS | Engineering review and validated-head CI passed; legacy browser BYOK prevents a strict all-app server-only-key claim. Follow-up commit CI and combined review remain release checks. |
+| G2 current-hardware CPU deployment | PASS WITH WARNINGS | The user authorized acceptance on available hardware. Actual hardened CPU deployment/readiness passed. This does not imply real model transcription. |
+| Optional GPU inference capability | BLOCKED | GPU image/library probes completed; actual GPU device/inference unavailable. A particular Windows/WSL/RTX machine is not a mandatory release prerequisite under the revised scope. |
 | G3 real-model evaluation | BLOCKED | Model host returns 403; no downloaded weights or bilingual model inference. See WHISPER_BENCHMARK_STATUS.json. |
 | G4 provider E2E | BLOCKED | No configured cloud API keys; Whisper weights blocked. See PROVIDER_E2E.md. |
 
 Strict server-only key storage is still not true for the entire application: legacy direct Gemini speech BYOK and existing text-generation BYOK remain browser accessible. Preferred speech proxy mode keeps all cloud speech keys server-side; legacy mode is visibly labelled. A future decision to remove all browser BYOK would affect text-generation architecture and is not silently represented as completed here.
 
-## Release blockers
+## Remaining requirements and optional capability limits
 
 1. Permit authorized model-host access or supply a locally cached, provenance-recorded model; then execute the same frozen Chinese/English recordings on small/medium/optional large-v3.
-2. Run actual GPU inference on available NVIDIA hardware; a successful image build or library load is insufficient.
+2. Keep GPU inference explicitly BLOCKED until available NVIDIA hardware is tested; a successful image build or library load is insufficient. This is an optional capability under the user-approved current-hardware acceptance scope.
 3. Configure trusted server API credentials for Gemini/OpenAI/Deepgram and perform actual Chinese/English service E2E; never publish keys in client assets or logs.
 4. Verify Chrome and Edge microphone permissions/record-stop-cancel/repeated sessions, including GitHub Pages HTTPS to loopback local-network browser behavior.
 5. Complete final-head CI and combined UI/runtime review before changing PR readiness. Do not merge or deploy automatically.
+
+
+## Follow-up metric completeness
+
+Model acquisition now resolves a concrete snapshot before construction, reports its artifact byte size and revision, and separates download/cache lookup time, local load time and total initialization time. WHISPER_MODEL_REVISION optionally pins an immutable snapshot. The benchmark exports these measured service fields; acquisition failures leave them null. Model artifact size is explicitly distinguished from unmeasured network traffic, whose field remains null. Two new mocked unit/contract tests verify these semantics; they are not performance measurements.
+
+## Browser integration evidence
+
+`scripts/speech-browser-qa.mjs` is a repeatable Chromium integration regression using the actual MediaRecorder with a synthetic microphone and a mocked trusted proxy. It checks all four provider routes, multipart audio, insertion into the query, persistence, recording/request cancellation, invalid JSON, network loss, 503/504 mapping and repeated recovery. It is added to the existing browser CI job and uploads evidence. The upstream 504 test is error mapping, not a claim of an elapsed client timeout; elapsed client timeout is separately covered in Node tests. The main smoke suite also passed on the PR #14 production preview using installed Chromium. The parent integration run completed all twelve aggregate speech checks on the combined UI/runtime build. None of this substitutes for real provider/model acceptance or real microphone/Edge/local-network permission testing.
