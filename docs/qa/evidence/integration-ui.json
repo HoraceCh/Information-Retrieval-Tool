@@ -1,0 +1,467 @@
+{
+  "time": "2026-11-17T00:53:45.598Z",
+  "source": "integration-268d0cb-421c456",
+  "base": "http://127.0.0.1:4181/",
+  "fixture": "rendering-only; no live AI, speech or database claims",
+  "states": [
+    {
+      "name": "dark-desktop-builder",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "name": "dark-desktop-result",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 37
+        }
+      ]
+    },
+    {
+      "name": "dark-desktop-keyword-edit",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 35
+        }
+      ]
+    },
+    {
+      "name": "dark-validation-error",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 35
+        }
+      ]
+    },
+    {
+      "name": "dark-warning-only",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 28
+        }
+      ]
+    },
+    {
+      "name": "dark-settings",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "dark-about",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 5
+        },
+        {
+          "id": "color-contrast",
+          "count": 21
+        }
+      ]
+    },
+    {
+      "name": "dark-whitelist",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "dark-offline-dialog",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "name": "dark-tablet-builder",
+      "geometry": {
+        "width": 768,
+        "scrollWidth": 768,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "name": "dark-tablet-result",
+      "geometry": {
+        "width": 768,
+        "scrollWidth": 768,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 37
+        }
+      ]
+    },
+    {
+      "name": "dark-tablet-keyword-edit",
+      "geometry": {
+        "width": 768,
+        "scrollWidth": 768,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 35
+        }
+      ]
+    },
+    {
+      "name": "dark-mobile-builder",
+      "geometry": {
+        "width": 390,
+        "scrollWidth": 390,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "dark-mobile-result",
+      "geometry": {
+        "width": 390,
+        "scrollWidth": 390,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 33
+        }
+      ]
+    },
+    {
+      "name": "dark-mobile-keyword-edit",
+      "geometry": {
+        "width": 390,
+        "scrollWidth": 390,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 29
+        }
+      ]
+    },
+    {
+      "name": "light-desktop-builder",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "name": "light-desktop-result",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 20
+        }
+      ]
+    },
+    {
+      "name": "light-desktop-keyword-edit",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 18
+        }
+      ]
+    },
+    {
+      "name": "light-validation-error",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 18
+        }
+      ]
+    },
+    {
+      "name": "light-warning-only",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 11
+        }
+      ]
+    },
+    {
+      "name": "light-settings",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "light-about",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 5
+        },
+        {
+          "id": "color-contrast",
+          "count": 14
+        }
+      ]
+    },
+    {
+      "name": "light-whitelist",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "light-offline-dialog",
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "name": "light-tablet-builder",
+      "geometry": {
+        "width": 768,
+        "scrollWidth": 768,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "name": "light-tablet-result",
+      "geometry": {
+        "width": 768,
+        "scrollWidth": 768,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 20
+        }
+      ]
+    },
+    {
+      "name": "light-tablet-keyword-edit",
+      "geometry": {
+        "width": 768,
+        "scrollWidth": 768,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 18
+        }
+      ]
+    },
+    {
+      "name": "light-mobile-builder",
+      "geometry": {
+        "width": 390,
+        "scrollWidth": 390,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "light-mobile-result",
+      "geometry": {
+        "width": 390,
+        "scrollWidth": 390,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 19
+        }
+      ]
+    },
+    {
+      "name": "light-mobile-keyword-edit",
+      "geometry": {
+        "width": 390,
+        "scrollWidth": 390,
+        "overflow": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 15
+        }
+      ]
+    }
+  ],
+  "errors": []
+}
