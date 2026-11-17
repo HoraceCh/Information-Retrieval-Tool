@@ -15,7 +15,7 @@ interface VisualQueryTreeProps {
   selectedWords: Record<string, boolean>;
   onToggleWord: (isModelB: boolean, groupIdx: number, word: string) => void;
   operatorStyle: "OR" | "Space";
-  uiLang: "zh" | "mix";
+  uiLang: "zh" | "mix" | "en";
 }
 
 export default function VisualQueryTree({
