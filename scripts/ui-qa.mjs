@@ -28,6 +28,7 @@ for(const theme of ['dark','light'])for(const [device,width,height] of [['deskto
  console.log('builder captured',theme,device,page.url(),await page.locator('footer').innerText());
  await page.locator('footer').getByText('HISTORY', {exact:true}).click();
  await page.getByText('QA fixture robotics motion planning',{exact:true}).click();
+  await page.getByRole('dialog',{name:'Query history'}).waitFor({state:'detached'});
  await page.locator('.formula-code-box').waitFor();
  await evidence(page,`${theme}-${device}-result`);
   const synonym = page.getByRole('button',{name:'排除同义词 robotics',exact:true});
@@ -41,6 +42,7 @@ for(const theme of ['dark','light'])for(const [device,width,height] of [['deskto
   await evidence(page,`${theme}-validation-error`);
   await page.locator('footer').getByText('HISTORY',{exact:true}).click();
   await page.getByText('QA fixture warning only',{exact:true}).click();
+  await page.getByRole('dialog',{name:'Query history'}).waitFor({state:'detached'});
   await page.locator('.ui-validation-warning').waitFor();
   if(!(await page.locator('main').innerText()).includes('结构有预警'))throw new Error('Warning-only query was presented as an unconditional pass');
   await evidence(page,`${theme}-warning-only`);
