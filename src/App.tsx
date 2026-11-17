@@ -3150,8 +3150,8 @@ export default function App() {
 
                   {result && !result._isLoading && (
                     <div className="mt-4 pt-3 border-t border-cyan-500/15 [.theme-light_&]:border-slate-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 w-full shrink-0">
-                      <span className="text-[10px] text-cyan-500/60 font-mono italic flex items-center gap-2 shrink-0">
-                        <Check size={10} className="text-emerald-500" /> {t('processedWith')}
+                      <span className="text-[10px] text-content-muted font-mono italic flex items-center gap-2 shrink-0">
+                        <Info size={10} /> {t('processedWith')}
                       </span>
                       <div className="flex flex-wrap items-center gap-2 max-w-full lg:justify-end justify-start">
                         <button 
