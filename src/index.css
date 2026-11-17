@@ -524,3 +524,13 @@ html.theme-light, .theme-light {
 #guided-input-panel [title^="目标数据库"] select,
 #guided-input-panel [title^="语言偏好"] select,
 #guided-input-panel [title^="检索式逻辑框架"] select { width: auto; flex: 1 1 0; }
+@theme inline {
+  --color-status-warning: var(--warning);
+  --color-status-success: var(--success);
+  --color-status-error: var(--error);
+}
+.app-shell .ui-info-notice { background: var(--info-surface) !important; border-color: var(--info) !important; color: var(--text-secondary) !important; }
+.app-shell .ui-validation-badge { background: #a0283b !important; color: #fff !important; box-shadow: none !important; }
+.app-shell .ui-validation-snippet-error { background: var(--error-surface) !important; color: var(--error) !important; border-color: var(--error) !important; }
+.app-shell .ui-validation-snippet-warning { background: var(--warning-surface) !important; color: var(--warning) !important; border-color: var(--warning) !important; }
+.app-shell .ui-normalized-query { background: var(--success-surface) !important; color: var(--success) !important; border-color: var(--success) !important; }

@@ -83,7 +83,7 @@ export default function SyntaxValidationAlert({
         <div 
           className="h-1.5 w-full bg-gradient-to-r from-rose-600 via-red-500 to-rose-600 rounded-full shadow-[0_0_15px_rgba(244,63,94,0.7)] animate-pulse"
         />
-        <div className="absolute -top-1 left-1/2 -translate-x-1/2 px-2.5 py-0.2 bg-rose-600 text-white font-black font-mono text-[9px] uppercase tracking-widest rounded-full shadow-md flex items-center gap-1">
+        <div className="ui-validation-badge absolute -top-1 left-1/2 -translate-x-1/2 px-2.5 py-0.2 bg-rose-600 text-white font-black font-mono text-[9px] uppercase tracking-widest rounded-full shadow-md flex items-center gap-1">
           <ShieldAlert size={10} />
           <span>{isZh ? "结构检查警示" : "STRUCTURE CHECK"}</span>
         </div>
@@ -154,7 +154,7 @@ export default function SyntaxValidationAlert({
                       {err.title}
                     </span>
                     {err.snippet && (
-                      <code className="px-1.5 py-0.2 bg-rose-950/60 border border-rose-500/40 text-rose-200 text-[10px] font-mono rounded">
+                      <code className="ui-validation-snippet ui-validation-snippet-error px-1.5 py-0.2 bg-rose-950/60 border border-rose-500/40 text-rose-200 text-[10px] font-mono rounded">
                         {err.snippet}
                       </code>
                     )}
@@ -163,7 +163,7 @@ export default function SyntaxValidationAlert({
                     {err.message}
                   </p>
                   {err.fixSuggestion && (
-                    <p className="text-[10px] text-amber-300/90 font-mono flex items-center gap-1">
+                    <p className="text-[10px] text-status-warning font-mono flex items-center gap-1">
                       <Sparkles size={10} className="text-amber-400" />
                       <span>{isZh ? "建议修复:" : "Suggestion:"} {err.fixSuggestion}</span>
                     </p>
@@ -184,7 +184,7 @@ export default function SyntaxValidationAlert({
                       {warn.title}
                     </span>
                     {warn.snippet && (
-                      <code className="px-1.5 py-0.2 bg-amber-950/60 border border-amber-500/40 text-amber-200 text-[10px] font-mono rounded">
+                      <code className="ui-validation-snippet ui-validation-snippet-warning px-1.5 py-0.2 bg-amber-950/60 border border-amber-500/40 text-amber-200 text-[10px] font-mono rounded">
                         {warn.snippet}
                       </code>
                     )}
@@ -193,7 +193,7 @@ export default function SyntaxValidationAlert({
                     {warn.message}
                   </p>
                   {warn.fixSuggestion && (
-                    <p className="text-[10px] text-amber-300/80 font-mono flex items-center gap-1">
+                    <p className="text-[10px] text-status-warning font-mono flex items-center gap-1">
                       <Sparkles size={10} className="text-amber-400" />
                       <span>{isZh ? "建议:" : "Tip:"} {warn.fixSuggestion}</span>
                     </p>
@@ -230,7 +230,7 @@ export default function SyntaxValidationAlert({
                     )}
                   </div>
                 </div>
-                <div className="text-[11px] font-mono text-emerald-200/90 bg-black/50 p-2 rounded border border-white/5 break-words whitespace-pre-wrap select-all">
+                <div className="ui-normalized-query text-[11px] font-mono p-2 rounded border border-white/5 break-words whitespace-pre-wrap select-all">
                   {fixedQuery}
                 </div>
               </div>

@@ -2054,7 +2054,7 @@ export default function App() {
           <div className="min-w-0">
             <h1 className="text-sm sm:text-base md:text-xl font-bold tracking-tight text-white uppercase flex items-center flex-wrap gap-1 sm:gap-1.5 truncate">
               <span className="truncate">{t('appTitle')}</span>
-              <span className="text-cyan-500 text-[9px] sm:text-[10px] font-mono opacity-70 shrink-0">v2.4.0</span>
+              <span className="text-brand text-[9px] sm:text-[10px] font-mono shrink-0">v2.4.0</span>
             </h1>
             <p className="text-[9px] sm:text-[10px] text-content-secondary uppercase tracking-widest leading-none hidden xs:block truncate">
               {t('appSubtitle')}
@@ -2708,7 +2708,7 @@ export default function App() {
                   }`}
                   title="检索式逻辑框架模板约束 / Search Formula Framework Template"
                 >
-                  <Layers size={14} className={activeTemplateId ? "text-amber-400 shrink-0" : "text-cyan-400/70 shrink-0"} />
+                  <Layers size={14} className={activeTemplateId ? "text-amber-400 shrink-0" : "text-brand shrink-0"} />
                   <select
                     aria-label="Query framework template"
                     value={activeTemplateId || ""}
@@ -2791,7 +2791,7 @@ export default function App() {
                   <span className="font-semibold text-amber-300 truncate">
                     {activeTemplate.name}
                   </span>
-                  <span className="text-[11px] text-amber-400/70 font-mono hidden md:inline truncate">
+                  <span className="text-[11px] text-status-warning font-mono hidden md:inline truncate">
                     {activeTemplate.framework}
                   </span>
                 </div>
@@ -2868,7 +2868,7 @@ export default function App() {
             <div className="p-4 sm:p-5 lg:p-6 flex-1 flex flex-col min-h-0 relative z-10 font-sans">
               <div className="flex flex-wrap justify-between items-center mb-3.5 gap-2.5">
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] text-cyan-400/80 uppercase font-bold tracking-[0.2em]">
+                  <label className="text-[11px] text-brand uppercase font-bold tracking-[0.2em]">
                     {isCompareMode ? (uiLang === 'zh' || i18n.language === 'mix' ? "大模型双语语义比对诊断" : "AI MODEL COMPARISON DIAGNOSIS") : t('formulaTitle')}
                   </label>
                   {result && (result._fromCache || result._compareResult?._fromCache) && (
@@ -3126,7 +3126,7 @@ export default function App() {
 
                     {result && !result._isLoading && showMapped && Array.isArray(result.schemaMapping) && result.schemaMapping.length > 0 && (
                       <div className="flex-1 overflow-y-auto custom-scrollbar mt-2">
-                        <h4 className="text-[10px] text-cyan-400/70 font-mono tracking-widest uppercase mb-3">Field Mapping Logic</h4>
+                        <h4 className="text-[10px] text-brand font-mono tracking-widest uppercase mb-3">Field Mapping Logic</h4>
                         <div className="space-y-2">
                           {result.schemaMapping.map((map, i) => (
                             <div key={i} className="flex flex-col sm:flex-row sm:items-baseline gap-2 bg-white/5 border border-white/5 p-3 rounded-lg text-sm">
@@ -3134,7 +3134,7 @@ export default function App() {
                                 <span className="text-[10px] text-emerald-400 font-mono bg-emerald-400/10 px-1.5 py-0.5 rounded">[{map.field}]</span>
                               </div>
                               <div className="flex-1 text-slate-300 text-xs">
-                                <span className="text-cyan-200 font-medium">"{map.mappedConcept}"</span> - <span className="opacity-70">{map.reason}</span>
+                                <span className="text-cyan-200 font-medium">"{map.mappedConcept}"</span> - <span className="text-content-secondary">{map.reason}</span>
                               </div>
                             </div>
                           ))}
@@ -3622,7 +3622,7 @@ export default function App() {
 
             <div className="relative z-10 border-t border-white/5 pt-3">
                <div className="flex justify-between items-end">
-                  <div className="text-[10px] font-mono text-cyan-400/70 uppercase"><span className="font-bold">{t('recallBoost')}</span></div>
+                  <div className="text-[10px] font-mono text-brand uppercase"><span className="font-bold">{t('recallBoost')}</span></div>
                   <div className="h-4 flex items-end gap-1">
                     {[0.2, 0.4, 0.7, 0.5, 0.9, 1.0].map((h, i) => (
                       <div key={i} className="w-1 bg-cyan-500/40 rounded-t-sm" style={{ height: `${h * 100}%` }}></div>
@@ -3877,7 +3877,7 @@ export default function App() {
                 <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 custom-scrollbar">
                 
                 {/* User API Key Guidance Banner */}
-                <div className="bg-cyan-950/40 border border-cyan-500/30 rounded-xl p-3.5 text-xs text-cyan-200/90 leading-relaxed flex gap-3 items-start shadow-inner">
+                <div className="ui-info-notice border rounded-xl p-3.5 text-xs text-content-secondary leading-relaxed flex gap-3 items-start shadow-inner">
                   <Key size={18} className="text-cyan-400 shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <div className="font-bold text-cyan-300">🔑 API Key 指引 / Key Configuration Guide</div>
@@ -4202,7 +4202,7 @@ export default function App() {
                         className="bg-black/30 border border-white/5 rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 hover:bg-white/5 transition-all group"
                       >
                         <div className="flex justify-between items-start mb-2">
-                          <span className="text-[10px] text-cyan-500 opacity-70 font-mono tracking-tighter">
+                          <span className="text-[10px] text-brand font-mono tracking-tighter">
                             {new Date(item.timestamp).toLocaleString()}
                           </span>
                           <span className="text-[9px] bg-white/5 px-2 py-0.5 rounded text-content-secondary uppercase tracking-widest border border-white/5 truncate max-w-[150px]">
