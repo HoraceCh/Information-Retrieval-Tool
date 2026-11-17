@@ -10,6 +10,7 @@ const report={time:new Date().toISOString(),source:process.env.QA_SOURCE||'local
 const result={keywords:[{original:'机器人',zhSynonyms:['机器人','机械臂'],enSynonyms:['robotics','robotic arm']}],booleanQuery:'("robotics" OR "robotic arm") AND "motion planning"',fieldSpecificQuery:'TS=(("robotics" OR "robotic arm") AND "motion planning")',schemaMapping:[{field:'TS',mappedConcept:'Topic',reason:'Fixture field mapping'}],explanation:'QA fixture: robotics motion planning; verify the query on the target database.',suggestedUrls:[]};
 async function evidence(page,name){
  await page.evaluate(()=>document.activeElement?.blur?.());
+ await page.evaluate(()=>window.scrollTo(0,0));
  await page.screenshot({path:path.join(out,name+'.png'),fullPage:true});
  const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();
  const geometry=await page.evaluate(()=>({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('main select, main input, main textarea')].filter(e=>{const r=e.getBoundingClientRect();return r.right>innerWidth+2||r.left< -2}).map(e=>({tag:e.tagName,label:e.getAttribute('aria-label'),id:e.id}))}));
