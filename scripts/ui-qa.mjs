@@ -28,6 +28,11 @@ for(const theme of ['dark','light'])for(const [device,width,height] of [['deskto
  await page.getByText('QA fixture robotics motion planning',{exact:true}).click();
  await page.locator('.formula-code-box').waitFor();
  await evidence(page,`${theme}-${device}-result`);
+  const synonym = page.getByRole('button',{name:'排除同义词 robotics',exact:true});
+  await synonym.focus();
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => !document.querySelector('.formula-code-box')?.textContent.includes('"robotics"'));
+  if (!(await page.locator('.formula-code-box').innerText()).includes('robotic arm')) throw new Error('Excluding one synonym removed the remaining term');
  if(device==='desktop'){
   await page.getByRole('button',{name:/测试检测|Test Check/}).click();
   await evidence(page,`${theme}-validation-error`);

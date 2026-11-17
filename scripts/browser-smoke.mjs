@@ -107,6 +107,12 @@ try {
   assert(await offlinePage.locator("#fileList .file-name").count() === 1, "Unsafe filename rendered");
   assert((await offlinePage.locator("#fileList").innerText()).includes("window.__xss=3"), "Punctuation in a safe filename should remain plain text");
   assert((await offlinePage.evaluate(() => window.__xss || 0)) === 0, "Persisted content executed JS");
+  await offlinePage.locator('#searchBar').fill('no-such-offline-entry-qa');
+  assert(await offlinePage.locator('#catGrid a').count() === 0, 'Offline search did not filter an unmatched query');
+  await offlinePage.locator('#searchBar').fill('example.com');
+  assert(await offlinePage.locator('#catGrid a').count() === 1, 'Offline URL search did not find the stored safe entry');
+  await offlinePage.locator('#searchBar').fill('');
+  assert(await offlinePage.locator('#catGrid a').count() === 1, 'Clearing offline search did not restore entries');
   assert(offlineErrors.length === 0, "Generated HTML runtime errors:\n" + offlineErrors.join("\n"));
   await offlinePage.close();
   console.log("Offline HTML security passed: unsafe URLs/markup filtered, valid content preserved.");
