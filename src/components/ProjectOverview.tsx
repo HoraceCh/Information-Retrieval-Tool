@@ -68,8 +68,8 @@ export default function ProjectOverview({
       icon: Mic,
       title: copy("语音输入与快捷检索", "Voice and quick access"),
       description: copy(
-        "可口述研究意图，并从官方数据库入口快速打开目标平台。",
-        "Dictate a research intent and jump to official database portals."
+        "独立选择语音引擎录入研究意图；非 Gemini 引擎需另行配置可信代理。通过官方入口打开目标数据库。",
+        "Select a speech engine independently; non-Gemini engines require a separately configured trusted proxy. Open databases through official portals."
       ),
     },
     {
@@ -249,10 +249,10 @@ export default function ProjectOverview({
   const cardClass =
     "rounded-2xl border border-white/10 bg-slate-900/45 p-5 shadow-sm [.theme-light_&]:border-slate-200 [.theme-light_&]:bg-white";
   const headingClass = "text-white [.theme-light_&]:text-slate-900";
-  const bodyClass = "text-sm leading-7 text-slate-300 [.theme-light_&]:text-slate-600";
+  const bodyClass = "text-sm leading-7 text-slate-300 [.theme-light_&]:text-content-muted";
 
   return (
-    <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-8 overflow-y-auto px-3 py-5 sm:px-6 sm:py-8 lg:px-8">
+    <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-8 overflow-y-auto px-3 py-5 sm:px-6 sm:py-8 lg:px-8">
       <section id="project-intro" aria-labelledby="project-overview-title" className="relative overflow-hidden rounded-3xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/15 via-slate-900/80 to-indigo-500/15 p-6 sm:p-9 lg:p-12 [.theme-light_&]:border-cyan-200 [.theme-light_&]:from-cyan-50 [.theme-light_&]:via-white [.theme-light_&]:to-indigo-50">
         <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="relative grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
@@ -295,7 +295,7 @@ export default function ProjectOverview({
                 href={REPO_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-slate-300 transition hover:text-cyan-300 [.theme-light_&]:text-slate-600"
+                className="inline-flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-slate-300 transition hover:text-cyan-300 [.theme-light_&]:text-content-muted"
               >
                 <Github size={16} />
                 GitHub
@@ -311,7 +311,7 @@ export default function ProjectOverview({
             </div>
             <div className="space-y-3 font-mono text-xs">
               <div className="rounded-xl border border-white/10 bg-white/5 p-3 [.theme-light_&]:border-slate-200 [.theme-light_&]:bg-slate-50">
-                <div className="mb-1 text-[10px] text-slate-500">01 / RESEARCH INTENT</div>
+                <div className="mb-1 text-[10px] text-content-muted">01 / RESEARCH INTENT</div>
                 <div className="text-slate-200 [.theme-light_&]:text-slate-700">“Robotics for photovoltaic panel cleaning”</div>
               </div>
               <div className="flex justify-center text-cyan-400">↓</div>
@@ -321,18 +321,18 @@ export default function ProjectOverview({
               </div>
               <div className="flex justify-center text-cyan-400">↓</div>
               <div className="rounded-xl border border-indigo-400/25 bg-indigo-400/10 p-3">
-                <div className="mb-1 text-[10px] text-indigo-300">03 / BOOLEAN STRATEGY</div>
+                <div className="mb-1 text-[10px] text-brand">03 / BOOLEAN STRATEGY</div>
                 <div className="break-words text-slate-200 [.theme-light_&]:text-slate-700">
                   (robot* OR cleaning robot*) AND (photovoltaic OR solar panel*)
                 </div>
               </div>
               <div className="flex justify-center text-cyan-400">↓</div>
               <div className="rounded-xl border border-white/10 bg-white/5 p-3 [.theme-light_&]:border-slate-200 [.theme-light_&]:bg-slate-50">
-                <div className="mb-1 text-[10px] text-slate-500">04 / DATABASE SEARCH</div>
+                <div className="mb-1 text-[10px] text-content-muted">04 / DATABASE SEARCH</div>
                 <div className="text-slate-200 [.theme-light_&]:text-slate-700">Review · Copy · Search</div>
               </div>
             </div>
-            <p className="mt-4 text-[10px] leading-5 text-slate-500">
+            <p className="mt-4 text-[10px] leading-5 text-content-muted">
               {copy(
                 "示意流程，仅用于说明产品工作方式；示例检索式不是经过数据库验证的结果。",
                 "Illustrative workflow only; the sample query is not a database-validated result."
@@ -375,7 +375,7 @@ export default function ProjectOverview({
               "Explore the tool by product category, search methods, implemented features, database coverage and research use cases."
             )}
           </p>
-          <p className="mt-2 text-xs leading-6 text-slate-500">
+          <p className="mt-2 text-xs leading-6 text-content-muted">
             {copy(
               "索引词描述的是本项目实际定位与功能，不代表本工具直接提供论文全文、自动抓取数据库内容，或保证每个数据库的检索语法始终完全兼容。",
               "These terms describe the product's scope and implemented capabilities. The app does not crawl databases, provide full-text papers or guarantee permanent compatibility with every database syntax."
@@ -398,7 +398,7 @@ export default function ProjectOverview({
                   <ExternalLink size={13} />
                 </a>
               </div>
-              <p className="mb-3 text-xs leading-5 text-slate-400 [.theme-light_&]:text-slate-600">{group.description}</p>
+              <p className="mb-3 text-xs leading-5 text-content-secondary [.theme-light_&]:text-content-muted">{group.description}</p>
               <div className="flex flex-wrap gap-1.5" aria-label={group.title}>
                 {group.terms.map((term) => (
                   <a
@@ -492,7 +492,7 @@ export default function ProjectOverview({
                   {group.items.map((item) => (
                     <span
                       key={item}
-                      className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-slate-400 [.theme-light_&]:border-slate-200 [.theme-light_&]:bg-slate-50 [.theme-light_&]:text-slate-600"
+                      className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-content-secondary [.theme-light_&]:border-slate-200 [.theme-light_&]:bg-slate-50 [.theme-light_&]:text-content-muted"
                     >
                       {item}
                     </span>
@@ -501,7 +501,7 @@ export default function ProjectOverview({
               </div>
             ))}
           </div>
-          <p className="mt-4 text-[11px] leading-5 text-slate-500">
+          <p className="mt-4 text-[11px] leading-5 text-content-muted">
             {copy(
               "语法适配基于项目内置规则与提示。不同数据库的功能、字段和语法可能变化，正式检索前请核对平台官方帮助。",
               "Syntax guidance is based on built-in rules. Database syntax and field support can change; verify queries against each platform's official documentation."
@@ -524,8 +524,8 @@ export default function ProjectOverview({
           </p>
           <p className="mt-3 text-xs leading-6 text-amber-300/90 [.theme-light_&]:text-amber-700">
             {copy(
-              "语音转文字功能使用 Gemini，需要单独配置可用的 Gemini API Key。",
-              "Voice transcription uses Gemini and requires a valid Gemini API key."
+              "语音引擎可独立选择 Gemini、OpenAI、Deepgram 或 Whisper 本地服务。Gemini 使用现有浏览器端 Key；其他引擎需自行配置可信服务端，菜单可选不代表服务已就绪。",
+              "Choose Gemini, OpenAI, Deepgram or local Whisper independently. Gemini uses the existing browser key; other engines require your own trusted server. An available adapter does not establish service readiness."
             )}
           </p>
         </div>
@@ -537,8 +537,8 @@ export default function ProjectOverview({
           </div>
           <p className={bodyClass}>
             {copy(
-              "当前版本是静态前端应用，不提供自建模型代理服务。API Key 与部分偏好设置保存在当前浏览器的 localStorage 中；这不是加密保险库。检索意图、语音内容和 API 请求会发送给你选择的模型服务商，并受其数据政策约束。",
-              "This version is a static client-side app with no self-hosted model proxy. API keys and some preferences are stored in this browser's localStorage, which is not an encrypted vault. Search prompts, audio and API requests are sent to the provider you select and are subject to that provider's data policies."
+              "GitHub Pages 只托管静态前端，不托管语音代理或 Whisper。现有文本模型及 Gemini Key 保存在浏览器 localStorage 中，这不是加密保险库；OpenAI / Deepgram 语音专用密钥只应保存在可信服务端。检索意图发送给所选文本模型，录音发送给独立选择的语音引擎或代理。",
+              "GitHub Pages hosts only the static frontend, not a speech proxy or Whisper. Existing text-model and Gemini keys remain in browser localStorage, which is not an encrypted vault; OpenAI/Deepgram speech secrets belong only on a trusted server. Prompts go to the selected text model; audio goes to the independently selected speech engine or proxy."
             )}
           </p>
           <p className="mt-3 text-xs leading-6 text-emerald-300/90 [.theme-light_&]:text-emerald-700">
@@ -582,14 +582,14 @@ export default function ProjectOverview({
                   <ExternalLink size={13} className="opacity-50 transition group-hover:opacity-100" />
                 </div>
                 <h4 className={"mb-1 text-sm font-bold " + headingClass}>{resource.title}</h4>
-                <p className="text-xs leading-5 text-slate-400 [.theme-light_&]:text-slate-600">{resource.description}</p>
+                <p className="text-xs leading-5 text-content-secondary [.theme-light_&]:text-content-muted">{resource.description}</p>
               </a>
             );
           })}
         </div>
       </section>
 
-      <div className="flex flex-col gap-2 border-t border-white/10 py-4 text-center text-[11px] leading-5 text-slate-500 [.theme-light_&]:border-slate-200">
+      <div className="flex flex-col gap-2 border-t border-white/10 py-4 text-center text-[11px] leading-5 text-content-muted [.theme-light_&]:border-slate-200">
         <p>
           {copy(
             "AI 检索力用于辅助构建检索策略，不代替研究者判断，也不直接提供数据库检索结果或全文。",

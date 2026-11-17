@@ -9,13 +9,16 @@ const BASE = process.env.SMOKE_BASE_URL || "http://127.0.0.1:4173/";
 const artifacts = path.resolve("artifacts/browser-smoke");
 fs.mkdirSync(artifacts, { recursive: true });
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH, args: ['--no-sandbox'] } : {}) });
 const errors = [];
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 page.on("pageerror", error => errors.push(error.message));
 // Suppress the first-run tour overlay while exercising stable navigation.
 await page.addInitScript(() => {
   try { localStorage.setItem("visited-guided-search-v1.0", "true"); } catch {}
+  localStorage.setItem('suYangFinalV6_react', JSON.stringify({links:[{
+    name:'用户名: example-user 密码: example-placeholder',url:'https://www.fenqubiao.com/',cat:'九、学术写作'
+  }],files:[]}));
 });
 const assert = (condition, description) => {
   if (!condition) throw new Error(description);
@@ -44,6 +47,9 @@ try {
   await returnButton.click({ timeout: 15000 });
   await page.getByRole("button", { name: /官方网址速查|Official Whitelist/ }).first().click();
   await page.locator("main").first().waitFor();
+  await page.getByText('期刊分区表（请使用本人获授权的账号）',{exact:true}).waitFor();
+  assert(!(await page.locator('main').innerText()).includes('example-placeholder'), 'Hosted whitelist retained the legacy credential-like label');
+  assert(await page.evaluate(() => !localStorage.getItem('suYangFinalV6_react').includes('example-placeholder')), 'Hosted whitelist did not migrate persisted legacy labels');
 
   for (const slug of ["academic-literature-search", "boolean-search", "keyword-expansion"]) {
     const url = new URL("guides/" + slug + "/", BASE).toString();
@@ -84,6 +90,7 @@ try {
     route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: offlineHtml })
   );
   await offlinePage.addInitScript(() => {
+    if (localStorage.getItem('__offline_legacy_migration_qa') === '1') return;
     localStorage.setItem("ai_info_literacy_offline_db_v6", JSON.stringify({
       links: [
         { name: '<img src=x onerror=window.__xss=1>', url: 'javascript:alert(1)', cat: '二、AI素养' },
@@ -107,6 +114,21 @@ try {
   assert(await offlinePage.locator("#fileList .file-name").count() === 1, "Unsafe filename rendered");
   assert((await offlinePage.locator("#fileList").innerText()).includes("window.__xss=3"), "Punctuation in a safe filename should remain plain text");
   assert((await offlinePage.evaluate(() => window.__xss || 0)) === 0, "Persisted content executed JS");
+  await offlinePage.locator('#searchBar').fill('no-such-offline-entry-qa');
+  assert(await offlinePage.locator('#catGrid a').count() === 0, 'Offline search did not filter an unmatched query');
+  await offlinePage.locator('#searchBar').fill('example.com');
+  assert(await offlinePage.locator('#catGrid a').count() === 1, 'Offline URL search did not find the stored safe entry');
+  await offlinePage.locator('#searchBar').fill('');
+  assert(await offlinePage.locator('#catGrid a').count() === 1, 'Clearing offline search did not restore entries');
+  await offlinePage.evaluate(() => {
+    localStorage.setItem('__offline_legacy_migration_qa', '1');
+    localStorage.setItem('ai_info_literacy_offline_db_v6', JSON.stringify({
+      links: [{name:'用户名: example-user 密码: example-placeholder',url:'https://www.fenqubiao.com/',cat:'九、学术写作'}],files:[]
+    }));
+  });
+  await offlinePage.reload({waitUntil:'domcontentloaded'});
+  assert((await offlinePage.locator('#catGrid').innerText()).includes('请使用本人获授权的账号'), 'Offline legacy label migration was not applied');
+  assert(!(await offlinePage.locator('#catGrid').innerText()).includes('example-placeholder'), 'Legacy credential-like annotation remained visible');
   assert(offlineErrors.length === 0, "Generated HTML runtime errors:\n" + offlineErrors.join("\n"));
   await offlinePage.close();
   console.log("Offline HTML security passed: unsafe URLs/markup filtered, valid content preserved.");
