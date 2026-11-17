@@ -3487,7 +3487,7 @@ export default function App() {
                                   className={`p-1.5 rounded-lg flex items-center justify-between flex-1 transition-all border text-left cursor-pointer ${
                                     isWordSelected(isSemanticB, idx, group.original)
                                       ? (isSemanticB ? "bg-purple-950/45 border-purple-500/50 text-white font-bold" : "bg-cyan-950/45 border-cyan-500/50 text-white font-bold")
-                                      : "opacity-40 line-through border-transparent text-content-muted bg-black/10"
+                                      : "line-through border-transparent text-content-muted bg-black/10"
                                   }`}
                                 >
                                   <span className="text-xs uppercase tracking-tight truncate font-sans font-medium">{group.original}</span>
@@ -3507,11 +3507,12 @@ export default function App() {
                                         <button
                                           type="button"
                                           key={`zh-${sIdx}`}
+                                          aria-pressed={active}
                                           onClick={() => toggleWordSelection(isSemanticB, idx, syn)}
                                           className={`text-[10px] font-medium px-2 py-0.5 rounded transition-all flex items-center gap-1 border cursor-pointer ${
                                             active
                                               ? (isSemanticB ? "bg-purple-500/15 border-purple-500/40 text-purple-300" : "bg-cyan-500/15 border-cyan-500/40 text-cyan-300")
-                                              : "bg-black/15 border-transparent text-content-muted opacity-40 line-through"
+                                              : "bg-black/15 border-transparent text-content-muted line-through"
                                           }`}
                                         >
                                           {syn}
@@ -3534,11 +3535,12 @@ export default function App() {
                                         <button
                                           type="button"
                                           key={`en-${sIdx}`}
+                                          aria-pressed={active}
                                           onClick={() => toggleWordSelection(isSemanticB, idx, syn)}
                                           className={`text-[10px] font-medium px-2 py-0.5 rounded transition-all flex items-center gap-1 border cursor-pointer italic ${
                                             active
                                               ? (isSemanticB ? "bg-purple-500/15 border-purple-500/40 text-purple-300" : "bg-cyan-500/15 border-cyan-500/40 text-cyan-300")
-                                              : "bg-black/15 border-transparent text-content-muted opacity-40 line-through"
+                                              : "bg-black/15 border-transparent text-content-muted line-through"
                                           }`}
                                         >
                                           {syn}
