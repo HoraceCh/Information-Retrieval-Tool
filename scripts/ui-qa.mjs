@@ -50,5 +50,6 @@ for(const theme of ['dark','light'])for(const [device,width,height] of [['deskto
 }
 }finally{await browser.close();fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));}
 const violations=report.states.reduce((n,s)=>n+s.violations.length,0);const overflow=report.states.filter(s=>s.geometry.scrollWidth>s.geometry.width+2||s.geometry.overflow.length);
+for (const state of report.states) if (state.violations.length) console.error(JSON.stringify({state:state.name,violations:state.violations},null,2));
 console.log(JSON.stringify({states:report.states.length,violations,overflow:overflow.map(s=>s.name),errors:report.errors},null,2));
 if(violations||overflow.length||report.errors.length)process.exitCode=1;
