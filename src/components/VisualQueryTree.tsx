@@ -148,7 +148,7 @@ export default function VisualQueryTree({
             {uiLang === "zh" || uiLang === "mix" ? "布尔逻辑树状图" : "BULLET LOGIC VISUAL TREE"}
           </span>
         </div>
-        <div className="text-[9px] text-slate-500 flex items-center gap-1 font-mono">
+        <div className="text-[9px] text-content-muted flex items-center gap-1 font-mono">
           <span>{uiLang === "zh" || uiLang === "mix" ? "💡 点击叶子节点可直接剔除对应同义词" : "💡 Click leaf synonym to exclude it"}</span>
         </div>
       </div>
