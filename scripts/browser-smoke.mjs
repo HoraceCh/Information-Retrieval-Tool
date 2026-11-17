@@ -84,6 +84,7 @@ try {
     route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: offlineHtml })
   );
   await offlinePage.addInitScript(() => {
+    if (localStorage.getItem('__offline_legacy_migration_qa') === '1') return;
     localStorage.setItem("ai_info_literacy_offline_db_v6", JSON.stringify({
       links: [
         { name: '<img src=x onerror=window.__xss=1>', url: 'javascript:alert(1)', cat: '二、AI素养' },
@@ -113,9 +114,12 @@ try {
   assert(await offlinePage.locator('#catGrid a').count() === 1, 'Offline URL search did not find the stored safe entry');
   await offlinePage.locator('#searchBar').fill('');
   assert(await offlinePage.locator('#catGrid a').count() === 1, 'Clearing offline search did not restore entries');
-  await offlinePage.evaluate(() => localStorage.setItem('ai_info_literacy_offline_db_v6', JSON.stringify({
-    links: [{name:'用户名: example-user 密码: example-placeholder',url:'https://www.fenqubiao.com/',cat:'九、学术写作'}],files:[]
-  })));
+  await offlinePage.evaluate(() => {
+    localStorage.setItem('__offline_legacy_migration_qa', '1');
+    localStorage.setItem('ai_info_literacy_offline_db_v6', JSON.stringify({
+      links: [{name:'用户名: example-user 密码: example-placeholder',url:'https://www.fenqubiao.com/',cat:'九、学术写作'}],files:[]
+    }));
+  });
   await offlinePage.reload({waitUntil:'domcontentloaded'});
   assert((await offlinePage.locator('#catGrid').innerText()).includes('请使用本人获授权的账号'), 'Offline legacy label migration was not applied');
   assert(!(await offlinePage.locator('#catGrid').innerText()).includes('example-placeholder'), 'Legacy credential-like annotation remained visible');
