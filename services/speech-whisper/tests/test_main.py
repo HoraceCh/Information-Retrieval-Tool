@@ -78,7 +78,7 @@ def test_openai_proxy_uses_server_key(monkeypatch):
     r=client.post("/api/speech/openai/transcriptions",files={"file":("a.webm",b"audio","audio/webm")},data={"language":"en"})
     assert r.status_code==200 and r.json()=={"text":"OpenAI transcript"}
     assert seen["headers"]["Authorization"]=="Bearer server-secret"
-    assert seen["data"]=={"model":"whisper-1","language":"en"}
+    assert seen["data"]=={"model":"whisper-1","language":"en","response_format":"json"}
     assert seen["files"]["file"][1]==b"audio"
 
 def test_openai_missing_key_returns_503(monkeypatch):
@@ -161,8 +161,8 @@ def test_gemini_proxy_keeps_key_server_side(monkeypatch):
     monkeypatch.setattr(main, "GEMINI_API_KEY", "test-only-key")
     async def fake(url, **kwargs):
         assert url.startswith("https://generativelanguage.googleapis.com/")
-        assert kwargs["headers"] == {"x-goog-api-key": "test-only-key"}
-        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "你好 robotics"}]}}]}, request=httpx.Request("POST", url))
+        assert kwargs["headers"] == {"x-goog-api-key": "test-only-key", "Content-Type": "application/json"}
+        return httpx.Response(200, json={"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "你好 robotics"}]}}]}, request=httpx.Request("POST", url))
     install_fake_client(monkeypatch, fake)
     r=client.post("/api/speech/gemini/transcriptions", files={"file": ("a.wav", b"audio", "audio/wav")})
     assert r.status_code == 200 and r.json() == {"text": "你好 robotics"}

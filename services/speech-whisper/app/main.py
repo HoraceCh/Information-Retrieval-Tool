@@ -1,5 +1,6 @@
 from __future__ import annotations
 import base64
+import json
 import asyncio, logging, os, re, tempfile, threading, time
 from importlib.metadata import version
 from pathlib import Path
@@ -37,7 +38,9 @@ DEEPGRAM_MODEL = os.getenv("DEEPGRAM_MODEL", "nova-3")
 UPSTREAM_TIMEOUT_SECONDS = positive_int_env("SPEECH_UPSTREAM_TIMEOUT_SECONDS", 90)
 DEFAULT_ORIGINS = "https://horacech.github.io,http://localhost:3000,http://127.0.0.1:3000,http://localhost:4173,http://127.0.0.1:4173"
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("SPEECH_ALLOWED_ORIGINS", DEFAULT_ORIGINS).split(",") if o.strip()]
-AUDIO_SUFFIXES = {"audio/webm":".webm","audio/mp4":".mp4","audio/ogg":".ogg","audio/wav":".wav","audio/x-wav":".wav","audio/mpeg":".mp3","audio/flac":".flac","audio/aac":".aac","audio/3gpp":".3gp"}
+GEMINI_INLINE_REQUEST_LIMIT = 20_000_000
+OPENAI_AUDIO_LIMIT = 25_000_000
+AUDIO_SUFFIXES = {"audio/mp3":".mp3","audio/m4a":".m4a","audio/x-m4a":".m4a","audio/webm":".webm","audio/mp4":".mp4","audio/ogg":".ogg","audio/wav":".wav","audio/x-wav":".wav","audio/mpeg":".mp3","audio/flac":".flac","audio/aac":".aac","audio/3gpp":".3gp"}
 class SpeechRequestLimits:
     """Bound uploads before multipart parsing and cap all provider work, including cloud spend."""
     def __init__(self, app):
@@ -157,6 +160,40 @@ async def read_audio(file: UploadFile) -> tuple[bytes,str]:
     finally:
         await file.close()
 
+def upstream_speech_error(provider: str, response: httpx.Response) -> HTTPException:
+    """Map documented failure classes without reflecting provider bodies, URLs or keys."""
+    status = response.status_code
+    retry = response.headers.get("retry-after", "")
+    headers = {"Retry-After": retry} if retry.isdigit() and 0 < int(retry) <= 3600 else None
+    if status in (401, 403):
+        return HTTPException(503, f"{provider} credentials require attention on the trusted service.")
+    if status == 429:
+        return HTTPException(429, f"{provider} speech quota or rate limit reached. Try again later.", headers=headers)
+    if status == 413:
+        return HTTPException(413, f"{provider} rejected the audio size. Use a shorter recording.")
+    if status == 415:
+        return HTTPException(415, f"{provider} does not support this audio format.")
+    if status in (400, 422):
+        return HTTPException(422, f"{provider} rejected the audio or language settings.")
+    if status in (503, 504):
+        return HTTPException(status, f"{provider} speech service is unavailable or timed out.", headers=headers)
+    return HTTPException(502, f"{provider} speech provider rejected the request.")
+
+
+def gemini_audio_request(data: bytes, content_type: str, prompt: str) -> dict:
+    # Canonical REST JSON names. Browser MP4/AAC audio is an M4A-compatible container.
+    mime = {"audio/x-wav": "audio/wav", "audio/mp4": "audio/m4a", "audio/x-m4a": "audio/m4a"}.get(content_type, content_type)
+    if mime == "audio/3gpp":
+        raise HTTPException(415, "Gemini audio input does not support 3GPP in this adapter. Use WebM, WAV, MP3, Ogg or M4A.")
+    payload = {"contents": [{"parts": [{"inlineData": {"mimeType": mime, "data": ""}}, {"text": prompt}]}]}
+    # Base64 is ASCII: compute the complete compact JSON size before allocating its contents.
+    envelope_bytes = len(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
+    if envelope_bytes + 4 * ((len(data) + 2) // 3) > GEMINI_INLINE_REQUEST_LIMIT:
+        raise HTTPException(413, "Gemini inline audio exceeds its total request limit after base64 encoding. Use a shorter recording.")
+    payload["contents"][0]["parts"][0]["inlineData"]["data"] = base64.b64encode(data).decode("ascii")
+    return payload
+
+
 async def forward_gemini(data: bytes, content_type: str, language: str) -> str:
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=503, detail="Gemini speech provider is not configured on this service.")
@@ -165,32 +202,47 @@ async def forward_gemini(data: bytes, content_type: str, language: str) -> str:
         raise HTTPException(status_code=503, detail="Gemini speech model configuration is invalid.")
     prompt = "Transcribe this audio verbatim. Output only the transcription without commentary."
     if language != "auto": prompt += " The language code is " + language + "."
+    payload = gemini_audio_request(data, content_type, prompt)
     try:
-        async with httpx.AsyncClient(timeout=UPSTREAM_TIMEOUT_SECONDS) as client:
+        async with httpx.AsyncClient(timeout=UPSTREAM_TIMEOUT_SECONDS, follow_redirects=False) as client:
             response = await client.post(
                 "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_TRANSCRIPTION_MODEL + ":generateContent",
-                headers={"x-goog-api-key": GEMINI_API_KEY},
-                json={"contents": [{"parts": [{"inline_data": {"mime_type": content_type, "data": base64.b64encode(data).decode("ascii")}}, {"text": prompt}]}]},
+                headers={"x-goog-api-key": GEMINI_API_KEY, "Content-Type": "application/json"},
+                content=json.dumps(payload, separators=(",", ":")).encode("utf-8"),
+                # Content is serialized exactly as accounted for by the inline limit.
+
             )
         response.raise_for_status()
         payload = response.json()
         candidates = payload.get("candidates", [])
-        parts = candidates[0]["content"]["parts"]
-        transcript = " ".join(part["text"].strip() for part in parts if isinstance(part.get("text"), str)).strip()
+        candidate = candidates[0]
+        if candidate.get("finishReason") != "STOP":
+            raise ValueError("incomplete or blocked candidate")
+        parts = candidate["content"]["parts"]
+        transcript = " ".join(part["text"].strip() for part in parts if isinstance(part.get("text"), str) and not part.get("thought")).strip()
         if not transcript: raise ValueError("empty transcript")
         return transcript
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="Gemini speech request timed out.") from None
+    except httpx.HTTPStatusError as error:
+        raise upstream_speech_error("Gemini", error.response) from None
     except (httpx.HTTPError, ValueError, KeyError, TypeError, IndexError, AttributeError):
         logger.warning("Gemini upstream request failed")
         raise HTTPException(status_code=502, detail="Gemini speech provider returned an invalid result or rejected the request.") from None
 
 async def forward_openai(data: bytes, content_type: str, language: str) -> str:
     if not OPENAI_API_KEY: raise HTTPException(status_code=503,detail="OpenAI speech provider is not configured on this service.")
-    fields={"model":OPENAI_TRANSCRIPTION_MODEL}
+    if content_type in ("audio/aac", "audio/3gpp"):
+        raise HTTPException(415, "OpenAI transcription requires WebM, WAV, MP3, MP4/M4A, Ogg or FLAC. Convert raw AAC/3GPP first.")
+    if len(data) > OPENAI_AUDIO_LIMIT:
+        raise HTTPException(413, "OpenAI transcription audio exceeds the 25 MB limit. Use a shorter recording.")
+    if language != "auto" and not re.fullmatch(r"[a-z]{2}", language):
+        raise HTTPException(422, "OpenAI transcription language must be an ISO-639-1 two-letter code or auto.")
+    fields={"model":OPENAI_TRANSCRIPTION_MODEL, "response_format": "json"}
+    if OPENAI_TRANSCRIPTION_MODEL == "gpt-4o-transcribe-diarize": fields["chunking_strategy"] = "auto"
     if language!="auto": fields["language"]=language
     try:
-        async with httpx.AsyncClient(timeout=UPSTREAM_TIMEOUT_SECONDS) as client:
+        async with httpx.AsyncClient(timeout=UPSTREAM_TIMEOUT_SECONDS, follow_redirects=False) as client:
             response=await client.post("https://api.openai.com/v1/audio/transcriptions",headers={"Authorization":f"Bearer {OPENAI_API_KEY}"},data=fields,files={"file":("recording"+AUDIO_SUFFIXES[content_type],data,content_type)})
         response.raise_for_status()
         payload=response.json()
@@ -200,8 +252,7 @@ async def forward_openai(data: bytes, content_type: str, language: str) -> str:
     except HTTPException: raise
     except httpx.TimeoutException: raise HTTPException(status_code=504,detail="OpenAI speech request timed out.") from None
     except httpx.HTTPStatusError as error:
-        logger.warning("OpenAI upstream returned HTTP %s",error.response.status_code)
-        raise HTTPException(status_code=502,detail="OpenAI speech provider rejected the transcription request.") from None
+        raise upstream_speech_error("OpenAI", error.response) from None
     except (httpx.HTTPError,ValueError,KeyError,TypeError,AttributeError):
         logger.warning("OpenAI upstream request failed")
         raise HTTPException(status_code=502,detail="OpenAI speech provider request failed.") from None
@@ -212,7 +263,7 @@ async def forward_deepgram(data: bytes, content_type: str, language: str) -> str
     if language=="auto": params["detect_language"]="true"
     else: params["language"]=language
     try:
-        async with httpx.AsyncClient(timeout=UPSTREAM_TIMEOUT_SECONDS) as client:
+        async with httpx.AsyncClient(timeout=UPSTREAM_TIMEOUT_SECONDS, follow_redirects=False) as client:
             response=await client.post("https://api.deepgram.com/v1/listen?"+urlencode(params),headers={"Authorization":f"Token {DEEPGRAM_API_KEY}","Content-Type":content_type},content=data)
         response.raise_for_status()
         payload=response.json()
@@ -227,8 +278,7 @@ async def forward_deepgram(data: bytes, content_type: str, language: str) -> str
     except HTTPException: raise
     except httpx.TimeoutException: raise HTTPException(status_code=504,detail="Deepgram speech request timed out.") from None
     except httpx.HTTPStatusError as error:
-        logger.warning("Deepgram upstream returned HTTP %s",error.response.status_code)
-        raise HTTPException(status_code=502,detail="Deepgram speech provider rejected the transcription request.") from None
+        raise upstream_speech_error("Deepgram", error.response) from None
     except (httpx.HTTPError,ValueError,KeyError,IndexError,TypeError,AttributeError):
         logger.warning("Deepgram upstream request failed")
         raise HTTPException(status_code=502,detail="Deepgram speech provider request failed.") from None

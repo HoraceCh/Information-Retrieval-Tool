@@ -97,3 +97,7 @@ Advanced custom provider IDs are defined only by an operator's `TEXT_PROVIDER_CO
 Text requests are limited to 128 KiB before JSON parsing, use bounded fields and an independent `MAX_CONCURRENT_TEXT_REQUESTS` limit (default 2), and share the existing exact-origin policy. Frontend batch/compare requests queue per service URL, preserving selected models without deterministic 429 failures from a single browser. Each active browser request has a 90-second timeout; the server's upstream HTTP client also has a 90-second timeout. Model errors never cause an automatic provider fallback.
 
 The service remains unauthenticated and loopback-only by default. Origin filtering is not authentication. A remotely shared service must add an authenticated HTTPS gateway, per-user quotas, rate limits and abuse controls before exposing provider-funded operations. Never expose this local API merely by changing its bind address.
+
+## Commercial API manual acceptance
+
+See [Commercial speech API contract acceptance](COMMERCIAL_API_ACCEPTANCE.md) for current official Gemini/OpenAI/Deepgram references, local serialized-request tests, provider-specific upload/language constraints, error mapping, and the distinction between manual/contract acceptance and authenticated commercial inference. API keys are not needed to run this local suite.
