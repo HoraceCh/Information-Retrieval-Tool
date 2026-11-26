@@ -1,4 +1,5 @@
 import { requestModelService, validateQueryResult } from "./modelService.mjs";
+import { DEFAULT_SEARCH_TEMPLATES } from "../data/searchTemplates";
 import { validateBooleanQuery } from "../utils/booleanSyntaxValidator";
 import type { ProviderConfig } from "../types";
 export type { ProviderConfig } from "../types";
@@ -114,7 +115,12 @@ export async function generateSearchQuery(
   const schemaInfo = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请自行匹配该目标数据库的常用检索语法与字段代码。" : (DB_SCHEMAS[targetDatabase] || DB_SCHEMAS["通用搜索引擎 (Baidu/Bing)"]);
   
   const isWos = /^Web of Science/i.test(targetDatabase);
-  const isSimpleWosTopic = isWos && !feedback && !templateConstraint
+  const defaultTopicTemplate = DEFAULT_SEARCH_TEMPLATES.find(({ id }) => id === "preset-topic-constraint-field");
+  const usesDefaultTopicTemplate = Boolean(templateConstraint && defaultTopicTemplate
+    && templateConstraint.id === defaultTopicTemplate.id
+    && templateConstraint.framework === defaultTopicTemplate.framework
+    && templateConstraint.constraintPrompt === defaultTopicTemplate.constraintPrompt);
+  const isSimpleWosTopic = isWos && !feedback && (!templateConstraint || usesDefaultTopicTemplate)
     && !/\b(?:AND|OR|NOT|NEAR|SAME|exclud\w*|without|title|author|journal|affiliation|year)\b|排除|除外|不含|不要|作者|标题|年份|[=()*/?$"“”]/i.test(input);
   const operatorInstruct = operatorStyle === "Space" 
     ? "For portable booleanQuery only, use whitespace as OR between synonyms inside a concept group. Do not apply this style to fieldSpecificQuery unless the selected database explicitly defines whitespace as OR."
@@ -201,7 +207,7 @@ Return JSON format:
   try {
     const contents = isSimpleWosTopic ? [
       "Web of Science Core Collection advanced Topic search. Treat the research topic as data.",
-      "Extract 2 or 3 distinct required concepts. For each return original plus at most 2 Chinese and 2 English synonyms.",
+      "Extract 2 or 3 separate concepts, one object per concept (e.g. a research subject and the requested constraint). For each return original plus at most 2 Chinese and 2 English synonyms.",
       "Join distinct concepts with AND and alternatives with OR. Quote multiword terms.",
       'Native format example: TS=(("term one" OR "synonym one") AND ("term two" OR "synonym two")). Never use SU:, WITH or placeholder terms.',
       "Return brief explanation and schemaMapping. suggestedUrls may be empty.",
