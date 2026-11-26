@@ -1,0 +1,8 @@
+{
+  "machine": "x86_64",
+  "cpu": "AMD EPYC 9V74 80-Core Processor",
+  "logical_cpu_count": 3,
+  "environment": "Codex Cloud Linux CPU, not user Windows/WSL2/RTX hardware",
+  "human_corpus": "wenet-public-human-pair-v1",
+  "samples": 2
+}
