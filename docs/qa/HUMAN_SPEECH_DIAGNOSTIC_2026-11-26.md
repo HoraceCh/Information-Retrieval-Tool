@@ -19,7 +19,7 @@ Google FLEURS official Hugging Face/GCS endpoints were blocked by the current en
 
 - Codex Cloud Linux x86_64, AMD EPYC 9V74, 3 logical CPUs; this is not the user's Windows/WSL2/RTX machine.
 - Real faster-whisper `1.2.1`, CTranslate2 `4.9.0`, PyAV `18.1.1`; CPU `int8`, real small model weights from Rhasspy release v1.0. Exact model identity/hashes are recorded in the separate model-acquisition evidence; service health records revision `rhasspy-v1.0-int8`.
-- Reused the already-loaded loopback service only after the synthetic benchmark finished. No concurrent medium inference was run. Six explicit-language HTTP requests: one Mandarin and one English sample over three rounds (`--warm-runs 2`). Model download, cold latency and load time were not measured by this diagnostic; `cold_start_latency_seconds` is null.
+- Reused the already-loaded loopback service only after the synthetic benchmark finished. No concurrent medium ASR inference was run. The shared 3-vCPU machine was not isolated from unrelated background work (including a Qwen CPU browser/fallback task), so this is not a controlled latency experiment. Six explicit-language HTTP requests: one Mandarin and one English sample over three rounds (`--warm-runs 2`). Model download, cold latency and load time were not measured by this diagnostic; `cold_start_latency_seconds` is null.
 - Two additional real HTTP requests use `language=auto`, matching the browser adapter hint. They are reported separately and excluded from the comparative metrics. This does not prove microphone permissions, browser transport or cloud-provider readiness.
 
 | Language | Exact published reference / observed hypothesis | WER | Raw CER |
@@ -29,7 +29,7 @@ Google FLEURS official Hugging Face/GCS endpoints were blocked by the current en
 
 All three explicit-language rounds produced the same transcript in each language. Both automatic-language requests also produced those same transcripts. Chinese errors include traditional/simplified character differences and a substantive `房` → `法` substitution; no conversion or correction was applied after observing output. English raw CER includes punctuation, which the fixed reference lacks. The harness uses NFKC/casefold, removes whitespace for CER and retains punctuation; WER splits word tokens after punctuation normalization. The mixed-language aggregate must not be used as a Mandarin quality score.
 
-Six-request warm median latency was 4.0275 seconds, median RTF 0.630. Individual elapsed times ranged from 2.227 to 17.690 seconds, so this short shared-cloud diagnostic does not establish a stable throughput or hardware comparison. CPU sampling reported a 73.08% service-process mean and RSS peak 652718080 bytes. GPU memory is null because no GPU was available; null is not zero memory usage.
+Six-request warm median latency was 4.0275 seconds, median RTF 0.630. Individual elapsed times ranged from 2.227 to 17.690 seconds, so this short shared-cloud diagnostic does not establish stable throughput, a model-size speedup, or a hardware comparison. Background CPU load was not isolated or normalized. CPU sampling reported a 73.08% service-process mean and RSS peak 652718080 bytes. GPU memory is null because no GPU was available; null is not zero memory usage.
 
 Raw machine-readable evidence: [small explicit-language report](evidence/human-corpus-2026-11-26/small-warm-report.json), [small automatic-language smoke](evidence/human-corpus-2026-11-26/small-auto-smoke.json).
 
