@@ -160,6 +160,20 @@ jobs:
           curl -fsS http://127.0.0.1:18000/healthz
           curl -fsS http://127.0.0.1:18000/readyz
           test "$(docker inspect speech-ci --format '{{.Config.User}}')" = '10001:10001'
+      - name: Decode a WAV with the installed faster-whisper and PyAV
+        run: |
+          docker exec -i speech-ci python - <<'PYTHON'
+          from io import BytesIO
+          import wave
+          from faster_whisper.audio import decode_audio
+
+          audio = BytesIO()
+          with wave.open(audio, "wb") as writer:
+              writer.setparams((1, 2, 16000, 0, "NONE", "not compressed"))
+              writer.writeframes(bytes(32000))
+          audio.seek(0)
+          assert decode_audio(audio, sampling_rate=16000).shape == (16000,)
+          PYTHON
       - name: Audit resolved CPU image Python dependencies
         run: |
           docker exec speech-ci python -c 'import importlib.metadata; print("\n".join(p.metadata["Name"] + "==" + p.version for p in importlib.metadata.distributions()))' > "$RUNNER_TEMP/speech-resolved.txt"
