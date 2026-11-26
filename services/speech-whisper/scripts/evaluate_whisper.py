@@ -88,7 +88,10 @@ def resolve_audio_path(root: Path, relative_path: str) -> Path:
     return audio_path
 
 
-def transcribe(base_url: str, item: dict, root: Path, timeout: float) -> str:
+PROVIDER_ROUTES = {"whisper-local": "whisper", "gemini": "gemini", "openai": "openai", "deepgram": "deepgram"}
+
+
+def transcribe(base_url: str, item: dict, root: Path, timeout: float, provider: str = "whisper-local") -> str:
     audio_path = resolve_audio_path(root, item["audio"])
     boundary = "----AI_RETRIEVAL_X_BENCHMARK_BOUNDARY"
     audio_bytes = audio_path.read_bytes()
@@ -102,7 +105,7 @@ def transcribe(base_url: str, item: dict, root: Path, timeout: float) -> str:
         f"Content-Type: {content_type}\r\n\r\n"
     ).encode() + audio_bytes + f"\r\n--{boundary}--\r\n".encode()
     request = urllib.request.Request(
-        base_url.rstrip("/") + "/api/speech/whisper/transcriptions",
+        f"{base_url.rstrip('/')}/api/speech/{PROVIDER_ROUTES[provider]}/transcriptions",
         data=body,
         headers={"Content-Type": f"multipart/form-data; boundary={boundary}", "Accept": "application/json"},
         method="POST",
@@ -110,8 +113,8 @@ def transcribe(base_url: str, item: dict, root: Path, timeout: float) -> str:
     with urllib.request.urlopen(request, timeout=timeout) as response:
         payload = json.loads(response.read().decode("utf-8"))
     transcript = payload.get("text")
-    if not isinstance(transcript, str):
-        raise ValueError("Service response did not contain a text string.")
+    if not isinstance(transcript, str) or not transcript.strip():
+        raise ValueError("Service response did not contain a nonempty transcript.")
     return transcript
 
 
