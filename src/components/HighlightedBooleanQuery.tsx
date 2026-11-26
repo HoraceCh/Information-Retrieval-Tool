@@ -68,7 +68,7 @@ export function tokenizeBooleanQuery(queryStr: string): Token[] {
 
     return tokens;
   } catch (e) {
-    console.error("Error tokenizing boolean query:", e);
+    console.error("Unable to highlight the current query.");
     return [{ type: "TERM", text: queryStr }];
   }
 }

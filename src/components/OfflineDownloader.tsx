@@ -773,7 +773,7 @@ export default function OfflineDownloader() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) {
-      console.error(e);
+      console.error("Unable to complete the local export operation.");
     } finally {
       setDownloading(false);
     }
