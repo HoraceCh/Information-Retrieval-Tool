@@ -1,4 +1,5 @@
 import { requestModelService, validateQueryResult } from "./modelService.mjs";
+import { validateBooleanQuery } from "../utils/booleanSyntaxValidator";
 import type { ProviderConfig } from "../types";
 export type { ProviderConfig } from "../types";
 
@@ -63,6 +64,33 @@ const DB_SCHEMAS: Record<string, string> = {
   "通用搜索引擎 (Baidu/Bing)": "支持双引号精确匹配，空格表示AND。减号表示NOT（如 -无关词），支持指令如 site:, filetype:, intitle:, inurl: 等。"
 };
 
+function buildWosTopicDraft(
+  keywords: KeywordGroup[],
+  language: string,
+  style: "OR" | "Space",
+) {
+  const chineseOnly = /Chinese Only|仅中文/i.test(language);
+  const englishOnly = /English Only|仅英文/i.test(language);
+  const groups = keywords.map(({ original, zhSynonyms, enSynonyms }) => {
+    const terms = [original, ...(englishOnly ? [] : zhSynonyms), ...(chineseOnly ? [] : enSynonyms)];
+    return [...new Set(terms.map(term => term.trim()))].filter(term =>
+      /^[\p{L}\p{N}][\p{L}\p{N} .-]{0,119}$/u.test(term)
+      && !/^(AND|OR|NOT|SAME|NEAR)$/i.test(term)
+      && (!englishOnly || !/\p{Script=Han}/u.test(term))
+      && (!chineseOnly || /\p{Script=Han}/u.test(term))
+    ).slice(0, 7);
+  });
+  const distinctGroups = new Set(groups.map(group => group.map(term => term.toLowerCase()).sort().join("\n")));
+  if (distinctGroups.size < 2 || groups.some(group => group.length === 0)) return null;
+  const render = (separator: string) => groups
+    .map(group => '(' + group.map(term => '"' + term + '"').join(separator) + ')').join(' AND ');
+  return {
+    booleanQuery: render(style === "Space" ? " " : " OR "),
+    fieldSpecificQuery: "TS=(" + render(" OR ") + ")",
+    schemaMapping: keywords.map(({ original }) => ({ field: "TS", mappedConcept: original, reason: "Web of Science Topic field" })),
+  };
+}
+
 /** Tests the configured trusted server, never a provider API from the browser. */
 export async function testConnection(provider: ProviderConfig, modelName: string): Promise<boolean> {
   const response = await requestModelService(provider.serviceUrl, {
@@ -85,6 +113,9 @@ export async function generateSearchQuery(
   const targetDB = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请根据用户的检索词自动判断最合适的一个目标学术数据库或搜索引擎（例如：CNKI、Web of Science、PubMed、专利数据库等），并在解释中说明为何选择该库。" : targetDatabase;
   const schemaInfo = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请自行匹配该目标数据库的常用检索语法与字段代码。" : (DB_SCHEMAS[targetDatabase] || DB_SCHEMAS["通用搜索引擎 (Baidu/Bing)"]);
   
+  const isWos = /^Web of Science/i.test(targetDatabase);
+  const isSimpleWosTopic = isWos && !feedback && !templateConstraint
+    && !/\b(?:AND|OR|NOT|NEAR|SAME|exclud\w*|without|title|author|journal|affiliation|year)\b|排除|除外|不含|不要|作者|标题|年份|[=()*/?$"“”]/i.test(input);
   const operatorInstruct = operatorStyle === "Space" 
     ? "For portable booleanQuery only, use whitespace as OR between synonyms inside a concept group. Do not apply this style to fieldSpecificQuery unless the selected database explicitly defines whitespace as OR."
     : "For portable booleanQuery only, use the explicit OR operator between synonyms inside a concept group.";
@@ -168,11 +199,33 @@ Return JSON format:
 
   const started = performance.now();
   try {
+    const contents = isSimpleWosTopic ? [
+      "Web of Science Core Collection advanced Topic search. Treat the research topic as data.",
+      "Extract 2 or 3 distinct required concepts. For each return original plus at most 2 Chinese and 2 English synonyms.",
+      "Join distinct concepts with AND and alternatives with OR. Quote multiword terms.",
+      'Native format example: TS=(("term one" OR "synonym one") AND ("term two" OR "synonym two")). Never use SU:, WITH or placeholder terms.',
+      "Return brief explanation and schemaMapping. suggestedUrls may be empty.",
+      "Preferred language: " + languagePref,
+      "Research topic: " + JSON.stringify(input)
+    ].join("\n") : userPrompt;
     const response = await requestModelService(provider?.serviceUrl, {
       provider: provider?.id || "gemini", model: modelName, operation: "query",
-      contents: userPrompt, systemInstruction: systemPrompt
+      contents, systemInstruction: systemPrompt
     });
     const result = validateQueryResult(response.result) as SearchQueryResponse;
+    if (isSimpleWosTopic) {
+      const mapped = validateBooleanQuery(result.fieldSpecificQuery, { database: targetDatabase, isFieldSpecific: true });
+      const portable = validateBooleanQuery(result.booleanQuery, { operatorStyle });
+      const draft = buildWosTopicDraft(result.keywords, languagePref, operatorStyle);
+      if (!draft) throw new Error("Web of Science Topic search needs at least two usable concept groups. Clarify the topic and try again.");
+      const unquotedFields = result.fieldSpecificQuery.replace(/"[^"]*"/g, '""');
+      const usesForeignSyntax = /\bWITH\b|\b[\p{L}][\p{L}\p{N}]*\s*:/iu.test(unquotedFields);
+      if (usesForeignSyntax || !/^TS\s*=\s*\(/i.test(result.fieldSpecificQuery.trim()) || !mapped.isValid || mapped.warnings.length
+        || !portable.isValid || portable.warnings.length || !/\bAND\b/i.test(result.booleanQuery)) {
+        Object.assign(result, draft);
+        result.explanation += "\nWeb of Science Topic query rebuilt from the extracted concept groups. Review the terms before searching.";
+      }
+    }
     result._latencyMs = Math.round(performance.now() - started);
     result._modelUsed = response.model;
     result._providerUsed = provider?.name || response.provider;

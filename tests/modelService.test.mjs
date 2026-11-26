@@ -92,3 +92,32 @@ test('cancelling queued text work settles promptly and cannot let later work byp
  assert.deepEqual(calls,['first']);finishFirst();await Promise.all([first,third]);
  assert.deepEqual(calls,['first','third']);
 });
+
+test('ordinary Web of Science generation rebuilds invalid native syntax from model concepts and preserves an advanced draft', async () => {
+  const { build } = await import('esbuild');
+  const compiled = await build({ entryPoints: ['src/services/gemini.ts'], bundle: true, write: false, platform: 'browser', format: 'esm' });
+  const { generateSearchQuery } = await import('data:text/javascript;base64,' + Buffer.from(compiled.outputFiles[0].text).toString('base64'));
+  const provider = { id: 'gemini', name: 'Gemini', isGemini: true, serviceUrl: base, models: request.model };
+  const fixture = {
+    ...result,
+    keywords: [
+      { original: 'robotic arm', zhSynonyms: ['机械臂'], enSynonyms: ['manipulator', 'invalid" OR "injection'] },
+      { original: 'collision avoidance', zhSynonyms: ['碰撞规避'], enSynonyms: ['obstacle avoidance'] },
+    ],
+    booleanQuery: 'robotic-arm collision',
+    fieldSpecificQuery: 'SU: robotic arm WITH collision',
+  };
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => new Response(JSON.stringify({ result: fixture, model: request.model, provider: provider.id }));
+    const database = 'Web of Science核心合集 (SCI-E/SSCI/CPCI-S)';
+    const draft = await generateSearchQuery('Robotic arm collision avoidance', database, '仅英文 (English Only)', request.model, provider, 'Space');
+    assert.equal(draft.fieldSpecificQuery, 'TS=(("robotic arm" OR "manipulator") AND ("collision avoidance" OR "obstacle avoidance"))');
+    assert.equal(draft.booleanQuery, '("robotic arm" "manipulator") AND ("collision avoidance" "obstacle avoidance")');
+    assert.match(draft.explanation, /rebuilt from the extracted concept groups/);
+    const advanced = await generateSearchQuery('robotics NOT drones', database, '仅英文 (English Only)', request.model, provider);
+    assert.equal(advanced.fieldSpecificQuery, fixture.fieldSpecificQuery);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

@@ -341,7 +341,7 @@ const getLocalCache = (line: string, dbType: string, langPref: string, model: st
     if (!cacheStr) return null;
     const cache = JSON.parse(cacheStr);
     const tplKey = templateId || "default";
-    const key = `${providerId}_${model}_${dbType}_${langPref}_${operatorStyle}_${tplKey}_${line.trim()}`;
+    const key = `${dbType.startsWith("Web of Science") ? "wos-topic-v1_" : ""}${providerId}_${model}_${dbType}_${langPref}_${operatorStyle}_${tplKey}_${line.trim()}`;
     const item = cache[key];
     if (item && Date.now() - item.timestamp < 3600000 * 24) { // Valid for 24 hours
       return item.result;
@@ -355,7 +355,7 @@ const setLocalCache = (line: string, dbType: string, langPref: string, model: st
     const cacheStr = localStorage.getItem("ai_retrieval_v2_cache") || "{}";
     const cache = JSON.parse(cacheStr);
     const tplKey = templateId || "default";
-    const key = `${providerId}_${model}_${dbType}_${langPref}_${operatorStyle}_${tplKey}_${line.trim()}`;
+    const key = `${dbType.startsWith("Web of Science") ? "wos-topic-v1_" : ""}${providerId}_${model}_${dbType}_${langPref}_${operatorStyle}_${tplKey}_${line.trim()}`;
     cache[key] = {
       timestamp: Date.now(),
       result
