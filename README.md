@@ -41,13 +41,13 @@
 | 自然语言意图解析 | 从研究问题中提取主题、对象、方法、场景和限制条件 |
 | 中英文关键词扩展 | 生成核心词、中文同义词、英文术语与缩写 |
 | 数据库语法提示 | 按所选数据库提示布尔算符、字段代码、短语和位置算符；最终语法需在平台核对 |
-| 多模型接入 | 预设 Gemini、DeepSeek、SiliconFlow、Kimi、Zhipu GLM、Qwen、OpenAI、OpenRouter |
-| 自定义模型接口 | 支持自定义 OpenAI-compatible API endpoint |
+| 可信服务接入 | 公共模式通过自行配置的服务端调用 Gemini 文本模型；浏览器不接收或保存供应商密钥 |
+| 服务地址配置 | 配置实现项目协议的可信服务地址；地址本身不可包含令牌或密码 |
 | 双模型对比 | 并列比较不同模型生成的关键词和检索式 |
 | 检索式结构检查与可视化 | 检查括号、引号、算符连接与可疑缺项，并展示关键词关系和布尔逻辑树；不代表数据库已接受该语法 |
 | 离线官方网址速查 | 导出单文件 HTML，离线搜索内置数据库/专利网址目录；访问外部网站仍需网络 |
 | 检索模板库 | 使用或管理不同学科和研究任务的检索框架 |
-| 独立语音引擎选择 | Gemini 直接转写；OpenAI、Deepgram、Local Whisper 通过另行配置的可信服务端；适配器不代表托管服务已就绪 |
+| 独立语音引擎选择 | Gemini、OpenAI、Deepgram、Local Whisper 均通过可信服务端；适配器不代表托管服务已就绪 |
 | 官方网址速查 | 快速访问内置的学术数据库、专利与标准平台入口 |
 | 本地历史与统计 | 在当前浏览器保存历史记录、调用统计和优化轨迹 |
 
@@ -76,7 +76,7 @@
 - **产品定位**：AI 检索力、AI Retrieval Tool、AI academic search assistant、Academic Search Strategy Builder、Research Information Retrieval。
 - **检索方法**：学术检索式生成、文献检索策略、Boolean Search、Boolean Query Builder、AND / OR / NOT、database-specific search syntax。
 - **关键词处理**：中英文关键词扩展、同义词扩展、专业术语发现、Keyword Expansion、Synonym Expansion。
-- **功能特征**：多模型接入、双模型对比、BYOK、OpenAI-compatible API、检索模板库、逻辑树可视化、语音转写、字段语法提示。
+- **功能特征**：可信服务端接入、模型对比、服务地址配置、检索模板库、逻辑树可视化、语音转写、字段语法提示。
 - **数据库生态**：CNKI、Wanfang Data、VIP、Web of Science、Scopus、EI Compendex、IEEE Xplore、ScienceDirect、Springer Nature Link、EBSCO、CNIPA、Espacenet。
 - **科研场景**：科研文献调研、工程技术调研、系统综述检索准备、专利检索策略、信息素养训练。
 
@@ -99,10 +99,10 @@
 
 ### 在线使用
 
-打开 [AI 检索力在线应用](https://horacech.github.io/Information-Retrieval-Tool/)：
+RC 使用流程如下；[线上应用](https://horacech.github.io/Information-Retrieval-Tool/) 可能仍是先前版本，只有授权发布后才会采用该流程：
 
-1. 打开右上方的 **设置**，选择模型服务商与模型。
-2. 填入自己的 API Key，点击 **测试连接**，确认可用后保存。
+1. 由服务维护者先部署可信服务，并在服务端配置 Gemini 密钥。GitHub Pages 本身不提供该服务。
+2. 打开 **设置**，填入可信服务地址并选择模型，测试连接后保存；不要在页面填写供应商密钥。
 3. 在检索工作区输入研究主题，选择目标数据库、语种和检索模板。
 4. 点击生成，检查关键词扩展、布尔检索式、字段检索式和语法提示。
 5. 根据研究需要手动修订，复制检索式，前往目标数据库执行检索。
@@ -136,34 +136,30 @@ npm run test:speech     # 语音适配器与路由测试
 
 更多配置与操作细节见 [使用指南](docs/USER_GUIDE.md) 和 [开发者文档](docs/DEVELOPMENT.md)。
 
-## 模型配置与 API Key
+## 模型服务配置与凭据边界
 
-项目采用 **BYOK（Bring Your Own Key）** 模式：使用者自行向模型服务商申请 API Key，并在应用的设置面板中配置。
+当前 Release Candidate 的公共模式只通过可信服务端调用 Gemini 文本生成和模型列表接口。用户配置的是服务地址与模型名称，供应商 API Key 只放在服务端环境中。地址不可含用户密码、查询令牌或片段。此 RC 尚未授权生产部署，线上版本的行为请以实际页面为准。
 
-支持的预设服务商包括 Google Gemini、DeepSeek、SiliconFlow、Moonshot / Kimi、Zhipu GLM、Alibaba DashScope / Qwen、OpenAI 和 OpenRouter，也可以配置兼容 OpenAI API 格式的自定义服务。
-
-模型服务商可能按调用量收费，具体价格、速率限制和可用模型以服务商公布的信息为准。
+模型服务商可能按调用量收费。服务维护者负责账户额度、鉴权、限流和隐私政策；不要把有密钥的推理服务直接暴露到公网。
 
 ### 语音识别与本地 Whisper
 
-语音引擎与检索式生成模型独立选择，并在当前浏览器记住选择。Gemini 沿用浏览器端 BYOK 转写；OpenAI、Deepgram 和 Local Whisper 需要用户另行运行并配置可信服务端，服务凭据只放在该服务端，不放在 Vite 变量或 localStorage。未配置代理时会报错，不会自动改用其他引擎。详见 [Speech Provider 架构与代理协议](docs/SPEECH_PROVIDERS.md)。
+语音引擎与检索式生成模型独立选择，并在当前浏览器记住选择。Gemini、OpenAI、Deepgram 和 Local Whisper 均要求自行运行并配置可信服务端。所有供应商凭据只保存在该服务端，不放在 Vite 变量或 localStorage；未配置或服务失败时明确报错，没有浏览器密钥直连或隐式引擎回退。详见 [Speech Provider 架构与代理协议](docs/SPEECH_PROVIDERS.md)。
 
-[PR #14：Local Whisper Runtime](https://github.com/HoraceCh/Information-Retrieval-Tool/pull/14) 仍为独立 Draft 工作流，尚未并入主分支。CPU 默认 small / int8 / 单路并发，GPU 使用独立 Docker 配置；部署命令、WSL2 / NVIDIA 检查与真实模型 benchmark 说明以该 PR 内的 [runtime README](https://github.com/HoraceCh/Information-Retrieval-Tool/blob/feat/local-whisper-runtime/services/speech-whisper/README.md) 为准。主分支或 GitHub Pages 不会自动安装、下载或启动 Whisper。CI 的模拟推理不代表真实模型、GPU 或四个服务已经验收。
+本仓库的 RC 包含独立 CPU/GPU 配置。CPU 默认 small / int8 / 单路并发；GPU 使用独立 Docker 配置。部署命令、WSL2 / NVIDIA 检查与真实模型 benchmark 见 [runtime README](services/speech-whisper/README.md) 和 [GPU 指南](docs/WHISPER_GPU.md)。GitHub Pages 不会自动安装、下载或启动 Whisper。CI 的模拟推理不代表真实模型、GPU 或四个服务已经验收。PR 状态和验收证据见本轮审查报告，不据此推断已合并或发布。
 
 <a id="privacy-and-security"></a>
 
 ## 隐私与安全
 
-当前部署是 **静态前端应用**。文本生成和 Gemini 语音请求由浏览器直接发送给使用者选择的模型服务商；其他语音引擎需要另行配置的可信代理。GitHub Pages 不托管代理或 Whisper 模型。
+RC 前端是 **静态应用**，文本和语音请求只发送到用户明确配置的可信服务，由服务端联系供应商；GitHub Pages 不托管代理或 Whisper 模型。
 
-- 现有文本模型和 Gemini BYOK API Key，以及部分用户配置，保存在当前浏览器的 localStorage 中。OpenAI / Deepgram 语音专用密钥必须只保存在可信服务端。
-- localStorage 不是加密保险库。拥有当前浏览器本地访问权限的用户或恶意注入的脚本可能读取其中的数据。
-- 检索意图会发送到所选文本模型服务商；语音会发送到所选语音引擎的服务商或可信代理。本地 Whisper 的音频在本地推理，首次下载模型仍需网络。请审查实际 endpoint 和服务的数据处理政策。
-- 未认证的本地 Whisper API 必须保持 loopback 绑定；CORS / Origin 检查不是身份认证，不足以保护公开 API。
-- 不要在公共或共享设备上保存个人 API Key；不要提交不适合发送给模型服务商的敏感资料。
-- GitHub Pages 的公开前端构建不需要注入模型 API Key。请勿通过 Vite 的 define、公开构建变量或提交源码的方式把密钥打包进浏览器资源。
-
-如需移除本地保存的密钥，请在应用设置中清除相应配置，或清除该站点在浏览器中的本地网站数据。
+- 浏览器只持久化非敏感的服务地址、模型与偏好；不接受、保存或向服务发送供应商 API Key。
+- 旧版本可能曾把供应商密钥放入 localStorage。升级需清理旧凭据；若浏览器阻止存储访问，不能据此声称清理成功，应按页面提示处理站点数据。备份和旧导出不在页面清理范围内，曾暴露的密钥应在供应商处撤销。
+- localStorage 不是加密保险库，历史检索问题也可能含个人信息。共享设备上请清理本应用数据。
+- 检索意图和录音发送到所配置的可信服务，并受实际服务与上游供应商的数据政策约束。Local Whisper 的模型在服务所在机器推理；首次下载模型仍需网络。
+- 未认证的本地 API 必须保持 loopback 绑定；CORS / Origin 检查不是身份认证。远程服务必须由维护者提供认证 HTTPS 网关、限流和滥用保护。
+- 不要将个人供应商密钥注入 GitHub Actions、Vite 构建、公开仓库、镜像或日志。服务地址不能包含秘密。
 
 ## 技术栈
 
@@ -171,7 +167,7 @@ npm run test:speech     # 语音适配器与路由测试
 - **Styling**：Tailwind CSS 4
 - **Motion & Visualization**：Motion、Recharts、D3
 - **Internationalization**：i18next、react-i18next
-- **Model integration**：Google GenAI SDK、OpenAI-compatible HTTP APIs
+- **Model integration**：可信服务端 HTTP 协议与服务端供应商 API
 - **Deployment**：GitHub Pages + GitHub Actions
 
 ## 项目结构
@@ -197,11 +193,11 @@ npm run test:speech     # 语音适配器与路由测试
 
 ## English
 
-**AI Retrieval Tool** is a client-side, BYOK assistant that helps researchers turn natural-language topics into academic search strategies. It expands Chinese and English keywords, drafts portable Boolean queries and database-specific syntax, compares model outputs, and checks basic query structure. A successful structural check does not certify compatibility with a database's complete or current grammar.
+**AI Retrieval Tool** is an assistant with a static frontend and separately configured trusted server that helps researchers turn natural-language topics into academic search strategies. It expands Chinese and English keywords, drafts portable Boolean queries and database-specific syntax, compares model outputs, and checks basic query structure. A successful structural check does not certify compatibility with a database's complete or current grammar.
 
 The standalone HTML export provides an offline-searchable directory of academic database, patent and standards URLs. Custom file entries store filenames only; the corresponding files must sit beside the exported HTML. Opening external sites and generating AI queries still require a network connection. The app does not crawl databases or host papers.
 
-Users bring their own text-model API keys; these and the legacy Gemini speech key are stored in browser localStorage without application-level encryption. Speech selection is independent: Gemini uses the existing direct adapter, while OpenAI, Deepgram and local Whisper require a separately configured trusted proxy. Cloud speech secrets belong only on that server. Adapters and mocked CI tests do not establish real-service readiness. The Draft runtime in PR #14 is not hosted by GitHub Pages. Review the actual endpoint and provider data policy before recording.
+The public RC sends Gemini text generation/model discovery and all four speech engines through a separately configured trusted server. Provider keys stay on that server; the frontend accepts only a non-secret service URL and model selection. It has no browser-key fallback. Older releases may have stored keys locally; migration cleanup must report storage failures, and previously exposed keys should be revoked at the provider. GitHub Pages hosts no inference service. Adapters and mocked CI do not establish real-service, model or GPU readiness. This RC does not change production until an authorized deployment.
 
 - [Open the live app](https://horacech.github.io/Information-Retrieval-Tool/)
 - [User guide](docs/USER_GUIDE.md)

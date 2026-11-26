@@ -10,10 +10,10 @@
 - **Animation**：Motion
 - **Visualization**：Recharts + D3
 - **Internationalization**：i18next + react-i18next
-- **Model integration**：Google GenAI SDK 与 OpenAI-compatible HTTP APIs
+- **Model integration**：前端可信服务协议；Gemini 等供应商调用只发生在服务端
 - **Hosting**：GitHub Pages
 
-文本生成和现有 Gemini 语音请求从浏览器直接发送到所选服务商。其他语音引擎通过单独配置的可信代理访问；静态 GitHub Pages 不托管该代理。Local Whisper runtime 在独立 Draft PR #14 中，发布前需要真实模型和本地硬件验收。
+当前 RC 的公共模式通过配置的可信服务调用 Gemini 文本生成和模型列表；四个语音引擎也全部经过可信服务。前端不接受供应商密钥，也不包含浏览器直连兼容入口。GitHub Pages 只托管静态资源。RC 内的独立 runtime 必须在另一进程运行，真实模型、本地硬件和发布仍需各自验收。
 
 ## 2. 本地开发
 
@@ -71,21 +71,20 @@ src/
 
 ### Provider configuration
 
-Provider configuration, including API keys, is persisted in the current browser's localStorage under ai_retrieval_providers. Other local state includes preferences, history, templates, usage statistics, cache and refinement trajectories.
+Provider configuration persists only non-secret service URLs, model names and preferences. Supplier credentials belong exclusively in the trusted service process environment. Do not accept an API key, bearer token or authenticated URL as a frontend setting.
 
-localStorage is not encrypted by this application. Treat browser storage as sensitive and do not use shared devices for personal API credentials.
+Older releases persisted provider keys under `ai_retrieval_providers`. Migration must remove legacy credential fields without restoring them from cached configuration; blocked storage access must remain a visible failure, not a successful purge. Namespaced history, templates and other non-sensitive preferences may remain. Old backups and exported files are outside browser cleanup; rotate keys that were exposed.
 
 ### Model requests
 
-- Gemini requests use the Google GenAI SDK in the browser.
-- Other providers use direct HTTP requests to their configured OpenAI-compatible endpoint.
-- Speech engine selection is independent of the text-model provider. Gemini uses the legacy direct adapter; OpenAI, Deepgram and `whisper-local` use the trusted proxy contract.
-- Speech provider selection is persisted under `ai_retrieval_speech_provider`. Cloud speech secrets must not be added to that preference or Vite client variables.
-- Request contents and credentials are sent to the selected provider. Review that provider's data policy and billing terms.
+- The public mode supports Gemini text generation and model discovery through the project's trusted-service protocol.
+- `VITE_MODEL_SERVICE_URL` may provide a public default model-service base URL; the UI may override it with a validated trusted address. `VITE_SPEECH_PROXY_URL` supplies the separate speech-service default. Both values are non-secret endpoint configuration. Changing build-time defaults requires rebuilding; neither variable launches a server.
+- HTTPS is required for remote addresses; plain HTTP is limited to loopback. URLs with userinfo, query parameters or fragments are rejected. Never silently reinterpret an old upstream provider endpoint as a trusted proxy.
+- Gemini, OpenAI, Deepgram and local Whisper speech requests use the same explicit service boundary. There is no browser-key fallback or implicit engine switch after an error.
+- A configured service URL is a destination, not a secret; validate it before use and do not embed credentials, query tokens or fragments.
+- Browser timeout/abort terminates the client request. It does not prove that an upstream provider or native inference job stopped; preserve server resource limits.
 
-**Never inject private provider keys into a public Vite build.** Vite define replacements and client-exposed environment variables are compiled into browser assets and must be treated as public. GitHub Pages deployment therefore does not require a model API key secret.
-
-Centrally managed credentials, rate limiting, shared accounts and server-side access control belong in a separately secured backend/proxy. The existing browser-local text/Gemini BYOK design remains a documented security limitation; adding proxy adapters does not move those legacy keys server-side.
+**Never inject private provider keys into a public Vite build.** Public client variables, bundled JavaScript, source maps and browser storage are not server-side secret stores. Remote shared services require authentication, HTTPS, rate limiting and secret management before enabling paid providers. CORS/Origin checks alone do not authenticate requests.
 
 ## 5. GitHub Pages deployment
 
@@ -102,7 +101,7 @@ The workflow:
 
 Pushes to main trigger deployment. The Vite base: './' setting supports deployment under the repository subpath.
 
-No provider API key is required at build time. Users configure their own keys in the application.
+No provider API key is required or allowed in the public build. Users configure a trusted service URL; service maintainers configure supplier keys in that service environment. This RC requires separate review and deployment authorization.
 
 ## 6. Contribution workflow
 
@@ -156,7 +155,7 @@ merely because a build succeeds.
 - `npm run validate:bundle` checks the actual production `dist/assets/*.js` files
   against a maximum of 500 KiB per JavaScript chunk. This is a per-file budget,
   **not** a claim about total initial transfer size or runtime performance.
-- React, i18n, D3, Recharts, Motion, icons, pinyin and the Gemini SDK have separate
+- React, i18n, D3, Recharts, Motion, icons and pinyin have separate
   Vite vendor chunks to improve browser caching and reduce main-chunk parsing.
 - PR CI additionally runs Chromium against the built `vite preview` site:
   About navigation, guide pages, table-of-contents anchors, mobile layout
@@ -177,7 +176,7 @@ vulnerabilities**. Future audit output may change as advisories are published.
 - Query generation is model-assisted and may contain incorrect terms or syntax.
 - Built-in database rules are guidance, not a guarantee of compatibility with every current database feature.
 - The app does not crawl databases, fetch papers or host full text.
-- API key storage is browser-local and not encrypted by the app.
+- Provider keys are server-only in this RC. Earlier releases may have stored browser-local keys, so upgrade cleanup and revocation need attention.
 - Provider availability, billing, quotas and data retention are controlled by each provider.
 
 ---
@@ -188,7 +187,7 @@ See also: [User Guide](USER_GUIDE.md) · [Project README](../README.md) · [Live
 ## Security and recovery notes
 
 - Error recovery removes only this application's namespaced localStorage/sessionStorage keys, including the legacy `suYangFinalV6_react` whitelist key; it never clears all browser storage.
-- API keys are stored in browser localStorage without application-level encryption. Browser-side model requests send credentials directly to the selected provider.
+- Do not persist supplier API keys in the frontend. Legacy credential cleanup must report failure when browser storage is blocked; avoid restoring credentials from old saved provider records.
 - Exported offline HTML treats locally added names, URLs and filenames as untrusted input. Persisted URLs are validated as HTTP/HTTPS, dynamic labels use DOM text nodes, and unsafe filenames are ignored.
 - File entries store filenames only; the actual documents are not embedded or uploaded and must be placed beside the exported HTML.
 
@@ -217,8 +216,8 @@ The offline export packages the built-in database/standards/patent URL directory
 
 [Speech Provider Architecture](SPEECH_PROVIDERS.md) defines the provider registry, multipart requests and `{ "text": "..." }` response. `AudioTranscriber.tsx` owns recording UI, `speechService.ts` dispatches the selected engine, and `speechProviders.mjs` defines canonical IDs and proxy routes. Missing proxy configuration must fail explicitly; do not silently switch engines.
 
-The public Vite `VITE_SPEECH_PROXY_URL` is an endpoint, never a secret. OpenAI and Deepgram credentials belong on a trusted server. Validate file size and MIME, bound concurrency, clean temporary files and sanitize errors there. CORS/Origin checks do not authenticate users. An unauthenticated local inference service must bind to loopback; remote use needs an authenticated HTTPS gateway, limits and abuse controls.
+The public Vite `VITE_SPEECH_PROXY_URL` is an endpoint, never a secret. Gemini, OpenAI and Deepgram credentials all belong on a trusted server. Validate file size and MIME, bound concurrency, clean temporary files and sanitize errors there. CORS/Origin checks do not authenticate users. An unauthenticated local inference service must bind to loopback; remote use needs an authenticated HTTPS gateway, limits and abuse controls.
 
-[Draft PR #14](https://github.com/HoraceCh/Information-Retrieval-Tool/pull/14) supplies the separately reviewed runtime. Consult its [runtime README](https://github.com/HoraceCh/Information-Retrieval-Tool/blob/feat/local-whisper-runtime/services/speech-whisper/README.md) for CPU/GPU Compose files, environment variables, cache volumes, health checks and benchmark commands. These files are not part of main until that PR is reviewed and merged. CPU and GPU deployment configurations must remain isolated. Do not choose CUDA/cuDNN versions without checking faster-whisper, CTranslate2 and the actual host driver together.
+The RC includes the separately reviewed runtime. Consult the [runtime README](../services/speech-whisper/README.md) and [GPU guide](WHISPER_GPU.md) for CPU/GPU Compose files, environment variables, cache volumes, health checks and benchmark commands. Confirm actual merge and deployment state from current GitHub records; the presence of files in an integration branch does not release them. CPU and GPU deployment configurations must remain isolated. Do not choose CUDA/cuDNN versions without checking faster-whisper, CTranslate2 and the actual host driver together.
 
 CI provider routing tests and mocked Python inference establish contracts and error handling, not transcription accuracy or GPU compatibility. Separately validate actual Chinese/English recordings on each configured provider, Chrome/Edge microphone and local-network permissions, cancellation, timeout and recovery. Real-model reports must name the pinned model, compute type, hardware, corpus version/hash, cold/warm method, WER/CER normalization, RTF, latency, model load/download and resource measurements. Missing hardware, keys or recordings is **BLOCKED / NEEDS LOCAL VALIDATION**, never a pass. Use the same corpus and normalization when comparing models.

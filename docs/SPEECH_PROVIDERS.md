@@ -4,14 +4,14 @@ AI_RETRIEVAL_X separates speech recognition from the LLM provider used to genera
 
 ## Provider choices
 
-- **Gemini**: prefers the trusted server speech proxy when a service URL is configured. Without a URL, the existing direct Gemini BYOK adapter remains available; this compatibility mode uses a browser-accessible key and does not satisfy strict server-only key storage.
+- **Gemini**: uses the trusted speech service with a server-only Gemini key. Missing service configuration fails explicitly; there is no direct browser adapter or legacy-key fallback in the public RC.
 - **OpenAI**: cloud transcription adapter contract; requires a separately operated trusted proxy.
 - **Deepgram**: cloud transcription adapter contract; requires a separately operated trusted proxy.
 - **Whisper local service**: a user-operated FastAPI service running faster-whisper. Model inference runs on the machine hosting the service, not in the browser.
 
 ## Configure a speech service
 
-Select a proxy-backed engine in the voice input control and enter its base URL in Service URL. The URL is saved in this browser local storage; it is an endpoint address, not a provider secret. Clearing the field restores the build-time VITE_SPEECH_PROXY_URL fallback.
+Select an engine in the voice input control and enter its base URL in Service URL. The URL is saved in this browser local storage; it is an endpoint address, not a provider secret. Clearing the field restores the build-time VITE_SPEECH_PROXY_URL fallback.
 
 The browser sends multipart form data containing file and language=auto to one of:
 
@@ -21,7 +21,7 @@ The browser sends multipart form data containing file and language=auto to one o
 - POST /api/speech/deepgram/transcriptions
 - POST /api/speech/whisper/transcriptions
 
-Each endpoint returns JSON with a text field. Never put OpenAI or Deepgram API keys in Vite environment variables or browser local storage.
+Each endpoint returns JSON with a text field. All four engines require an explicit service URL (or the configured public build-time endpoint). Never put any provider API key in Vite environment variables, browser storage, query parameters or frontend settings. An endpoint URL is public configuration, not authorization.
 
 ## Run the local Whisper service
 
@@ -60,7 +60,7 @@ The first model download requires network access. Keep the model-cache volume to
 - CORS is restricted to configured origins, and POST requests carrying a browser Origin header are checked against the same allowlist. CORS and Origin checks are not authentication.
 - The service enforces an upload limit, checks declared audio MIME types, uses generated temporary filenames, serializes local inference by default, and returns sanitized inference errors.
 - Do not expose this unauthenticated local service directly to the public internet or LAN. A remote deployment needs HTTPS, authentication, rate limiting, and an explicit origin allowlist at a trusted gateway.
-- A public static GitHub Pages site cannot host Python inference. A browser connecting from the hosted page to a local Whisper service may trigger browser local-network permission prompts; users must allow access.
+- A public static GitHub Pages site cannot host Python inference. A hosted HTTPS page connecting to a local service may trigger local-network permissions or be blocked by mixed-content/organizational policies. Validate the actual Chrome/Edge path; do not disable browser security protections to bypass a block.
 
 ## Validation
 
@@ -85,4 +85,6 @@ Do not expose this unauthenticated service beyond loopback. Shared remote hostin
 
 See [CPU/GPU runtime and local validation](WHISPER_GPU.md). The GPU configuration is standalone (`docker-compose.speech.gpu.yml`) and does not modify CPU dependencies. A fixed prompt specification is provided; actual audio must be recorded/frozen and hashed before formal performance evaluation. No WER/CER claim follows from mocked tests.
 
-Gemini proxy setup uses server-only GEMINI_API_KEY and GEMINI_TRANSCRIPTION_MODEL (default gemini-2.5-flash). OpenAI/Deepgram keys also remain server-side. A configured Gemini proxy failure never causes a direct BYOK retry. Clear the service URL only when intentionally returning to legacy direct Gemini mode. The app still supports browser BYOK for text generation; that residual boundary is recorded separately rather than described as server-only key storage.
+Gemini speech uses server-only `GEMINI_API_KEY` and `GEMINI_TRANSCRIPTION_MODEL` (default `gemini-2.5-flash`). OpenAI/Deepgram keys also remain server-side. A Gemini proxy failure never causes a browser-key retry. Clearing a user endpoint only restores a configured build-time endpoint; with neither configured, transcription fails. Text generation and model discovery also use the trusted service in this public RC. No frontend supplier-key compatibility entry point is provided.
+
+Older releases may have stored browser keys. Upgrade cleanup must not silently treat inaccessible storage as a successful credential purge; report the failure and direct users to browser site-data management. Old backups remain outside the page cleanup scope. Revoke any provider keys that were exposed.
