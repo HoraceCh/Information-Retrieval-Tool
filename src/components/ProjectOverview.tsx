@@ -52,8 +52,8 @@ export default function ProjectOverview({
       icon: Layers,
       title: copy("多模型与模板", "Models and templates"),
       description: copy(
-        "接入多家模型服务商，支持自定义 OpenAI 兼容接口、双模型对比和检索框架模板。",
-        "Connects multiple model providers and custom OpenAI-compatible endpoints, with comparison and reusable templates."
+        "通过可信服务接入多家模型服务商，支持模型选择、双模型对比和检索框架模板。",
+        "Connects configured model providers through trusted services, with model selection, comparison and reusable templates."
       ),
     },
     {
@@ -68,16 +68,16 @@ export default function ProjectOverview({
       icon: Mic,
       title: copy("语音输入与快捷检索", "Voice and quick access"),
       description: copy(
-        "独立选择语音引擎录入研究意图；非 Gemini 引擎需另行配置可信代理。通过官方入口打开目标数据库。",
-        "Select a speech engine independently; non-Gemini engines require a separately configured trusted proxy. Open databases through official portals."
+        "独立选择语音引擎录入研究意图；所有引擎均需配置可信服务。通过官方入口打开目标数据库。",
+        "Select a speech engine independently; every engine requires a configured trusted service. Open databases through official portals."
       ),
     },
     {
       icon: KeyRound,
-      title: copy("个人 API 配置", "Bring your own API key"),
+      title: copy("可信服务配置", "Trusted service setup"),
       description: copy(
-        "由使用者自行配置模型 API Key；模型调用从浏览器直接发送至所选服务商。",
-        "Configure your own provider credentials; requests are sent from the browser to the selected provider."
+        "通过可信服务端调用所选模型；服务商密钥仅在服务端配置，前端不接收或保存。",
+        "Use the selected model through a trusted service; provider keys are configured only on that server."
       ),
     },
   ];
@@ -133,7 +133,7 @@ export default function ProjectOverview({
       terms: [
         "多模型接入 / Multi-model Support",
         "双模型对比 / Dual-model Comparison",
-        "BYOK · Bring Your Own Key",
+        "Trusted server · Server-side credentials",
         "OpenAI-compatible API",
         "自定义模型服务商",
         "检索模板库 / Search Templates",
@@ -241,7 +241,7 @@ export default function ProjectOverview({
     {
       icon: ShieldCheck,
       title: copy("隐私与安全说明", "Privacy and Security"),
-      description: copy("了解 API Key 存储方式和数据流向", "Understand credential storage and request data flow"),
+      description: copy("了解服务端凭据边界和数据流向", "Understand credential storage and request data flow"),
       href: SITE_URL + "?tab=about#privacy-and-security",
     },
   ];
@@ -518,14 +518,14 @@ export default function ProjectOverview({
           </div>
           <p className={bodyClass}>
             {copy(
-              "项目采用 BYOK（Bring Your Own Key）方式。首次使用时，在设置中选择模型服务商，填写自己的 API Key，测试连接后即可使用。支持 Gemini、DeepSeek、SiliconFlow、Kimi、智谱 GLM、通义千问、OpenAI、OpenRouter 及自定义兼容接口。",
-              "The app uses a Bring Your Own Key model. Choose a provider in Settings, enter your API key and test the connection. Supported presets include Gemini, DeepSeek, SiliconFlow, Kimi, Zhipu GLM, Qwen, OpenAI and OpenRouter, plus compatible custom endpoints."
+              "公共版本通过可信模型服务调用 Gemini、DeepSeek、OpenAI 等模型。首次使用时，在设置中填写已部署的可信服务地址，选择服务端已配置的服务商和模型，并测试连接。浏览器不接收服务商密钥；模型可用性取决于服务端配置。",
+              "The public app calls Gemini, DeepSeek, OpenAI and other models through a trusted model service. Configure the deployed service URL in Settings, choose a provider and model configured on that server, and test the connection. The browser does not accept provider keys; model availability depends on server configuration."
             )}
           </p>
           <p className="mt-3 text-xs leading-6 text-amber-300/90 [.theme-light_&]:text-amber-700">
             {copy(
-              "语音引擎可独立选择 Gemini、OpenAI、Deepgram 或 Whisper 本地服务。Gemini 使用现有浏览器端 Key；其他引擎需自行配置可信服务端，菜单可选不代表服务已就绪。",
-              "Choose Gemini, OpenAI, Deepgram or local Whisper independently. Gemini uses the existing browser key; other engines require your own trusted server. An available adapter does not establish service readiness."
+              "语音引擎可独立选择 Gemini、OpenAI、Deepgram 或 Whisper 本地服务。所有引擎均通过可信服务端使用；缺少服务地址时不会切换到浏览器密钥模式，菜单可选不代表服务已就绪。",
+              "Choose Gemini, OpenAI, Deepgram or local Whisper independently. Every engine requires a trusted server; a missing service URL never falls back to browser keys. An available adapter does not establish service readiness."
             )}
           </p>
         </div>
@@ -537,14 +537,14 @@ export default function ProjectOverview({
           </div>
           <p className={bodyClass}>
             {copy(
-              "GitHub Pages 只托管静态前端，不托管语音代理或 Whisper。现有文本模型及 Gemini Key 保存在浏览器 localStorage 中，这不是加密保险库；OpenAI / Deepgram 语音专用密钥只应保存在可信服务端。检索意图发送给所选文本模型，录音发送给独立选择的语音引擎或代理。",
-              "GitHub Pages hosts only the static frontend, not a speech proxy or Whisper. Existing text-model and Gemini keys remain in browser localStorage, which is not an encrypted vault; OpenAI/Deepgram speech secrets belong only on a trusted server. Prompts go to the selected text model; audio goes to the independently selected speech engine or proxy."
+              "GitHub Pages 只托管静态前端，不托管模型服务、语音代理或 Whisper。模型和语音密钥仅由可信服务端保存；浏览器仅保存服务地址和模型选择等偏好，并在启动时清理旧版密钥设置。研究主题和录音会发送至您配置的可信服务，再由其调用对应服务商。",
+              "GitHub Pages hosts only the static frontend, not a model service, speech proxy or Whisper. Model and speech keys belong only on a trusted server. The browser saves service URLs and model preferences, and attempts to remove legacy key settings at startup. Research topics and recordings go to your configured trusted service, which calls the selected provider."
             )}
           </p>
           <p className="mt-3 text-xs leading-6 text-emerald-300/90 [.theme-light_&]:text-emerald-700">
             {copy(
-              "请勿在公共设备保存密钥，也不要输入不适合发送给模型服务商的敏感资料。",
-              "Do not save keys on shared devices or submit sensitive material that should not be sent to a model provider."
+              "不要在服务地址中填写密钥或令牌，也不要输入不适合发送给所选服务的敏感资料。",
+              "Do not put keys or tokens in service URLs or submit sensitive material that should not be sent to the configured service."
             )}
           </p>
         </div>

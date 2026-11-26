@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
+import { migrateProviderSettings, sanitizeProviders, safeServiceUrl } from "./components/providerSettings.mjs";
 import { generateSearchQuery, SearchQueryResponse, ProviderConfig, testConnection } from "./services/gemini";
 import { SearchTemplate, SearchTemplateConstraint, RefinementTrajectoryItem } from "./types";
 import { DEFAULT_SEARCH_TEMPLATES } from "./data/searchTemplates";
@@ -99,15 +100,9 @@ const UI_STRINGS = {
     providerLabel: "模型提供商 Provider",
     addProvider: "+ 新增 Custom Provider",
     providerName: "提供商名称 Provider Name",
-    authTypeLabel: "鉴权方式 Auth Type",
-    customHeaderLabel: "Header 名称 (可选)",
     deleteProvider: "DELETE / 删除",
     modelsListLabel: "支持的模型 (逗号分隔)",
-    apiKeyLabel: "API Key",
-    apiKeyPlaceholder: "输入您的 API Key（必填）",
     modelLabel: "底层模型 Model",
-    baseUrlLabel: "Base URL (可选)",
-    baseUrlPlaceholder: "自定义 API 端点，如: https://api.deepseek.com",
     testConnectionBtn: "TEST CONNECTION / 测试连接",
     testSuccess: "Connection Successful / 连接成功",
     testFailed: "Connection Failed / 连接失败",
@@ -161,15 +156,9 @@ const UI_STRINGS = {
     providerLabel: "模型提供商",
     addProvider: "+ 新增自定义提供商",
     providerName: "提供商名称",
-    authTypeLabel: "鉴权方式",
-    customHeaderLabel: "自定义 Header (可选)",
     deleteProvider: "删除提供商",
     modelsListLabel: "支持的模型 (用逗号分隔)",
-    apiKeyLabel: "API 密钥",
-    apiKeyPlaceholder: "输入您的 API 密钥（必填）",
     modelLabel: "底层大模型",
-    baseUrlLabel: "基础 URL (可选)",
-    baseUrlPlaceholder: "例如: https://api.deepseek.com",
     testConnectionBtn: "测试连接",
     testSuccess: "连接成功",
     testFailed: "连接失败",
@@ -223,15 +212,9 @@ const UI_STRINGS = {
     providerLabel: "Model Provider",
     addProvider: "+ Add Custom Provider",
     providerName: "Provider Name",
-    authTypeLabel: "Auth Type",
-    customHeaderLabel: "Header Name (Optional)",
     deleteProvider: "Delete Provider",
     modelsListLabel: "Supported Models (Comma separated)",
-    apiKeyLabel: "API Key",
-    apiKeyPlaceholder: "Enter your API Key (required)",
     modelLabel: "Underlying Model",
-    baseUrlLabel: "Base URL (Optional)",
-    baseUrlPlaceholder: "e.g., https://api.deepseek.com",
     testConnectionBtn: "TEST CONNECTION",
     testSuccess: "Connection Successful",
     testFailed: "Connection Failed",
@@ -258,72 +241,56 @@ const DEFAULT_PROVIDERS: ProviderConfig[] = [
     id: "gemini",
     name: "Google Gemini",
     isGemini: true,
-    endpoint: "default",
-    authType: 'Bearer',
-    apiKey: "",
+    serviceUrl: safeServiceUrl(import.meta.env.VITE_MODEL_SERVICE_URL || ""),
     models: "gemini-3.5-flash,gemini-3.1-pro-preview,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-pro-latest,gemini-flash-latest,gemini-flash-lite-latest"
   },
   {
     id: "deepseek",
     name: "DeepSeek 官方",
     isGemini: false,
-    endpoint: "https://api.deepseek.com",
-    authType: 'Bearer',
-    apiKey: "",
+    serviceUrl: safeServiceUrl(import.meta.env.VITE_MODEL_SERVICE_URL || ""),
     models: "deepseek-chat,deepseek-reasoner,deepseek-v4-flash,deepseek-v4-pro"
   },
   {
     id: "siliconflow",
     name: "硅基流动 (SiliconFlow)",
     isGemini: false,
-    endpoint: "https://api.siliconflow.cn/v1",
-    authType: 'Bearer',
-    apiKey: "",
+    serviceUrl: safeServiceUrl(import.meta.env.VITE_MODEL_SERVICE_URL || ""),
     models: "deepseek-ai/DeepSeek-V3,deepseek-ai/DeepSeek-R1,Qwen/Qwen2.5-72B-Instruct,THUDM/glm-4-9b-chat"
   },
   {
     id: "moonshot",
     name: "月之暗面 (Kimi / Moonshot)",
     isGemini: false,
-    endpoint: "https://api.moonshot.cn/v1",
-    authType: 'Bearer',
-    apiKey: "",
+    serviceUrl: safeServiceUrl(import.meta.env.VITE_MODEL_SERVICE_URL || ""),
     models: "moonshot-v1-8k,moonshot-v1-32k,moonshot-v1-128k"
   },
   {
     id: "zhipu",
     name: "智谱清言 (Zhipu GLM)",
     isGemini: false,
-    endpoint: "https://open.bigmodel.cn/api/paas/v4",
-    authType: 'Bearer',
-    apiKey: "",
+    serviceUrl: safeServiceUrl(import.meta.env.VITE_MODEL_SERVICE_URL || ""),
     models: "glm-4-flash,glm-4-plus,glm-4,glm-4-long"
   },
   {
     id: "dashscope",
     name: "通义千问 (DashScope / Qwen)",
     isGemini: false,
-    endpoint: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    authType: 'Bearer',
-    apiKey: "",
+    serviceUrl: safeServiceUrl(import.meta.env.VITE_MODEL_SERVICE_URL || ""),
     models: "qwen-max,qwen-plus,qwen-turbo,qwen-coder-plus"
   },
   {
     id: "openai",
     name: "OpenAI 官方",
     isGemini: false,
-    endpoint: "https://api.openai.com/v1",
-    authType: 'Bearer',
-    apiKey: "",
+    serviceUrl: safeServiceUrl(import.meta.env.VITE_MODEL_SERVICE_URL || ""),
     models: "gpt-4o,gpt-4o-mini,o1,o3-mini"
   },
   {
     id: "openrouter",
     name: "OpenRouter 聚合平台",
     isGemini: false,
-    endpoint: "https://openrouter.ai/api/v1",
-    authType: 'Bearer',
-    apiKey: "",
+    serviceUrl: safeServiceUrl(import.meta.env.VITE_MODEL_SERVICE_URL || ""),
     models: "anthropic/claude-3.5-sonnet,google/gemini-2.5-pro,meta-llama/llama-3.3-70b-instruct,deepseek/deepseek-r1"
   }
 ];
@@ -757,7 +724,7 @@ export default function App() {
     try {
       localStorage.setItem("retrieval_ai_trajectories", JSON.stringify(items.slice(0, 50)));
     } catch (e) {
-      console.warn("Failed to persist trajectories", e);
+      console.warn("Unable to persist local trajectory preferences.");
     }
   };
 
@@ -987,15 +954,15 @@ export default function App() {
       targetId: "guided-input-panel",
       title: uiLang === 'zh' || i18n.language === 'mix' ? "第一步：输入学术主题 / 语音口述意图" : "Step 1: Enter Academic Topic / Voice Input",
       desc: uiLang === 'zh' || i18n.language === 'mix'
-        ? "在这里直接输入以自然语言描述的学术课题。支持键盘文本输入，也支持点击【语音输入】(基于专用 gemini-3.5-transcribe 语音大模型) 通过麦克风直接口述需求，系统将精准识别并生成最优布尔检索式！"
-        : "Type your academic research topic in natural language, or click 'Voice Input' (powered by model gemini-3.5-transcribe) to dictate your search intent via microphone!"
+        ? "输入自然语言研究主题，或选择独立语音引擎并配置可信语音服务后，通过麦克风录入研究意图。请核对转写内容再生成检索式。"
+        : "Enter your research topic, or choose a speech engine and configure its trusted service to dictate it. Review the transcript before generating a query."
     },
     {
       targetId: "guided-config-panel",
-      title: uiLang === 'zh' || i18n.language === 'mix' ? "第二步：选择模型厂商与 API Key 配置指引" : "Step 2: Model Providers & API Key Setup Guide",
+      title: uiLang === 'zh' || i18n.language === 'mix' ? "第二步：选择模型与可信服务" : "Step 2: Models & Trusted Service Setup",
       desc: uiLang === 'zh' || i18n.language === 'mix'
-        ? "💡 密钥配置指引：点击右下角【⚙️ 设置】按钮，您可以配置属于您的大模型 API Key。已预设支持 Google Gemini、DeepSeek、硅基流动 (SiliconFlow)、月之暗面 (Kimi)、智谱 GLM、通义千问 (DashScope)、OpenAI 及 OpenRouter 等厂商，也可添加自定义 OpenAI 兼容接口！在此开启【对比模式】还可以同时评测两个大模型双端生成效果。"
-        : "💡 API Key Setup Guide: Click the [⚙️ Settings] button in the bottom right corner to set up your API Key. Presets include Google Gemini, DeepSeek, SiliconFlow, Kimi Moonshot, Zhipu GLM, Qwen DashScope, OpenAI, OpenRouter, or any OpenAI-compatible custom endpoint! Turn on 'Comparison Mode' to evaluate two models side-by-side."
+        ? "在设置中选择模型服务商和模型，并填写可信服务地址。服务商密钥由服务端管理员配置，浏览器不接收密钥。可启用对比模式比较两个已配置的模型。"
+        : "Choose a provider and model in Settings, then configure your trusted service URL. The server administrator configures provider keys; the browser does not accept them. Comparison Mode supports two configured models."
     },
     {
       targetId: "guided-output-panel",
@@ -1024,10 +991,7 @@ export default function App() {
   const [activeProviderId, setActiveProviderId] = useState<string>("gemini");
   const [activeModel, setActiveModel] = useState<string>("gemini-3.5-flash");
 
-  const geminiApiKey = useMemo(() => {
-    const geminiProv = providers.find(p => p.id === 'gemini' || p.isGemini);
-    return geminiProv?.apiKey || "";
-  }, [providers]);
+  const [keyMigrationStatus, setKeyMigrationStatus] = useState<"pending" | "complete" | "blocked">("pending");
 
   const saveOperatorStyle = (style: "OR" | "Space") => {
     setOperatorStyle(style);
@@ -1261,7 +1225,7 @@ export default function App() {
       setFeedbackTags([]);
 
     } catch (e: any) {
-      console.error(e);
+      console.error("The requested model operation failed.");
       let errMsg = "AI correction failed.";
       try {
         const parsed = JSON.parse(e.message);
@@ -1336,48 +1300,34 @@ export default function App() {
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem("ai_retrieval_history");
+    const readStored = (key: string) => {
+      try { return localStorage.getItem(key); } catch { return null; }
+    };
+    let providersToUse = DEFAULT_PROVIDERS;
+    try {
+      providersToUse = migrateProviderSettings(localStorage, DEFAULT_PROVIDERS);
+      setKeyMigrationStatus("complete");
+    } catch {
+      // Storage denial must not restore or use legacy credentials.
+      setKeyMigrationStatus("blocked");
+    }
+    setProviders(providersToUse);
+
+    const saved = readStored("ai_retrieval_history");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) setHistory(parsed);
       } catch (e) {}
     }
-    let providersToUse = DEFAULT_PROVIDERS;
-    const savedProviders = localStorage.getItem("ai_retrieval_providers");
-    if (savedProviders) {
-      try {
-        const parsed = JSON.parse(savedProviders);
-        if (Array.isArray(parsed)) {
-          const existingIds = new Set(parsed.map((p: any) => p.id));
-          const missingDefaults = DEFAULT_PROVIDERS.filter(dp => !existingIds.has(dp.id));
-          providersToUse = [
-            ...parsed.map((p: any) => {
-              const defaultProv = DEFAULT_PROVIDERS.find(dp => dp.id === p.id);
-              if (defaultProv) {
-                return { 
-                  ...p, 
-                  models: defaultProv.models, 
-                  endpoint: (p.endpoint && p.endpoint !== "default") ? p.endpoint : defaultProv.endpoint 
-                };
-              }
-              return p;
-            }),
-            ...missingDefaults
-          ];
-          setProviders(providersToUse);
-        }
-      } catch (e) {}
-    }
-    
     let activeProvIdToUse = "gemini";
-    const savedActiveProv = localStorage.getItem("ai_retrieval_active_prov");
-    if (savedActiveProv) {
+    const savedActiveProv = readStored("ai_retrieval_active_prov");
+    if (savedActiveProv && providersToUse.some(provider => provider.id === savedActiveProv)) {
         setActiveProviderId(savedActiveProv);
         activeProvIdToUse = savedActiveProv;
     }
     
-    const savedActiveMod = localStorage.getItem("ai_retrieval_active_mod");
+    const savedActiveMod = readStored("ai_retrieval_active_mod");
     const activeProviderObj = providersToUse.find(p => p.id === activeProvIdToUse) || providersToUse[0];
     const availableModelsForProv = activeProviderObj ? activeProviderObj.models.split(',').map(m => m.trim()).filter(Boolean) : [];
     
@@ -1386,11 +1336,11 @@ export default function App() {
     } else if (availableModelsForProv.length > 0) {
       setActiveModel(availableModelsForProv[0]);
     }
-    const savedUsageStats = localStorage.getItem("ai_retrieval_usage_stats");
+    const savedUsageStats = readStored("ai_retrieval_usage_stats");
     if (savedUsageStats) {
       try { setUsageStats(JSON.parse(savedUsageStats)); } catch(e) {}
     }
-    const savedOperatorStyle = localStorage.getItem("ai_retrieval_operator_style");
+    const savedOperatorStyle = readStored("ai_retrieval_operator_style");
     if (savedOperatorStyle === "Space") {
       setOperatorStyle("Space");
     } else {
@@ -1410,7 +1360,9 @@ export default function App() {
 
   const saveProviders = (newProviders: ProviderConfig[]) => {
     setProviders(newProviders);
-    localStorage.setItem("ai_retrieval_providers", JSON.stringify(newProviders));
+    try {
+      localStorage.setItem("ai_retrieval_providers", JSON.stringify(sanitizeProviders(newProviders)));
+    } catch { setKeyMigrationStatus("blocked"); }
   };
   const saveActiveProviderId = (id: string) => {
     setActiveProviderId(id);
@@ -1427,9 +1379,7 @@ export default function App() {
       id: newId,
       name: "New Provider",
       isGemini: false,
-      endpoint: "https://api.openai.com/v1",
-      authType: 'Bearer',
-      apiKey: "",
+      serviceUrl: safeServiceUrl(import.meta.env.VITE_MODEL_SERVICE_URL || ""),
       models: "gpt-3.5-turbo,gpt-4"
     };
     saveProviders([...providers, newProvider]);
@@ -1445,6 +1395,8 @@ export default function App() {
   };
 
   const updateActiveProvider = (updates: Partial<ProviderConfig>) => {
+    setTestConnStatus('idle');
+    setTestConnMessage('');
     const newProviders = providers.map(p => 
       p.id === activeProviderId ? { ...p, ...updates } : p
     );
@@ -1521,7 +1473,7 @@ export default function App() {
           totalSuccessesA++;
         } catch (e: any) {
           totalFailuresA++;
-          console.error("Model A failed for line:", line, e);
+          console.error("Model A request failed.");
           let errMsgA = "An error occurred during query generation (Model A).";
           try {
             const parsed = JSON.parse(e.message);
@@ -1561,7 +1513,7 @@ export default function App() {
             totalSuccessesB++;
           } catch (e: any) {
             totalFailuresB++;
-            console.error("Model B failed for line:", line, e);
+            console.error("Model B request failed.");
             let errMsgB = "An error occurred during query generation (Model B).";
             try {
               const parsed = JSON.parse(e.message);
@@ -2554,6 +2506,7 @@ export default function App() {
         <div className="flex-1 flex flex-col gap-4 sm:gap-6 min-w-0">
           {/* Input Block */}
           <section id="guided-input-panel" className="ui-card bg-surface rounded-2xl border border-white/5 p-4 sm:p-6 flex flex-col relative group transition-all hover:border-white/10 shadow-sm shrink-0">
+            {keyMigrationStatus === 'blocked' && <p role="alert" className="text-xs text-status-error mb-3">{uiLang === 'en' ? 'Legacy credential cleanup could not access browser storage. This version does not use those keys. Open Settings for cleanup guidance.' : '浏览器阻止了旧版密钥设置清理；当前版本不会使用这些密钥。请打开设置查看清理说明。'}</p>}
             <div className="query-input-heading flex flex-wrap justify-between items-center gap-3 mb-3">
               <label htmlFor="query-intent" className="ui-label text-[11px] uppercase font-bold tracking-[0.15em] flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
@@ -2561,7 +2514,6 @@ export default function App() {
               </label>
               <div className="query-speech-row flex flex-wrap items-center gap-3 min-w-0">
                 <AudioTranscriber
-                  geminiKey={geminiApiKey}
                   speechProxyUrl={import.meta.env.VITE_SPEECH_PROXY_URL}
                   onTranscribe={(transcribedText) => {
                     setInput((prev) => prev ? `${prev} ${transcribedText}` : transcribedText);
@@ -3886,11 +3838,11 @@ export default function App() {
                 <div className="ui-info-notice border rounded-xl p-3.5 text-xs text-content-secondary leading-relaxed flex gap-3 items-start shadow-inner">
                   <Key size={18} className="text-cyan-400 shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <div className="font-bold text-cyan-300">🔑 API Key 指引 / Key Configuration Guide</div>
+                    <div className="font-bold text-cyan-300">可信服务配置 / Trusted Service Setup</div>
                     <div>
                       {uiLang === 'zh' || i18n.language === 'mix'
-                        ? "API Key 会以明文形式保存在当前浏览器的 localStorage 中（应用不会对其加密）。发起模型请求时，浏览器会将密钥直接发送至您选择的模型服务商；本项目没有自建代理服务器。请勿在公共设备保存密钥，并查看服务商的数据处理政策。"
-                        : "API keys are stored in this browser's localStorage without app-level encryption. Model requests send the key directly to the provider you select; this app does not proxy requests through its own server. Avoid saving keys on shared devices and review the provider's data policy."
+                        ? "公共版本仅通过可信服务端生成检索式和转写语音。浏览器只保存服务地址、模型和显示设置；不接收或保存服务商密钥。服务需由您或管理员部署并配置，上线前请验证连接和数据处理政策。"
+                        : "This public version generates queries and transcribes speech through a trusted server. The browser stores service URLs, model choices and display preferences, not provider keys. You or your administrator must deploy and configure that service; verify connectivity and its data policy before use."
                       }
                     </div>
                   </div>
@@ -3984,21 +3936,30 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* API Key */}
+                {/* Trusted text service: upstream credentials stay on the server. */}
                 <div>
-                  <label htmlFor="provider-api-key" className="ui-label text-xs uppercase font-bold tracking-wider mb-2 block">{t('apiKeyLabel')}</label>
+                  <label htmlFor="model-service-url" className="ui-label text-xs uppercase font-bold tracking-wider mb-2 block">{uiLang === 'en' ? 'Trusted model service URL' : '可信模型服务地址'}</label>
                   <input
-                    id="provider-api-key"
-                    aria-label="Provider API key"
-                    type="password"
-                    value={activeProvider.apiKey}
-                    onChange={(e) => updateActiveProvider({ apiKey: e.target.value })}
-                    placeholder={t('apiKeyPlaceholder')}
+                    id="model-service-url"
+                    aria-label="Trusted model service URL"
+                    type="url"
+                    value={activeProvider.serviceUrl}
+                    onChange={(event) => updateActiveProvider({ serviceUrl: event.target.value })}
+                    placeholder="https://your-trusted-service.example"
+                    autoComplete="url"
+                    spellCheck={false}
+                    aria-invalid={Boolean(activeProvider.serviceUrl.trim() && !safeServiceUrl(activeProvider.serviceUrl))}
+                    aria-describedby="model-service-help"
                     className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-cyan-100 placeholder:text-content-muted focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
                   />
-                  <p className="text-[10px] text-content-muted mt-2 font-mono">
-                    密钥保存在本浏览器的 localStorage 中（未加密）。模型调用时会直接发送至所选服务商；留空将无法调用模型。
+                  <p id="model-service-help" className="text-[11px] text-content-muted mt-2">
+                    {uiLang === 'en'
+                      ? 'Use your trusted HTTPS service, or a loopback HTTP service for local use. Credentials, URL tokens and query parameters are not accepted or saved. Configure provider keys on that server.'
+                      : '填写您信任的 HTTPS 服务，或本机 loopback HTTP 服务。地址不接受或保存账号、密码、URL 令牌及查询参数；服务商密钥仅配置在服务端。'}
                   </p>
+                  {activeProvider.serviceUrl.trim() && !safeServiceUrl(activeProvider.serviceUrl) && <p role="alert" className="text-[11px] text-status-error mt-2">{uiLang === 'en' ? 'Invalid service address. Use HTTPS or loopback HTTP without credentials, query parameters or fragments.' : '服务地址无效：请使用 HTTPS 或本机 loopback HTTP，不要包含账号密码、查询参数或片段。'}</p>}
+                  {!activeProvider.serviceUrl.trim() && <p role="status" className="text-[11px] text-status-warning mt-2">{uiLang === 'en' ? 'Service not configured. Generation and connection tests require a running trusted server.' : '尚未配置服务。生成和连接测试需要可用的可信服务端。'}</p>}
+                  {keyMigrationStatus === 'blocked' && <p role="alert" className="text-[11px] text-status-error mt-2">{uiLang === 'en' ? 'Browser storage cleanup was blocked. Legacy keys are not used; clear this site’s saved settings manually before continuing on a shared device.' : '浏览器阻止了旧设置清理。应用不会使用旧密钥；在共享设备上继续前，请手动清除此站点的已保存设置。'}</p>}
                 </div>
 
                 {/* Model Selection */}
@@ -4031,8 +3992,33 @@ export default function App() {
                 </div>
 
                 {/* Custom Provider Advanced Fields */}
-                {activeProvider.id !== 'gemini' && activeProvider.id !== 'deepseek' && (
+                {!DEFAULT_PROVIDERS.some(provider => provider.id === activeProvider.id) && (
                   <div className="p-4 rounded-xl border border-dashed border-cyan-500/30 bg-cyan-950/10 flex flex-col gap-4 mt-2">
+                    <div>
+                      <label htmlFor="custom-server-provider-id" className="text-xs text-content-secondary uppercase font-bold tracking-wider mb-2 block">{uiLang === 'en' ? 'Server provider ID' : '服务端 Provider ID'}</label>
+                      <input
+                        id="custom-server-provider-id"
+                        key={activeProvider.id}
+                        type="text"
+                        defaultValue={activeProvider.id}
+                        onBlur={(event) => {
+                          const nextId = event.target.value.trim();
+                          if (nextId === activeProvider.id) return;
+                          if (!/^[a-zA-Z0-9_.-]{1,80}$/.test(nextId) || providers.some(provider => provider.id === nextId)) {
+                            event.target.value = activeProvider.id;
+                            setTestConnStatus('error');
+                            setTestConnMessage(uiLang === 'en' ? 'Use a unique server-configured provider ID.' : '请填写不重复且已在服务端配置的 Provider ID。');
+                            return;
+                          }
+                          saveProviders(providers.map(provider => provider.id === activeProvider.id ? { ...provider, id: nextId } : provider));
+                          saveActiveProviderId(nextId);
+                          setTestConnStatus('idle');
+                        }}
+                        aria-describedby="custom-provider-id-help"
+                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-cyan-100 font-mono"
+                      />
+                      <p id="custom-provider-id-help" className="text-[11px] text-content-muted mt-2">{uiLang === 'en' ? 'This ID and the model list must match configuration on your trusted server. Adding a browser entry does not enable an upstream provider.' : 'ID 和模型清单必须与可信服务端配置一致；在浏览器添加条目不会自动启用上游服务商。'}</p>
+                    </div>
                     <div>
                       <label className="text-xs text-content-secondary uppercase font-bold tracking-wider mb-2 block">{t('providerName')}</label>
                       <input
@@ -4042,43 +4028,6 @@ export default function App() {
                         onChange={(e) => updateActiveProvider({ name: e.target.value })}
                         className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-cyan-100 font-mono focus:outline-none focus:border-cyan-500/50"
                       />
-                    </div>
-                    <div>
-                      <label className="text-xs text-content-secondary uppercase font-bold tracking-wider mb-2 block">API Endpoint Base URL</label>
-                      <input
-                        type="text"
-                        aria-label="Provider endpoint URL"
-                        value={activeProvider.endpoint}
-                        onChange={(e) => updateActiveProvider({ endpoint: e.target.value })}
-                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-cyan-100 font-mono focus:outline-none focus:border-cyan-500/50"
-                      />
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="flex-1">
-                        <label className="text-xs text-content-secondary uppercase font-bold tracking-wider mb-2 block">{t('authTypeLabel')}</label>
-                        <select
-                          aria-label="Authentication type"
-                        value={activeProvider.authType}
-                          onChange={(e) => updateActiveProvider({ authType: e.target.value as any })}
-                          className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-cyan-100 font-mono focus:outline-none focus:border-cyan-500/50"
-                        >
-                          <option value="Bearer">Bearer Token</option>
-                          <option value="Header">Custom Header</option>
-                        </select>
-                      </div>
-                      {activeProvider.authType === 'Header' && (
-                        <div className="flex-1">
-                          <label className="text-xs text-content-secondary uppercase font-bold tracking-wider mb-2 block">{t('customHeaderLabel')}</label>
-                          <input
-                            type="text"
-                            aria-label="Custom authentication header"
-                        value={activeProvider.authHeaderName || ""}
-                            onChange={(e) => updateActiveProvider({ authHeaderName: e.target.value })}
-                            placeholder="e.g. x-api-key"
-                            className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-cyan-100 font-mono focus:outline-none focus:border-cyan-500/50"
-                          />
-                        </div>
-                      )}
                     </div>
                     <div>
                       <label className="text-xs text-content-secondary uppercase font-bold tracking-wider mb-2 block">{t('modelsListLabel')}</label>
