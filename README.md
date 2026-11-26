@@ -41,7 +41,7 @@
 | 自然语言意图解析 | 从研究问题中提取主题、对象、方法、场景和限制条件 |
 | 中英文关键词扩展 | 生成核心词、中文同义词、英文术语与缩写 |
 | 数据库语法提示 | 按所选数据库提示布尔算符、字段代码、短语和位置算符；最终语法需在平台核对 |
-| 可信服务接入 | 公共模式通过自行配置的服务端调用 Gemini 文本模型；浏览器不接收或保存供应商密钥 |
+| 可信服务接入 | 公共模式通过可信服务端调用 Gemini 等已配置文本模型；浏览器不接收或保存供应商密钥 |
 | 服务地址配置 | 配置实现项目协议的可信服务地址；地址本身不可包含令牌或密码 |
 | 双模型对比 | 并列比较不同模型生成的关键词和检索式 |
 | 检索式结构检查与可视化 | 检查括号、引号、算符连接与可疑缺项，并展示关键词关系和布尔逻辑树；不代表数据库已接受该语法 |
@@ -138,7 +138,7 @@ npm run test:speech     # 语音适配器与路由测试
 
 ## 模型服务配置与凭据边界
 
-当前 Release Candidate 的公共模式只通过可信服务端调用 Gemini 文本生成和模型列表接口。用户配置的是服务地址与模型名称，供应商 API Key 只放在服务端环境中。地址不可含用户密码、查询令牌或片段。此 RC 尚未授权生产部署，线上版本的行为请以实际页面为准。
+当前 Release Candidate 的公共模式只通过可信服务端调用文本生成和模型配置接口。服务端预设 Gemini、DeepSeek、SiliconFlow、Moonshot、Zhipu、DashScope、OpenAI、OpenRouter，只有配置凭据且允许的模型可用。用户配置的是服务地址与模型名称，供应商 API Key 只放在服务端环境中。地址不可含用户密码、查询令牌或片段。此 RC 尚未授权生产部署，线上版本的行为请以实际页面为准。
 
 模型服务商可能按调用量收费。服务维护者负责账户额度、鉴权、限流和隐私政策；不要把有密钥的推理服务直接暴露到公网。
 
@@ -197,7 +197,7 @@ RC 前端是 **静态应用**，文本和语音请求只发送到用户明确配
 
 The standalone HTML export provides an offline-searchable directory of academic database, patent and standards URLs. Custom file entries store filenames only; the corresponding files must sit beside the exported HTML. Opening external sites and generating AI queries still require a network connection. The app does not crawl databases or host papers.
 
-The public RC sends Gemini text generation/model discovery and all four speech engines through a separately configured trusted server. Provider keys stay on that server; the frontend accepts only a non-secret service URL and model selection. It has no browser-key fallback. Older releases may have stored keys locally; migration cleanup must report storage failures, and previously exposed keys should be revoked at the provider. GitHub Pages hosts no inference service. Adapters and mocked CI do not establish real-service, model or GPU readiness. This RC does not change production until an authorized deployment.
+The public RC sends configured text providers and model discovery and all four speech engines through a separately configured trusted server. Provider keys stay on that server; the frontend accepts only a non-secret service URL and model selection. It has no browser-key fallback. Older releases may have stored keys locally; migration cleanup must report storage failures, and previously exposed keys should be revoked at the provider. GitHub Pages hosts no inference service. Adapters and mocked CI do not establish real-service, model or GPU readiness. This RC does not change production until an authorized deployment.
 
 - [Open the live app](https://horacech.github.io/Information-Retrieval-Tool/)
 - [User guide](docs/USER_GUIDE.md)

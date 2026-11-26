@@ -13,7 +13,7 @@
 - **Model integration**：前端可信服务协议；Gemini 等供应商调用只发生在服务端
 - **Hosting**：GitHub Pages
 
-当前 RC 的公共模式通过配置的可信服务调用 Gemini 文本生成和模型列表；四个语音引擎也全部经过可信服务。前端不接受供应商密钥，也不包含浏览器直连兼容入口。GitHub Pages 只托管静态资源。RC 内的独立 runtime 必须在另一进程运行，真实模型、本地硬件和发布仍需各自验收。
+当前 RC 的公共模式通过配置的可信服务调用已配置文本供应商和模型列表；四个语音引擎也全部经过可信服务。前端不接受供应商密钥，也不包含浏览器直连兼容入口。GitHub Pages 只托管静态资源。RC 内的独立 runtime 必须在另一进程运行，真实模型、本地硬件和发布仍需各自验收。
 
 ## 2. 本地开发
 
@@ -77,7 +77,7 @@ Older releases persisted provider keys under `ai_retrieval_providers`. Migration
 
 ### Model requests
 
-- The public mode supports Gemini text generation and model discovery through the project's trusted-service protocol.
+- The public mode supports configured text providers and model discovery through the project's trusted-service protocol.
 - `VITE_MODEL_SERVICE_URL` may provide a public default model-service base URL; the UI may override it with a validated trusted address. `VITE_SPEECH_PROXY_URL` supplies the separate speech-service default. Both values are non-secret endpoint configuration. Changing build-time defaults requires rebuilding; neither variable launches a server.
 - HTTPS is required for remote addresses; plain HTTP is limited to loopback. URLs with userinfo, query parameters or fragments are rejected. Never silently reinterpret an old upstream provider endpoint as a trusted proxy.
 - Gemini, OpenAI, Deepgram and local Whisper speech requests use the same explicit service boundary. There is no browser-key fallback or implicit engine switch after an error.
@@ -221,3 +221,25 @@ The public Vite `VITE_SPEECH_PROXY_URL` is an endpoint, never a secret. Gemini, 
 The RC includes the separately reviewed runtime. Consult the [runtime README](../services/speech-whisper/README.md) and [GPU guide](WHISPER_GPU.md) for CPU/GPU Compose files, environment variables, cache volumes, health checks and benchmark commands. Confirm actual merge and deployment state from current GitHub records; the presence of files in an integration branch does not release them. CPU and GPU deployment configurations must remain isolated. Do not choose CUDA/cuDNN versions without checking faster-whisper, CTranslate2 and the actual host driver together.
 
 CI provider routing tests and mocked Python inference establish contracts and error handling, not transcription accuracy or GPU compatibility. Separately validate actual Chinese/English recordings on each configured provider, Chrome/Edge microphone and local-network permissions, cancellation, timeout and recovery. Real-model reports must name the pinned model, compute type, hardware, corpus version/hash, cold/warm method, WER/CER normalization, RTF, latency, model load/download and resource measurements. Missing hardware, keys or recordings is **BLOCKED / NEEDS LOCAL VALIDATION**, never a pass. Use the same corpus and normalization when comparing models.
+
+
+## 12. Trusted text-service contract
+
+The frontend uses `ProviderConfig.serviceUrl` as a validated service base. The bundled FastAPI router is `services/speech-whisper/app/text_api.py`; it shares the runtime process and its ingress/origin/concurrency boundary. It never accepts upstream endpoints or credentials from a browser request.
+
+- `GET {base}/api/ai/providers` returns `{ "providers": [{ "id": "gemini", "configured": true, "models": ["gemini-2.5-flash"], "defaultModel": "gemini-2.5-flash" }] }`. This is server configuration discovery, not a live provider/model availability test. It returns no keys or upstream URL.
+- `POST {base}/api/ai/generate` accepts JSON `{ "provider": "gemini", "model": "gemini-2.5-flash", "operation": "query", "contents": "research question", "systemInstruction": "instructions" }`. `operation` is `query`, `expand` or `connection`; extra request fields are rejected. `contents` is required (1–60000 characters); `systemInstruction` is limited to 12000 characters. Empty model selects the server default; a model outside the server allowlist receives 403.
+- A `connection` request performs a real small upstream request and returns `{ "connected": true, "provider": "gemini", "model": "gemini-2.5-flash" }`; it may incur cost. It does not certify the query/expansion output path.
+- `query` and `expand` return `{ "result": { ... }, "provider": "...", "model": "...", "usage": null }` (or normalized token usage when supplied). Both results contain `keywords` (each with `original`, `zhSynonyms`, `enSynonyms`) and `explanation`. Query results additionally require `booleanQuery`, `fieldSpecificQuery` and `schemaMapping` (`field`, `mappedConcept`, `reason`); `suggestedUrls` is optional. The server validates structured output, rather than passing arbitrary upstream JSON as a successful query.
+- Missing credentials/configuration returns 503; unsupported models 403; invalid upstream output 502; upstream timeout 504; upstream rate limiting 429. Errors are sanitized. Server requests use a 90-second upstream timeout and do not follow redirects. Client abort does not prove the remote model stopped processing.
+
+Built-in IDs are `gemini`, `deepseek`, `siliconflow`, `moonshot`, `zhipu`, `dashscope`, `openai`, `openrouter`. Each uses `<ID>_API_KEY` in uppercase (for example `DEEPSEEK_API_KEY`), `<ID>_TEXT_MODELS` as a comma-separated allowlist and `<ID>_TEXT_MODEL` as the default. Gemini's default model is `gemini-2.5-flash`. These are operator configuration, not a promise that every listed upstream model is presently offered or funded.
+
+For Compose 2.24+, optional ignored `.env.model` passes additional text-service environment variables into the container. Shared `GEMINI_API_KEY` and `OPENAI_API_KEY` remain in the root ignored `.env`; explicit Compose `environment` values take precedence over the same names in `.env.model`, including blank defaults. Put the remaining provider keys, allowlists, defaults and custom configuration in `.env.model`, and never commit it. Example (non-secret settings only):
+
+```dotenv
+DEEPSEEK_TEXT_MODELS=deepseek-chat
+DEEPSEEK_TEXT_MODEL=deepseek-chat
+```
+
+Custom provider routing uses server-only `TEXT_PROVIDER_CONFIG_JSON`, keyed by a provider ID. Each entry contains `endpoint`, `key_env`, `models`, optional `default_model`, `auth_header` and `auth_prefix`. `endpoint` must be HTTPS without userinfo, query or fragment; `key_env` names a separately supplied server variable ending in `_API_KEY`. This supports trusted operator-defined OpenAI-compatible upstreams; the public browser cannot select arbitrary upstream URLs or forward a key. Keep custom routes private to the service configuration and apply authenticated gateways before any shared deployment.
