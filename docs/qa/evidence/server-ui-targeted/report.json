@@ -1,0 +1,78 @@
+{
+  "time": "2026-11-26T13:37:46.367Z",
+  "base": "http://127.0.0.1:4173/",
+  "browser": "Chromium",
+  "checks": [
+    {
+      "name": "Legacy settings purge preserves model and unrelated data",
+      "status": "PASS"
+    },
+    {
+      "name": "Missing speech service rejects before native microphone and network",
+      "status": "PASS"
+    },
+    {
+      "name": "Unsafe speech URL is not persisted and cannot request microphone or network",
+      "status": "PASS"
+    },
+    {
+      "name": "Missing and unsafe model URLs do not issue network requests or persist secrets",
+      "status": "PASS",
+      "rejectedCases": 4
+    },
+    {
+      "name": "Valid model service retry succeeds using credential-free fixture contract",
+      "status": "PASS"
+    },
+    {
+      "name": "Service URL and selected model survive browser reload",
+      "status": "PASS"
+    },
+    {
+      "name": "Native browser permission denial is shown and produces no upload",
+      "status": "PASS",
+      "permission": "denied",
+      "media": "native API; synthetic device"
+    },
+    {
+      "name": "Permission grant allows retry, recording, fixture upload and transcript insertion",
+      "status": "PASS"
+    },
+    {
+      "name": "Forced-colors mobile controls remain visible with keyboard outline and no field overflow",
+      "status": "PASS",
+      "outline": {
+        "width": 3,
+        "style": "solid"
+      }
+    }
+  ],
+  "errors": [],
+  "limits": [
+    "Network transcription and connection replies are fixtures, not live providers.",
+    "Microphone permission uses native Chromium policy with a synthetic media device, not physical hardware.",
+    "Forced-colors checks cover visible controls and keyboard outline, not full accessibility certification."
+  ],
+  "previewAssets": [
+    "/assets/index-DogjyHFs.js"
+  ],
+  "browserVersion": "156.0.8078.79",
+  "networkRequests": [
+    {
+      "method": "POST",
+      "path": "/api/ai/generate",
+      "keys": [
+        "contents",
+        "model",
+        "operation",
+        "provider",
+        "systemInstruction"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/speech/gemini/transcriptions",
+      "keys": []
+    }
+  ]
+}
