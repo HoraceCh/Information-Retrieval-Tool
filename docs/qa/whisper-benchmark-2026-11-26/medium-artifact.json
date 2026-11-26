@@ -1,0 +1,32 @@
+{
+  "source": "https://github.com/rhasspy/models/releases/download/v1.0/asr_faster-whisper-medium-int8.tar.gz",
+  "publisher": "Rhasspy",
+  "release": "v1.0",
+  "archive_sha256": "366029fd1ec55b15431f6a35b5ec2db033c5f735031687bed5c449bed59f720a",
+  "archive_bytes": 672892749,
+  "safe_archive_check": "all members regular files/directories, no absolute/traversal/symlink/hardlink/device entries, unpacked total under 6GiB",
+  "files": [
+    {
+      "name": "medium-int8/model.bin",
+      "bytes": 784897245,
+      "sha256": "e19ba3e83e68b15d480def8185b07fc8af56caa15bb8470f2c47ec8c1faaec44"
+    },
+    {
+      "name": "medium-int8/config.json",
+      "bytes": 2020,
+      "sha256": "c9dee3d675c31c3763c1ee3c9e7235050e877dadd9002c5b3c60366e3d81da2a"
+    },
+    {
+      "name": "medium-int8/vocabulary.txt",
+      "bytes": 459861,
+      "sha256": "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913"
+    }
+  ],
+  "upstream_checkpoint_revision": "not published in archive; exact hash identifies the artifact",
+  "tokenizer": {
+    "source": "OpenAI multilingual.tiktoken at commit 86098128c0b4f24f0e2aa2994de830614b474227",
+    "rank_table_sha256": "b34b360dbb493e781e479794586d661700670d65564001f23024971d1f2fa126",
+    "construction": "prepare_rhasspy_tokenizer.py verifies rank/special token IDs against archived vocabulary.txt",
+    "tokenizer_json_sha256": "2e87bb8b733a5c03b8a19a918b649ad3ab39d1968723faba197e4e6444f4b47a"
+  }
+}

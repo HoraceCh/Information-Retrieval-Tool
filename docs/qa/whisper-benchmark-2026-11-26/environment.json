@@ -1,0 +1,38 @@
+{
+  "recorded_at_utc": "2026-11-26T13:40:24.865602+00:00",
+  "python": "3.12.14",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": "AMD EPYC 9V74 80-Core Processor",
+  "allocated_logical_cpus": 3,
+  "physical_ram_bytes": 10452459520,
+  "gpu_available": false,
+  "thread_environment": {
+    "OMP_NUM_THREADS": "3",
+    "OPENBLAS_NUM_THREADS": "1"
+  },
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.0",
+    "av": "18.1.1",
+    "fastapi": "0.165.0",
+    "starlette": "1.10.0",
+    "uvicorn": "0.54.0",
+    "httpx": "0.28.1",
+    "huggingface-hub": "2.4.0",
+    "tokenizers": "0.23.3",
+    "onnxruntime": "1.32.0",
+    "numpy": "2.5.5",
+    "psutil": "7.2.2",
+    "espeakng-loader": "0.2.4"
+  },
+  "inference_source_sha256": "e4899af061feaf07cbc88ee38dc672cd4338020c86a82573c5eeac49fae47236",
+  "source_hash_scope": "File hash at report collection; model/corpus/software hashes are the reproducible inference inputs.",
+  "load_control": "ASR models run sequentially. Shared host/cgroup not isolated from other tasks/local Qwen inference; latency is observational.",
+  "cgroup_v2": {
+    "cpu_max": "200000 100000",
+    "cpu_quota_equivalent_cores": 2,
+    "cpuset_cpus_effective": "0-2",
+    "memory_limit_bytes": 8589934592,
+    "interpretation": "3 visible logical CPUs with 2 CPU-equivalent quota and 8 GiB memory limit; host physical memory is not the process budget."
+  }
+}

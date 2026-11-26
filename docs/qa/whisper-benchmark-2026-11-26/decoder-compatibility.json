@@ -1,0 +1,16 @@
+{
+  "status": "PASS WITH WARNINGS",
+  "faster_whisper": "1.2.1",
+  "ctranslate2": "4.9.0",
+  "initial_pyav": "19.0.2",
+  "initial_result": "FAIL: actual model loaded, but audio decoding failed before inference",
+  "exception": "TypeError: open() got an unexpected keyword argument 'metadata_errors'",
+  "verified_pyav": "18.1.1",
+  "verified_result": "Actual WAV decoder and real model/API transcription succeeded",
+  "fix": "Runtime now pins av==18.1.1 in requirements.txt; no test or decoder check was bypassed",
+  "notes": [
+    "The earlier HTTP 502 was a dependency/API regression, not a model download or authentication failure.",
+    "Model load measured in that failed attempt is not reused as successful benchmark cold latency.",
+    "Successful reports come from fresh services after installing the compatible decoder."
+  ]
+}

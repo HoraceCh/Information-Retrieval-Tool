@@ -1,0 +1,8 @@
+{
+  "file": "synthetic-corpus-v1.zip",
+  "bytes": 2734319,
+  "sha256": "1430a520e4410f2ceebd07e8f1648d2bb978d4c36eca2279951c443285c0346c",
+  "contents": "14 generated WAVs, manifest.json, provenance.json, README.md; no models/weights/credentials",
+  "source_kind": "synthetic-espeak-ng",
+  "repeated_generation_audio_hashes_match": true
+}
