@@ -1,5 +1,7 @@
 # AI_RETRIEVAL_X — Release Candidate Engineering Handoff
 
+Current PR #16 results are in the [public release candidate follow-up](PUBLIC_RC.md). The original evidence below records the earlier PR #14/#15 evaluation.
+
 Release status: **BLOCKED**. The engineering changes and review evidence are available in two independent Draft PRs. No PR was merged, marked ready or deployed.
 
 - [PR #14 — Speech Runtime](https://github.com/HoraceCh/Information-Retrieval-Tool/pull/14), reviewed head `268d0cb`.

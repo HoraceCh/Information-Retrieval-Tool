@@ -1,5 +1,7 @@
 # Four-provider E2E acceptance record
 
+Current PR #16 results are in the [public release candidate follow-up](PUBLIC_RC.md). The original evidence below records the earlier PR #14/#15 evaluation.
+
 Evidence: 2026-11-16; regression record updated 2026-11-17. Status: **BLOCKED**. This record distinguishes actual negative service probes and mocked integration tests from successful provider transcription.
 
 | Acceptance item | Gemini | OpenAI | Deepgram | Local Whisper |

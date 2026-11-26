@@ -1,5 +1,7 @@
 # Remaining Risks and Unverified Conditions
 
+Current PR #16 results are in the [public release candidate follow-up](PUBLIC_RC.md). The original evidence below records the earlier PR #14/#15 evaluation.
+
 Release status: **BLOCKED**. Code checks and rendering fixtures do not replace the missing actual service evidence.
 
 | Item | Status | Evidence / required action |
