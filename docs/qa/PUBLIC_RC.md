@@ -27,3 +27,7 @@ The public release remains **BLOCKED** pending live commercial speech acceptance
 The faster-whisper 1.2.1 decoder passed a removed keyword to PyAV 19.0.2 and returned HTTP 502 with a real WAV. Both container builds now share a PyAV 18.1.1 pin. Container CI decodes a generated WAV with the installed libraries, without downloading weights.
 
 The default Whisper model remains small. Local CPU testing used separately distributed Rhasspy int8 archives and a tokenizer derived from the pinned OpenAI multilingual rank table. All 14 synthetic reference strings produced identical token IDs and decoded text when checked against OpenAI's tiktoken rank table. The release branch contains no model weights or provider credentials. The tiny model demonstrated a working browser path but showed substantial Chinese errors. Keep it out of default quality claims.
+
+## Live text generation
+
+The browser submitted a real synthesis request to a loopback trusted text service, which authenticated to llama.cpp over HTTPS. Qwen3 0.6B returned structured JSON and the UI rendered the query and keyword group. It did not use explicit Boolean operators or meaningful database fields for the Auto Match request. An earlier attempt with Qwen2.5 3B exceeded the browser request deadline on the shared CPU. The result verifies the browser-to-model path and leaves the quality and response time of the intended hosted provider open. [Captured result and validator output](evidence/public-rc-local-text.json)
