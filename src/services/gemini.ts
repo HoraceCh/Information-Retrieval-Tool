@@ -121,7 +121,8 @@ export async function generateSearchQuery(
     && templateConstraint.framework === defaultTopicTemplate.framework
     && templateConstraint.constraintPrompt === defaultTopicTemplate.constraintPrompt);
   const isSimpleWosTopic = isWos && !feedback && (!templateConstraint || usesDefaultTopicTemplate)
-    && !/\b(?:AND|OR|NOT|NEAR|SAME|exclud\w*|without|title|author|journal|affiliation|year)\b|排除|除外|不含|不要|作者|标题|年份|[=()*/?$"“”]/i.test(input);
+    && !/\b(?:AND|OR|NOT|NEAR|SAME)\b/.test(input)
+    && !/\b(?:not|near|exclud\w*|without|title|author|journal|affiliation|year)\b|排除|除外|不含|不要|作者|标题|年份|[=()*/?$"“”]/i.test(input);
   const operatorInstruct = operatorStyle === "Space" 
     ? "For portable booleanQuery only, use whitespace as OR between synonyms inside a concept group. Do not apply this style to fieldSpecificQuery unless the selected database explicitly defines whitespace as OR."
     : "For portable booleanQuery only, use the explicit OR operator between synonyms inside a concept group.";
