@@ -100,6 +100,15 @@ def model_configuration(request: TextRequest) -> tuple[dict, str, str]:
     return config, model, key
 
 
+# Compact OpenAI-compatible instructions. Pydantic still validates the returned shape.
+KEYWORD_SHAPE = "keywords: array of {original: string, zhSynonyms: string[], enSynonyms: string[]}; explanation: string"
+QUERY_SHAPE = KEYWORD_SHAPE + (
+    "; booleanQuery: string; fieldSpecificQuery: string; "
+    "schemaMapping: array of {field: string, mappedConcept: string, reason: string}; "
+    "suggestedUrls: optional array of {name: string, url: string}"
+)
+
+
 def structured_result(text: str, operation: str) -> dict:
     text = text.strip()
     match = re.fullmatch(r"```(?:json)?\s*([\s\S]*?)\s*```", text, flags=re.IGNORECASE)
@@ -155,7 +164,7 @@ async def generate_text(request: TextRequest):
             reasoner = any(token in model.lower() for token in ("reasoner", "r1", "v4-pro")) or model.startswith(("o1", "o3"))
             system = request.systemInstruction
             if request.operation != "connection":
-                system += "\nReturn only a JSON object matching this schema:\n" + json.dumps(expected.model_json_schema())
+                system += "\nReturn only a JSON object with these fields: " + (QUERY_SHAPE if request.operation == "query" else KEYWORD_SHAPE)
             messages = [{"role": "user", "content": system + "\n\n" + contents}] if reasoner else [{"role": "system", "content": system}, {"role": "user", "content": contents}]
             body = {"model": model, "messages": messages, "max_completion_tokens" if model.startswith(("o1", "o3")) else "max_tokens": 32 if request.operation == "connection" else 8192}
             if not reasoner and request.operation != "connection": body["response_format"] = {"type": "json_object"}
