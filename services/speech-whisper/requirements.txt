@@ -1,6 +1,8 @@
 fastapi>=0.115,<1
 uvicorn[standard]>=0.34,<1
 python-multipart>=0.0.20,<1
+# faster-whisper 1.2.1 passes metadata_errors to av.open; PyAV 19 removed it.
+av==18.1.1
 faster-whisper==1.2.1
 ctranslate2==4.9.0
 httpx>=0.27,<1
