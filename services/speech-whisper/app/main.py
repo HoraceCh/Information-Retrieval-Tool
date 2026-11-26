@@ -19,6 +19,7 @@ def positive_int_env(name: str, default: int) -> int:
         return default
 
 MAX_AUDIO_BYTES = positive_int_env("MAX_AUDIO_BYTES", 20 * 1024 * 1024)
+MAX_CONCURRENT_TEXT_REQUESTS = positive_int_env("MAX_CONCURRENT_TEXT_REQUESTS", 2)
 MAX_CONCURRENT_REQUESTS = positive_int_env("MAX_CONCURRENT_REQUESTS", 1)
 UPLOAD_TIMEOUT_SECONDS = positive_int_env("UPLOAD_TIMEOUT_SECONDS", 30)
 MAX_CONCURRENT_INFERENCES = positive_int_env("MAX_CONCURRENT_INFERENCES", 1)
@@ -42,15 +43,17 @@ class SpeechRequestLimits:
     def __init__(self, app):
         self.app = app
         self.slots = threading.BoundedSemaphore(MAX_CONCURRENT_REQUESTS)
+        self.text_slots = threading.BoundedSemaphore(MAX_CONCURRENT_TEXT_REQUESTS)
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] != "http" or scope["method"] != "POST" or not scope["path"].startswith("/api/speech/"):
+        if scope["type"] != "http" or scope["method"] != "POST" or not scope["path"].startswith(("/api/speech/", "/api/ai/")):
             return await self.app(scope, receive, send)
-        if not self.slots.acquire(blocking=False):
+        slots = self.text_slots if scope["path"].startswith("/api/ai/") else self.slots
+        if not slots.acquire(blocking=False):
             return await JSONResponse({"detail": "Speech service is busy. Try again shortly."}, 429, headers={"Retry-After": "3"})(scope, receive, send)
         try:
             # Includes a bounded allowance for multipart headers and language fields.
-            limit = MAX_AUDIO_BYTES + 65536
+            limit = 131072 if scope["path"].startswith("/api/ai/") else MAX_AUDIO_BYTES + 65536
             chunks, size = [], 0
             async with asyncio.timeout(UPLOAD_TIMEOUT_SECONDS):
                 while True:
@@ -77,7 +80,7 @@ class SpeechRequestLimits:
         except TimeoutError:
             await JSONResponse({"detail": "Audio upload timed out."}, 408)(scope, receive, send)
         finally:
-            self.slots.release()
+            slots.release()
 
 app = FastAPI(title="AI_RETRIEVAL_X Speech API", version="1.1.0", docs_url=None, redoc_url=None)
 app.add_middleware(SpeechRequestLimits)
@@ -288,3 +291,7 @@ async def readyz():
     except Exception:
         return JSONResponse(status_code=503, content={"status": "unavailable", "detail": "Speech runtime is unavailable. Check device passthrough, CUDA libraries and compute type."})
     return {"status": "ready", "model_loaded": _model is not None, "note": "Runtime probe only; real transcription has not been verified by this endpoint."}
+
+
+from .text_api import router as text_router
+app.include_router(text_router)

@@ -3,7 +3,7 @@ export interface SpeechProviderDefinition {
   readonly id: SpeechProviderId;
   readonly label: string;
   readonly shortLabel: string;
-  readonly mode: "direct" | "proxy";
+  readonly mode: "proxy";
   readonly requiresProxy: boolean;
 }
 export const SPEECH_PROVIDERS: readonly SpeechProviderDefinition[];

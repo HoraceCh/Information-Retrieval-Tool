@@ -1,5 +1,5 @@
 export const SPEECH_PROVIDERS = Object.freeze([
-  Object.freeze({ id: "gemini", label: "Gemini", shortLabel: "Gemini", mode: "direct", requiresProxy: false }),
+  Object.freeze({ id: "gemini", label: "Gemini", shortLabel: "Gemini", mode: "proxy", requiresProxy: true }),
   Object.freeze({ id: "openai", label: "OpenAI", shortLabel: "OpenAI ASR", mode: "proxy", requiresProxy: true }),
   Object.freeze({ id: "deepgram", label: "Deepgram", shortLabel: "Deepgram", mode: "proxy", requiresProxy: true }),
   Object.freeze({ id: "whisper-local", label: "Whisper 本地服务", shortLabel: "Whisper", mode: "proxy", requiresProxy: true })
