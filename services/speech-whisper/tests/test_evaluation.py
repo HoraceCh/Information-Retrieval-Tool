@@ -96,3 +96,18 @@ def test_report_preserves_measured_service_artifact_and_loading_metrics(monkeypa
     assert report["model_initialization_seconds"]==5.0
     assert report["model_revision"]=="abc123"
     assert report["model_download_bytes"] is None  # Artifact bytes are never asserted to be network traffic.
+
+
+def test_language_summary_weights_reference_length_and_separates_cold_latency():
+    from scripts.evaluate_whisper import summarize_languages
+    rows = [
+        {"language":"en","audio":"long.wav","reference":"one two three four","hypothesis":"one two three","phase":"cold-first-request","latency_seconds":10,"real_time_factor":5},
+        {"language":"en","audio":"short.wav","reference":"five","hypothesis":"six","phase":"warm","latency_seconds":2,"real_time_factor":0.5},
+        {"language":"zh","audio":"zh.wav","reference":"你好世界","hypothesis":"你好世间","phase":"warm","latency_seconds":3,"real_time_factor":0.75},
+    ]
+    summary = summarize_languages(rows)
+    assert summary["en"]["aggregate_wer"] == pytest.approx(2 / 5)
+    assert summary["en"]["warm_median_latency_seconds"] == 2
+    assert summary["en"]["unique_audio_count"] == 2
+    assert summary["zh"]["aggregate_cer"] == 0.25
+    assert summary["zh"]["primary_quality_indicator"].startswith("CER")
