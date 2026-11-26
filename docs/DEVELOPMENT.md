@@ -86,6 +86,9 @@ Older releases persisted provider keys under `ai_retrieval_providers`. Migration
 
 **Never inject private provider keys into a public Vite build.** Public client variables, bundled JavaScript, source maps and browser storage are not server-side secret stores. Remote shared services require authentication, HTTPS, rate limiting and secret management before enabling paid providers. CORS/Origin checks alone do not authenticate requests.
 
+For a shared authenticated installation, serve the static build and the model/speech routes on one HTTPS origin behind the operator's gateway. Configure both service URLs to that origin or its API base path. The browser sends same-origin session cookies under its normal fetch policy. The gateway must check the user session, enforce origin/CSRF protections and rate limits, and forward requests to the private runtime. The static GitHub Pages deployment can use a user's own loopback service. A separate hosted gateway with cross-origin cookie authentication requires additional frontend and gateway integration.
+
+
 ## 5. GitHub Pages deployment
 
 Workflow: .github/workflows/deploy.yml
