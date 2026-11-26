@@ -30,13 +30,13 @@ The existing raw-audio transport and response extraction conform to these contra
 
 ## Fixes and local evidence
 
-`tests/test_commercial_speech_contracts.py` contains **39 parameterized contract cases**. They use the actual httpx request encoder with a local MockTransport, not a replacement fake client that bypasses serialization. A valid generated PCM WAV fixture is sent through the application's real multipart upload boundary. Returned Chinese/English transcripts are fixed test fixtures, not model outputs from that WAV.
+`tests/test_commercial_speech_contracts.py` contains **42 parameterized contract cases**. They use the actual httpx request encoder with a local MockTransport, not a replacement fake client that bypasses serialization. A valid generated PCM WAV fixture is sent through the application's real multipart upload boundary. Returned Chinese/English transcripts are fixed test fixtures, not model outputs from that WAV.
 
 The cases inspect outgoing host/path/authentication and verify Gemini base64 JSON, OpenAI multipart boundaries/file bytes/metadata, Deepgram binary bytes/query parameters, Chinese/English fixture normalization, auto-language handling and diarization options. They also exercise malformed JSON, network errors, elapsed upstream timeout exceptions, missing/incomplete Gemini candidates and thought filtering.
 
 For all three adapters, 400/422 map to sanitized 422, 401/403 to server-configuration 503, 413/415 preserve upload/format failures, and 429 preserves rate limiting. Safe numeric Retry-After values are propagated for retryable responses; upstream response bodies and keys are never reflected. 503/504 retain availability/timeout classification. There are no automatic retries, provider switches or duplicate billable requests.
 
-Tests passed with `/tmp/rc-api/bin/python -m pytest -q services/speech-whisper/tests`: **96 total Python cases passed**, including the 39 commercial contract cases and existing runtime/text tests. The earlier Gemini success fixture was updated to include the documented completed-candidate `finishReason=STOP`; no test was removed or disabled.
+Tests passed with `/tmp/rc-api/bin/python -m pytest -q services/speech-whisper/tests`: **99 total Python cases passed**, including the 42 commercial contract cases and existing runtime/text tests. The earlier Gemini success fixture was updated to include the documented completed-candidate `finishReason=STOP`; no test was removed or disabled.
 
 ## Evidence limits
 

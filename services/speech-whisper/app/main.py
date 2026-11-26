@@ -164,7 +164,7 @@ def upstream_speech_error(provider: str, response: httpx.Response) -> HTTPExcept
     """Map documented failure classes without reflecting provider bodies, URLs or keys."""
     status = response.status_code
     retry = response.headers.get("retry-after", "")
-    headers = {"Retry-After": retry} if retry.isdigit() and 0 < int(retry) <= 3600 else None
+    headers = {"Retry-After": retry} if re.fullmatch(r"[0-9]{1,4}", retry) and 0 < int(retry) <= 3600 else None
     if status in (401, 403):
         return HTTPException(503, f"{provider} credentials require attention on the trusted service.")
     if status == 429:

@@ -168,3 +168,10 @@ def test_openai_diarization_config_includes_required_chunking_for_long_recording
         return httpx.Response(200,json={"text":"speaker transcript","segments":[]})
     configure_transport(monkeypatch,upstream)
     assert client.post("/api/speech/openai/transcriptions",files={"file":("a.wav",wav_fixture(),"audio/wav")}).json()=={"text":"speaker transcript"}
+
+
+@pytest.mark.parametrize("retry",["-1","999999999999999999999999999999", "invalid-date"])
+def test_malformed_retry_after_never_breaks_sanitized_error_mapping(retry):
+    response=httpx.Response(429,headers={"Retry-After":retry})
+    error=main.upstream_speech_error("Gemini",response)
+    assert error.status_code==429 and error.headers is None
