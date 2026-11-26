@@ -18,6 +18,8 @@ The public release remains **BLOCKED** pending live commercial speech acceptance
 - [Draft integration PR #16](https://github.com/HoraceCh/Information-Retrieval-Tool/pull/16)
 - [CI for the initial integration PR head](https://github.com/HoraceCh/Information-Retrieval-Tool/actions/runs/45820070511)
 - [Chrome and Edge real Whisper browser runs](evidence/public-rc-whisper-browser.json)
+- [Licensed human-speech diagnostic](HUMAN_SPEECH_DIAGNOSTIC_2026-11-26.md)
+- [Browser settings migration, forced colors and permission recovery](evidence/server-ui-targeted/README.md)
 - [Trusted service configuration](../DEVELOPMENT.md)
 - [Earlier gate and PR evidence](RELEASE_CANDIDATE.md)
 
