@@ -80,10 +80,13 @@ def provider_config(provider_id: str) -> dict:
             raise ValueError()
         if not re.fullmatch(r"[A-Z][A-Z0-9_]*_API_KEY", custom["key_env"]): raise ValueError()
         if not isinstance(custom["models"], list) or not custom["models"] or not all(isinstance(item, str) and item for item in custom["models"]): raise ValueError()
+        structured_mode = custom.get("structured_response", "json_object")
+        if structured_mode not in ("json_object", "json_schema"):
+            raise ValueError()
         header = custom.get("auth_header", "Authorization")
         prefix = custom.get("auth_prefix", "Bearer ")
         if not re.fullmatch(r"[A-Za-z0-9-]{1,80}", header) or not isinstance(prefix, str) or "\r" in prefix or "\n" in prefix: raise ValueError()
-        return {**custom, "default_model": custom.get("default_model", custom["models"][0]), "auth_header": header, "auth_prefix": prefix}
+        return {**custom, "default_model": custom.get("default_model", custom["models"][0]), "auth_header": header, "auth_prefix": prefix, "structured_response": structured_mode}
     except (ValueError, TypeError, KeyError, AttributeError):
         raise HTTPException(503, "This text provider is not configured on the trusted service.") from None
 
@@ -167,7 +170,13 @@ async def generate_text(request: TextRequest):
                 system += "\nReturn only a JSON object with these fields: " + (QUERY_SHAPE if request.operation == "query" else KEYWORD_SHAPE)
             messages = [{"role": "user", "content": system + "\n\n" + contents}] if reasoner else [{"role": "system", "content": system}, {"role": "user", "content": contents}]
             body = {"model": model, "messages": messages, "max_completion_tokens" if model.startswith(("o1", "o3")) else "max_tokens": 32 if request.operation == "connection" else 8192}
-            if not reasoner and request.operation != "connection": body["response_format"] = {"type": "json_object"}
+            if not reasoner and request.operation != "connection":
+                if config.get("structured_response") == "json_schema":
+                    body["response_format"] = {"type": "json_schema", "json_schema": {
+                        "name": "search_result", "schema": expected.model_json_schema(),
+                    }}
+                else:
+                    body["response_format"] = {"type": "json_object"}
         async with httpx.AsyncClient(timeout=90, follow_redirects=False) as client:
             response = await client.post(url, headers=headers, json=body)
         response.raise_for_status()

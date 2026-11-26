@@ -140,3 +140,23 @@ def test_reasoner_model_contract_preserves_reasoning_and_avoids_unsupported_resp
     install(monkeypatch,{"choices":[{"message":{"content":json.dumps(RESULT),"reasoning_content":"provider explanation fixture"}}]},inspect=inspect)
     response=client.post("/api/ai/generate",json={**REQUEST,"provider":"deepseek","model":"deepseek-reasoner"})
     assert response.status_code==200 and response.json()["reasoning"]=="provider explanation fixture"
+
+
+def test_operator_can_enable_native_json_schema_for_compatible_upstream(monkeypatch):
+    monkeypatch.setenv("CUSTOM_API_KEY", "fixture")
+    monkeypatch.setenv("TEXT_PROVIDER_CONFIG_JSON", json.dumps({"custom": {
+        "endpoint": "https://operator.example/v1/chat/completions",
+        "key_env": "CUSTOM_API_KEY", "models": ["local-model"],
+        "structured_response": "json_schema",
+    }}))
+
+    def inspect(_, kwargs):
+        response_format = kwargs["json"]["response_format"]
+        assert response_format["type"] == "json_schema"
+        schema = response_format["json_schema"]["schema"]
+        assert {"keywords", "booleanQuery", "fieldSpecificQuery"}.issubset(schema["required"])
+
+    install(monkeypatch, {"choices": [{"message": {"content": json.dumps(RESULT)}}]}, inspect=inspect)
+    response = client.post("/api/ai/generate", json={**REQUEST, "provider": "custom", "model": "local-model"})
+    assert response.status_code == 200
+    assert response.json()["result"] == RESULT
