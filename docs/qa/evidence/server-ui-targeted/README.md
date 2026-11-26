@@ -10,7 +10,7 @@ UI_EVIDENCE=artifacts/server-ui-targeted \
 node scripts/server-ui-regression.mjs
 ```
 
-The saved report records the preview asset and browser version. The nine checks cover legacy settings cleanup, model preservation, missing/unsafe URL rejection before microphone/network access, connection recovery, reload persistence, browser permission denial, recording recovery, and forced-colors mobile controls. Only synthetic legacy values are seeded. The report records request paths and field names, never request contents or credentials.
+The saved reports record the preview asset and browser version. The [final-build rerun](final-build-report.json) passed the same nine checks after the text-gateway integration. The nine checks cover legacy settings cleanup, model preservation, missing/unsafe URL rejection before microphone/network access, connection recovery, reload persistence, browser permission denial, recording recovery, and forced-colors mobile controls. Only synthetic legacy values are seeded. The report records request paths and field names, never request contents or credentials.
 
 The permission-denial case uses Chromium's native Permissions and MediaDevices APIs with a browser-enforced denied policy. Granting permission then exercises a browser-generated synthetic audio device, recording, a fixture transcription reply and insertion into the input. This is not a physical microphone test or a live cloud-provider test. The model connection reply is also a fixture.
 
