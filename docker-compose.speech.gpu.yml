@@ -13,6 +13,9 @@ services:
               count: 1
               capabilities: [gpu]
     restart: unless-stopped
+    env_file:
+      - path: ./.env.model
+        required: false
     environment:
       WHISPER_MODEL_SIZE: ${WHISPER_GPU_MODEL_SIZE:-small}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}

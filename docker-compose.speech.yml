@@ -4,6 +4,9 @@ services:
       context: ./services/speech-whisper
     container_name: ai-retrieval-local-whisper
     restart: unless-stopped
+    env_file:
+      - path: ./.env.model
+        required: false
     environment:
       WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-small}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
