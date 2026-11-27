@@ -9,7 +9,7 @@ const BASE = process.env.SMOKE_BASE_URL || "http://127.0.0.1:4173/";
 const artifacts = path.resolve("artifacts/browser-smoke");
 fs.mkdirSync(artifacts, { recursive: true });
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH, args: ['--no-sandbox'] } : {}) });
 const errors = [];
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 page.on("pageerror", error => errors.push(error.message));
@@ -32,6 +32,12 @@ try {
   assert(await speechProvider.inputValue() === "whisper-local", "Local Whisper provider could not be selected");
   await page.reload({ waitUntil: "networkidle" });
   assert(await page.locator("#speech-provider-select").inputValue() === "whisper-local", "Speech provider selection was not persisted");
+  const speechProxyUrl = page.locator("#speech-proxy-url");
+  assert(await speechProxyUrl.isVisible(), "Proxy URL setting should appear for proxy-backed providers");
+  await speechProxyUrl.fill("http://127.0.0.1:8000");
+  await page.reload({ waitUntil: "networkidle" });
+  assert(await page.locator("#speech-proxy-url").inputValue() === "http://127.0.0.1:8000", "Speech service URL was not persisted");
+  await page.locator("#speech-proxy-url").fill("");
   await page.locator("#speech-provider-select").selectOption("gemini");
   const aboutButton = page.locator("button").filter({ hasText: /项目介绍|About/ }).first();
   await aboutButton.waitFor({ timeout: 15000 });

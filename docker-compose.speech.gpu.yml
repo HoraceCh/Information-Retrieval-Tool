@@ -1,0 +1,46 @@
+# Standalone GPU configuration; do not stack with the CPU Compose file.
+services:
+  whisper:
+    build:
+      context: ./services/speech-whisper
+      dockerfile: Dockerfile.gpu
+    container_name: ai-retrieval-local-whisper-gpu
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    environment:
+      WHISPER_MODEL_SIZE: ${WHISPER_GPU_MODEL_SIZE:-small}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_TRANSCRIPTION_MODEL: ${GEMINI_TRANSCRIPTION_MODEL:-gemini-2.5-flash}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_TRANSCRIPTION_MODEL: ${OPENAI_TRANSCRIPTION_MODEL:-whisper-1}
+      DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY:-}
+      DEEPGRAM_MODEL: ${DEEPGRAM_MODEL:-nova-3}
+      SPEECH_UPSTREAM_TIMEOUT_SECONDS: ${SPEECH_UPSTREAM_TIMEOUT_SECONDS:-90}
+      WHISPER_DEVICE: cuda
+      WHISPER_COMPUTE_TYPE: ${WHISPER_GPU_COMPUTE_TYPE:-float16}
+      WHISPER_MODEL_REVISION: ${WHISPER_MODEL_REVISION:-}
+      WHISPER_DOWNLOAD_ROOT: /models
+      MAX_CONCURRENT_REQUESTS: "${MAX_CONCURRENT_REQUESTS:-1}"
+      UPLOAD_TIMEOUT_SECONDS: "${UPLOAD_TIMEOUT_SECONDS:-30}"
+      MAX_AUDIO_BYTES: "${MAX_AUDIO_BYTES:-20971520}"
+      MAX_CONCURRENT_INFERENCES: "${MAX_CONCURRENT_INFERENCES:-1}"
+      SPEECH_ALLOWED_ORIGINS: "${SPEECH_ALLOWED_ORIGINS:-https://horacech.github.io,http://localhost:3000,http://127.0.0.1:3000,http://localhost:4173,http://127.0.0.1:4173}"
+    ports:
+      - "127.0.0.1:${SPEECH_PORT:-8000}:8000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    volumes:
+      - whisper-gpu-model-cache:/models
+volumes:
+  whisper-gpu-model-cache:

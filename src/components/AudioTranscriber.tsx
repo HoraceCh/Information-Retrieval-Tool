@@ -27,6 +27,18 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
     } catch { return "gemini"; }
   });
   const selectedProvider = SPEECH_PROVIDERS.find(provider => provider.id === providerId) || SPEECH_PROVIDERS[0];
+  const [proxyBaseUrl, setProxyBaseUrl] = useState(() => {
+    try { return localStorage.getItem("ai_retrieval_speech_proxy_url") || ""; }
+    catch { return ""; }
+  });
+  const effectiveProxyBaseUrl = proxyBaseUrl.trim() || speechProxyUrl;
+  const saveProxyBaseUrl = (next: string) => {
+    setProxyBaseUrl(next);
+    try {
+      if (next.trim()) localStorage.setItem("ai_retrieval_speech_proxy_url", next.trim());
+      else localStorage.removeItem("ai_retrieval_speech_proxy_url");
+    } catch { /* storage is optional */ }
+  };
   const saveProvider = (next: SpeechProviderId) => {
     setProviderId(next);
     try { localStorage.setItem("ai_retrieval_speech_provider", next); } catch { /* storage is optional */ }
@@ -45,10 +57,23 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animFrameRef = useRef<number | null>(null);
+  const mountedRef = useRef(false);
+  const startPendingRef = useRef(false);
+  const startRequestIdRef = useRef(0);
+  const transcriptionAbortRef = useRef<AbortController | null>(null);
+  const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
+      startRequestIdRef.current += 1;
+      startPendingRef.current = false;
+      transcriptionAbortRef.current?.abort();
+      transcriptionAbortRef.current = null;
+      if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+      successTimeoutRef.current = null;
       cleanupAudio();
     };
   }, []);
@@ -73,6 +98,9 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
   };
 
   const startRecording = async () => {
+    if (startPendingRef.current || isRecording || isTranscribing) return;
+    startPendingRef.current = true;
+    const requestId = ++startRequestIdRef.current;
     setErrorMsg(null);
     setSuccessNotice(null);
 
@@ -82,6 +110,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
           ? "您的浏览器不支持麦克风录音功能，请使用现代浏览器 (Chrome / Edge / Firefox / Safari)。"
           : "Your browser does not support audio recording. Please use Chrome, Edge, Firefox, or Safari."
       );
+      startPendingRef.current = false;
       return;
     }
 
@@ -93,6 +122,11 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
           autoGainControl: true,
         } 
       });
+      if (!mountedRef.current || requestId !== startRequestIdRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        if (requestId === startRequestIdRef.current) startPendingRef.current = false;
+        return;
+      }
       streamRef.current = stream;
 
       // Setup audio analyzer for live volume waveform
@@ -108,7 +142,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
           source.connect(analyser);
 
           const updateLevel = () => {
-            if (!analyserRef.current) return;
+            if (!mountedRef.current || requestId !== startRequestIdRef.current || !analyserRef.current) return;
             const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
             analyserRef.current.getByteFrequencyData(dataArray);
             let sum = 0;
@@ -154,6 +188,8 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
       recorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
         cleanupAudio();
+        mediaRecorderRef.current = null;
+        if (!mountedRef.current) return;
         setIsRecording(false);
         setRecordDuration(0);
 
@@ -171,6 +207,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
       };
 
       recorder.start(250);
+      startPendingRef.current = false;
       setIsRecording(true);
       setRecordDuration(0);
 
@@ -185,6 +222,8 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
         });
       }, 1000);
     } catch (err: any) {
+      if (requestId === startRequestIdRef.current) startPendingRef.current = false;
+      if (requestId !== startRequestIdRef.current || !mountedRef.current) return;
       cleanupAudio();
       setIsRecording(false);
       console.error("Microphone Access Error:", err);
@@ -215,6 +254,8 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
   };
 
   const cancelRecording = () => {
+    startRequestIdRef.current += 1;
+    startPendingRef.current = false;
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.ondataavailable = null;
       mediaRecorderRef.current.onstop = null;
@@ -230,12 +271,24 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
     setErrorMsg(null);
   };
 
+  const cancelTranscription = () => {
+    transcriptionAbortRef.current?.abort();
+    transcriptionAbortRef.current = null;
+    setIsTranscribing(false);
+    setErrorMsg(null);
+  };
+
   const handleTranscription = async (audioBlob: Blob) => {
+    if (!mountedRef.current) return;
+    const controller = new AbortController();
+    transcriptionAbortRef.current?.abort();
+    transcriptionAbortRef.current = controller;
     setIsTranscribing(true);
     setErrorMsg(null);
 
     try {
-      const text = await transcribeWithProvider(providerId, audioBlob, { geminiKey, proxyBaseUrl: speechProxyUrl });
+      const text = await transcribeWithProvider(providerId, audioBlob, { geminiKey, proxyBaseUrl: effectiveProxyBaseUrl, signal: controller.signal });
+      if (!mountedRef.current || controller.signal.aborted) return;
       if (!text) {
         setErrorMsg(
           uiLang === "zh" || uiLang === "mix"
@@ -249,17 +302,25 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
             ? `已转写: "${text.length > 25 ? text.slice(0, 25) + "..." : text}"`
             : `Transcribed: "${text.length > 25 ? text.slice(0, 25) + "..." : text}"`
         );
-        setTimeout(() => setSuccessNotice(null), 4000);
+        if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+        successTimeoutRef.current = setTimeout(() => {
+          if (mountedRef.current) setSuccessNotice(null);
+          successTimeoutRef.current = null;
+        }, 4000);
       }
     } catch (err: any) {
+      if (!mountedRef.current || controller.signal.aborted) return;
       let details = err.message;
       try {
         const parsed = JSON.parse(err.message);
-        details = parsed.details || parsed.title || err.message;
+        details = parsed.details || parsed.detail || parsed.title || err.message;
       } catch (_) {}
       setErrorMsg(details);
     } finally {
-      setIsTranscribing(false);
+      if (transcriptionAbortRef.current === controller) {
+        transcriptionAbortRef.current = null;
+        if (mountedRef.current) setIsTranscribing(false);
+      }
     }
   };
 
@@ -285,6 +346,30 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
           ))}
         </select>
       )}
+      {!isRecording && !isTranscribing && (
+        <label className="flex items-center gap-1.5 text-[10px] text-slate-500">
+          <span className="whitespace-nowrap">{uiLang === "zh" || uiLang === "mix" ? "服务地址" : "Service URL"}</span>
+          <input
+            id="speech-proxy-url"
+            type="url"
+            aria-label={uiLang === "zh" || uiLang === "mix" ? "语音服务地址" : "Speech service URL"}
+            value={proxyBaseUrl}
+            onChange={(event) => saveProxyBaseUrl(event.target.value)}
+            placeholder={speechProxyUrl || "http://127.0.0.1:8000"}
+            autoComplete="url"
+            className="w-44 max-w-[34vw] rounded-lg border border-slate-600/30 bg-slate-800/70 px-2 py-1.5 text-[10px] text-slate-200 outline-none focus:border-cyan-500 placeholder:text-slate-500"
+          />
+        </label>
+      )}
+
+      {providerId === "gemini" && !isRecording && !isTranscribing && (
+        <span role="status" className="max-w-[220px] text-[10px] text-slate-400" title={uiLang === "en" ? "Prefer a trusted speech service with server-side keys. An empty service URL uses legacy browser BYOK." : "建议使用服务端保存密钥的可信语音服务。服务地址为空时，使用浏览器 BYOK 兼容模式。"}>
+          {effectiveProxyBaseUrl?.trim()
+            ? (uiLang === "en" ? "Gemini: server proxy" : "Gemini：服务端代理")
+            : (uiLang === "en" ? "BYOK compatibility · browser key" : "BYOK 兼容模式 · 密钥位于浏览器")}
+        </span>
+      )}
+
       {/* Default State: Trigger Button */}
       {!isRecording && !isTranscribing && (
         <button
@@ -372,6 +457,9 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
               ? `正在使用 ${selectedProvider.label} 转写...`
               : `Transcribing with ${selectedProvider.label}...`}
           </span>
+          <button type="button" onClick={cancelTranscription} className="rounded-md px-2 py-1 text-[11px] text-cyan-200/80 hover:bg-cyan-800/50 hover:text-white">
+            {uiLang === "zh" || uiLang === "mix" ? "取消" : "Cancel"}
+          </button>
         </motion.div>
       )}
 
