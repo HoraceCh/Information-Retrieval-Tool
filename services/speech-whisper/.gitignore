@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+evaluation/manifest.json
+evaluation/results*.json
+evaluation/*.wav

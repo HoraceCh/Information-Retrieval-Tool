@@ -1,0 +1,2 @@
+# Benchmark client only; never required by normal API/CI.
+psutil>=6,<8
