@@ -1,0 +1,886 @@
+{
+  "recordedAtUtc": "2026-11-27T04:46:16.284Z",
+  "status": "PASS WITH WARNINGS",
+  "appUrl": "http://127.0.0.1:4173",
+  "trustedService": "http://127.0.0.1:18602",
+  "endpoint": "http://127.0.0.1:18602/api/ai/generate",
+  "requestedProvider": "local-qwen",
+  "requestedModel": "qwen2.5-3b",
+  "database": "Web of Science核心合集 (SCI-E/SSCI/CPCI-S)",
+  "language": "仅英文 (English Only)",
+  "template": "preset-topic-constraint-field (unchanged application default)",
+  "operatorStyle": "OR",
+  "casesSha256": "413c1b0e7d6d50842605ec63f4fd1849534e65b5ed23fcad9e8d41eeb3afec4c",
+  "validatorSourceSha256": "6da45123c5510a3d8878e2216ea84680e0cfebc5fee74764403e77c7b3c2bca1",
+  "kind": "MANUAL LIVE BROWSER → TRUSTED SERVICE; no mocked/replayed responses",
+  "cases": [
+    {
+      "id": "robot-manipulators-motion-planning",
+      "topic": "Find research on robotic manipulators and motion planning.",
+      "status": "PASS WITH WARNINGS",
+      "expectedConcepts": [
+        {
+          "name": "robotic manipulators",
+          "alternatives": [
+            "robotic manipulator",
+            "robotic manipulators",
+            "robot manipulator",
+            "robot manipulators",
+            "robot arm",
+            "robot arms",
+            "robotic arm",
+            "robotic arms",
+            "manipulator",
+            "manipulators",
+            "机械臂",
+            "机器人操作臂"
+          ]
+        },
+        {
+          "name": "motion planning",
+          "alternatives": [
+            "motion planning",
+            "path planning",
+            "trajectory planning",
+            "运动规划",
+            "路径规划",
+            "轨迹规划"
+          ]
+        }
+      ],
+      "constraints": [],
+      "pageErrors": [],
+      "selectedTemplate": "preset-topic-constraint-field",
+      "appAssetUrls": [
+        "http://127.0.0.1:4173/assets/index-BYWFjjhd.js"
+      ],
+      "browserResponseLatencyMs": 26306,
+      "httpStatus": 200,
+      "request": {
+        "method": "POST",
+        "url": "http://127.0.0.1:18602/api/ai/generate",
+        "provider": "local-qwen",
+        "model": "qwen2.5-3b",
+        "operation": "query",
+        "keys": [
+          "contents",
+          "model",
+          "operation",
+          "provider",
+          "systemInstruction"
+        ],
+        "contentsSha256": "2f6211de690c02ebca7adb7463934f96199b41fe7fcc3aeca4bef94657dabf86",
+        "systemInstructionSha256": "5c49e43c30a4952ac7cd57794ac49bc849ccf255ff553353d4a12a3fdb716ae7",
+        "containsRequestedTopic": true,
+        "targetsWebOfScience": true,
+        "hasBrowserAuthorizationHeader": false
+      },
+      "rawServiceResult": {
+        "keywords": [
+          {
+            "original": "robotic manipulators",
+            "zhSynonyms": [
+              "机器人手",
+              "机械手"
+            ],
+            "enSynonyms": [
+              "robotic manipulators",
+              "mechanical hands"
+            ]
+          },
+          {
+            "original": "motion planning",
+            "zhSynonyms": [
+              "运动规划",
+              "路径规划"
+            ],
+            "enSynonyms": [
+              "motion planning",
+              "path planning"
+            ]
+          }
+        ],
+        "booleanQuery": "(robotic manipulators OR robotic manipulators OR motion planning OR motion planning) AND (robotic manipulators OR robotic manipulators OR motion planning OR motion planning)",
+        "fieldSpecificQuery": "TI=(robotic manipulators AND motion planning) OR TI=(robotic manipulators AND motion planning) OR TI=(robotic manipulators AND motion planning) OR TI=(robotic manipulators AND motion planning)",
+        "schemaMapping": [
+          {
+            "field": "TI",
+            "mappedConcept": "Title",
+            "reason": "Title is a common field in Web of Science for searching for specific terms within the title of a document."
+          }
+        ],
+        "explanation": "The boolean query is constructed to cover both 'robotic manipulators' and 'motion planning' as separate concepts, with synonyms provided for each concept to ensure broad coverage."
+      },
+      "rawServiceAssessment": {
+        "pass": false,
+        "checks": {
+          "atLeastTwoDistinctMeaningfulGroups": true,
+          "conceptsMapToDifferentGroups": true,
+          "intentPresentInBothQueries": true,
+          "portableStructureValid": false,
+          "nativeStructureValid": false,
+          "nativeTopicSyntax": false,
+          "explicitAndBetweenConcepts": true,
+          "noForeignFieldSyntax": true
+        },
+        "meaningfulGroupCount": 2,
+        "conceptGroupMatches": [
+          {
+            "name": "robotic manipulators",
+            "possibleGroupIndices": [
+              0
+            ],
+            "assignedGroupIndex": 0
+          },
+          {
+            "name": "motion planning",
+            "possibleGroupIndices": [
+              1
+            ],
+            "assignedGroupIndex": 1
+          }
+        ],
+        "intentMatches": [
+          {
+            "name": "robotic manipulators",
+            "portable": "robotic manipulators",
+            "native": "robotic manipulators"
+          },
+          {
+            "name": "motion planning",
+            "portable": "motion planning",
+            "native": "motion planning"
+          }
+        ],
+        "recognizedFields": [
+          "TI",
+          "TI",
+          "TI",
+          "TI"
+        ],
+        "portableValidation": {
+          "isValid": true,
+          "errors": [],
+          "warnings": [
+            {
+              "id": "missing-operator-9",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "manipulators",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-33",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "manipulators",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-56",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "planning",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-75",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "planning",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-98",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "manipulators",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-122",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "manipulators",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-145",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "planning",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-164",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "planning",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            }
+          ],
+          "stats": {
+            "openParens": 2,
+            "closeParens": 2,
+            "doubleQuotes": 0,
+            "phraseCount": 0,
+            "hasFullwidth": false
+          }
+        },
+        "nativeValidation": {
+          "isValid": true,
+          "errors": [],
+          "warnings": [
+            {
+              "id": "missing-operator-12",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "manipulators",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-36",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "planning",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-36",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "planning",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-61",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "manipulators",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-85",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "planning",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-85",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "planning",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-110",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "manipulators",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-134",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "planning",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-134",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "planning",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-159",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "manipulators",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-183",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "planning",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-183",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "planning",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            }
+          ],
+          "stats": {
+            "openParens": 4,
+            "closeParens": 4,
+            "doubleQuotes": 0,
+            "phraseCount": 0,
+            "hasFullwidth": false
+          }
+        }
+      },
+      "applicationResult": {
+        "keywords": [
+          {
+            "original": "robotic manipulators",
+            "zhSynonyms": [
+              "机器人手",
+              "机械手"
+            ],
+            "enSynonyms": [
+              "robotic manipulators",
+              "mechanical hands"
+            ]
+          },
+          {
+            "original": "motion planning",
+            "zhSynonyms": [
+              "运动规划",
+              "路径规划"
+            ],
+            "enSynonyms": [
+              "motion planning",
+              "path planning"
+            ]
+          }
+        ],
+        "booleanQuery": "(\"robotic manipulators\" OR \"mechanical hands\") AND (\"motion planning\" OR \"path planning\")",
+        "fieldSpecificQuery": "TS=((\"robotic manipulators\" OR \"mechanical hands\") AND (\"motion planning\" OR \"path planning\"))",
+        "schemaMapping": [
+          {
+            "field": "TS",
+            "mappedConcept": "robotic manipulators",
+            "reason": "Web of Science Topic field"
+          },
+          {
+            "field": "TS",
+            "mappedConcept": "motion planning",
+            "reason": "Web of Science Topic field"
+          }
+        ],
+        "explanation": "The boolean query is constructed to cover both 'robotic manipulators' and 'motion planning' as separate concepts, with synonyms provided for each concept to ensure broad coverage.\nWeb of Science Topic query rebuilt from the extracted concept groups. Review the terms before searching.",
+        "modelUsed": "qwen2.5-3b",
+        "providerUsed": "Live acceptance model",
+        "appLatencyMs": 26273
+      },
+      "finalAssessment": {
+        "pass": true,
+        "checks": {
+          "atLeastTwoDistinctMeaningfulGroups": true,
+          "conceptsMapToDifferentGroups": true,
+          "intentPresentInBothQueries": true,
+          "portableStructureValid": true,
+          "nativeStructureValid": true,
+          "nativeTopicSyntax": true,
+          "explicitAndBetweenConcepts": true,
+          "noForeignFieldSyntax": true
+        },
+        "meaningfulGroupCount": 2,
+        "conceptGroupMatches": [
+          {
+            "name": "robotic manipulators",
+            "possibleGroupIndices": [
+              0
+            ],
+            "assignedGroupIndex": 0
+          },
+          {
+            "name": "motion planning",
+            "possibleGroupIndices": [
+              1
+            ],
+            "assignedGroupIndex": 1
+          }
+        ],
+        "intentMatches": [
+          {
+            "name": "robotic manipulators",
+            "portable": "robotic manipulators",
+            "native": "robotic manipulators"
+          },
+          {
+            "name": "motion planning",
+            "portable": "motion planning",
+            "native": "motion planning"
+          }
+        ],
+        "recognizedFields": [
+          "TS"
+        ],
+        "portableValidation": {
+          "isValid": true,
+          "errors": [],
+          "warnings": [],
+          "stats": {
+            "openParens": 2,
+            "closeParens": 2,
+            "doubleQuotes": 8,
+            "phraseCount": 4,
+            "hasFullwidth": false
+          }
+        },
+        "nativeValidation": {
+          "isValid": true,
+          "errors": [],
+          "warnings": [],
+          "stats": {
+            "openParens": 3,
+            "closeParens": 3,
+            "doubleQuotes": 8,
+            "phraseCount": 4,
+            "hasFullwidth": false
+          }
+        }
+      },
+      "renderedFieldQuery": "TS=((\"robotic manipulators\" OR \"mechanical hands\") AND (\"motion planning\" OR \"path planning\"))",
+      "appRebuiltSyntax": true,
+      "rebuildDisclosed": true,
+      "conceptGroupsPreservedFromService": true
+    },
+    {
+      "id": "perovskite-solar-cells-stability",
+      "topic": "Find research on perovskite solar cells and long-term stability.",
+      "status": "PASS WITH WARNINGS",
+      "expectedConcepts": [
+        {
+          "name": "perovskite material",
+          "alternatives": [
+            "perovskite",
+            "perovskites",
+            "钙钛矿"
+          ]
+        },
+        {
+          "name": "stability",
+          "alternatives": [
+            "stability",
+            "durability",
+            "degradation",
+            "稳定性",
+            "耐久性",
+            "降解",
+            "老化"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "solar-cell application",
+          "alternatives": [
+            "solar cell",
+            "solar cells",
+            "photovoltaic",
+            "photovoltaics",
+            "太阳能电池",
+            "光伏"
+          ]
+        }
+      ],
+      "pageErrors": [],
+      "selectedTemplate": "preset-topic-constraint-field",
+      "appAssetUrls": [
+        "http://127.0.0.1:4173/assets/index-BYWFjjhd.js"
+      ],
+      "browserResponseLatencyMs": 17957,
+      "httpStatus": 200,
+      "request": {
+        "method": "POST",
+        "url": "http://127.0.0.1:18602/api/ai/generate",
+        "provider": "local-qwen",
+        "model": "qwen2.5-3b",
+        "operation": "query",
+        "keys": [
+          "contents",
+          "model",
+          "operation",
+          "provider",
+          "systemInstruction"
+        ],
+        "contentsSha256": "3c215187b9d2030a67c127788e6eb6407ae6417a8e85eee8825dac16d5744b34",
+        "systemInstructionSha256": "5c49e43c30a4952ac7cd57794ac49bc849ccf255ff553353d4a12a3fdb716ae7",
+        "containsRequestedTopic": true,
+        "targetsWebOfScience": true,
+        "hasBrowserAuthorizationHeader": false
+      },
+      "rawServiceResult": {
+        "keywords": [
+          {
+            "original": "perovskite solar cells",
+            "zhSynonyms": [
+              "perovskitische Solarzellen",
+              "perovskitische Solarzellen"
+            ],
+            "enSynonyms": []
+          },
+          {
+            "original": "long-term stability",
+            "zhSynonyms": [
+              "langerfristige Stabilität",
+              "langerfristige Stabilität"
+            ],
+            "enSynonyms": []
+          }
+        ],
+        "booleanQuery": "(perovskite solar cells OR perovskitische Solarzellen) AND (long-term stability OR langerfristige Stabilität)",
+        "fieldSpecificQuery": "TI=(perovskite solar cells AND long-term stability)",
+        "schemaMapping": [
+          {
+            "field": "TI",
+            "mappedConcept": "Title",
+            "reason": "The title is the primary identifier for a research paper and is the most relevant field for this search."
+          }
+        ],
+        "explanation": "The search query is constructed to find research papers on perovskite solar cells and their long-term stability. The terms are joined with AND to ensure both concepts are present in the search results."
+      },
+      "rawServiceAssessment": {
+        "pass": false,
+        "checks": {
+          "atLeastTwoDistinctMeaningfulGroups": true,
+          "conceptsMapToDifferentGroups": true,
+          "intentPresentInBothQueries": true,
+          "portableStructureValid": false,
+          "nativeStructureValid": false,
+          "nativeTopicSyntax": false,
+          "explicitAndBetweenConcepts": true,
+          "noForeignFieldSyntax": true
+        },
+        "meaningfulGroupCount": 2,
+        "conceptGroupMatches": [
+          {
+            "name": "perovskite material",
+            "possibleGroupIndices": [
+              0
+            ],
+            "assignedGroupIndex": 0
+          },
+          {
+            "name": "stability",
+            "possibleGroupIndices": [
+              1
+            ],
+            "assignedGroupIndex": 1
+          }
+        ],
+        "intentMatches": [
+          {
+            "name": "perovskite material",
+            "portable": "perovskite",
+            "native": "perovskite"
+          },
+          {
+            "name": "stability",
+            "portable": "stability",
+            "native": "stability"
+          },
+          {
+            "name": "solar-cell application",
+            "portable": "solar cells",
+            "native": "solar cells"
+          }
+        ],
+        "recognizedFields": [
+          "TI"
+        ],
+        "portableValidation": {
+          "isValid": true,
+          "errors": [],
+          "warnings": [
+            {
+              "id": "missing-operator-12",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "solar",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-18",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "cells",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-18",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "cells",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-42",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "Solarzellen",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-70",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "stability",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-98",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "Stabilität",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            }
+          ],
+          "stats": {
+            "openParens": 2,
+            "closeParens": 2,
+            "doubleQuotes": 0,
+            "phraseCount": 0,
+            "hasFullwidth": false
+          }
+        },
+        "nativeValidation": {
+          "isValid": true,
+          "errors": [],
+          "warnings": [
+            {
+              "id": "missing-operator-15",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "solar",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-21",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "cells",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-21",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "cells",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-41",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "stability",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            },
+            {
+              "id": "missing-operator-41",
+              "type": "MISSING_OPERATOR",
+              "severity": "warning",
+              "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+              "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+              "snippet": "stability",
+              "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+            }
+          ],
+          "stats": {
+            "openParens": 1,
+            "closeParens": 1,
+            "doubleQuotes": 0,
+            "phraseCount": 0,
+            "hasFullwidth": false
+          }
+        }
+      },
+      "applicationResult": {
+        "keywords": [
+          {
+            "original": "perovskite solar cells",
+            "zhSynonyms": [
+              "perovskitische Solarzellen",
+              "perovskitische Solarzellen"
+            ],
+            "enSynonyms": []
+          },
+          {
+            "original": "long-term stability",
+            "zhSynonyms": [
+              "langerfristige Stabilität",
+              "langerfristige Stabilität"
+            ],
+            "enSynonyms": []
+          }
+        ],
+        "booleanQuery": "(\"perovskite solar cells\") AND (\"long-term stability\")",
+        "fieldSpecificQuery": "TS=((\"perovskite solar cells\") AND (\"long-term stability\"))",
+        "schemaMapping": [
+          {
+            "field": "TS",
+            "mappedConcept": "perovskite solar cells",
+            "reason": "Web of Science Topic field"
+          },
+          {
+            "field": "TS",
+            "mappedConcept": "long-term stability",
+            "reason": "Web of Science Topic field"
+          }
+        ],
+        "explanation": "The search query is constructed to find research papers on perovskite solar cells and their long-term stability. The terms are joined with AND to ensure both concepts are present in the search results.\nWeb of Science Topic query rebuilt from the extracted concept groups. Review the terms before searching.",
+        "modelUsed": "qwen2.5-3b",
+        "providerUsed": "Live acceptance model",
+        "appLatencyMs": 17913
+      },
+      "finalAssessment": {
+        "pass": true,
+        "checks": {
+          "atLeastTwoDistinctMeaningfulGroups": true,
+          "conceptsMapToDifferentGroups": true,
+          "intentPresentInBothQueries": true,
+          "portableStructureValid": true,
+          "nativeStructureValid": true,
+          "nativeTopicSyntax": true,
+          "explicitAndBetweenConcepts": true,
+          "noForeignFieldSyntax": true
+        },
+        "meaningfulGroupCount": 2,
+        "conceptGroupMatches": [
+          {
+            "name": "perovskite material",
+            "possibleGroupIndices": [
+              0
+            ],
+            "assignedGroupIndex": 0
+          },
+          {
+            "name": "stability",
+            "possibleGroupIndices": [
+              1
+            ],
+            "assignedGroupIndex": 1
+          }
+        ],
+        "intentMatches": [
+          {
+            "name": "perovskite material",
+            "portable": "perovskite",
+            "native": "perovskite"
+          },
+          {
+            "name": "stability",
+            "portable": "stability",
+            "native": "stability"
+          },
+          {
+            "name": "solar-cell application",
+            "portable": "solar cells",
+            "native": "solar cells"
+          }
+        ],
+        "recognizedFields": [
+          "TS"
+        ],
+        "portableValidation": {
+          "isValid": true,
+          "errors": [],
+          "warnings": [],
+          "stats": {
+            "openParens": 2,
+            "closeParens": 2,
+            "doubleQuotes": 4,
+            "phraseCount": 2,
+            "hasFullwidth": false
+          }
+        },
+        "nativeValidation": {
+          "isValid": true,
+          "errors": [],
+          "warnings": [],
+          "stats": {
+            "openParens": 3,
+            "closeParens": 3,
+            "doubleQuotes": 4,
+            "phraseCount": 2,
+            "hasFullwidth": false
+          }
+        }
+      },
+      "renderedFieldQuery": "TS=((\"perovskite solar cells\") AND (\"long-term stability\"))",
+      "appRebuiltSyntax": true,
+      "rebuildDisclosed": true,
+      "conceptGroupsPreservedFromService": true
+    }
+  ],
+  "limitations": [
+    "The operator must retain server/model provenance to establish the actual backend; HTTP observation alone cannot audit server internals.",
+    "Intent checks use explicit lexical alternatives for these topics, not a general semantic judge.",
+    "Native field/structure checks are bounded acceptance, not live Web of Science certification or recall measurement.",
+    "If the app rebuilds query syntax, that output is recorded separately from the model response and must be disclosed."
+  ],
+  "repositoryHeadAtRun": "588f6e6049410c24b22a8179fe6719c8a16ab432",
+  "browser": {
+    "version": "158.0.8127.88",
+    "executablePath": "/tmp/rc-chrome/opt/google/chrome/chrome",
+    "channel": null
+  }
+}

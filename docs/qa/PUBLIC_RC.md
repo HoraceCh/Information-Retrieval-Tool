@@ -1,5 +1,7 @@
 # Public release candidate follow-up
 
+The [2026-11-27 functional acceptance follow-up](FUNCTIONAL_ACCEPTANCE.md) supersedes the earlier text and commercial speech results below for the updated scope. Both functional gates passed with warnings. Ordered merge and production authorization are tracked separately.
+
 The public release remains **BLOCKED** pending live commercial speech acceptance and final release authorization. Draft PR #16 combines the work reviewed in #14 and #15 with the server-only model changes. The public frontend can be distributed as static assets. Model and speech operations require a separately configured trusted service.
 
 | Gate | Status | Current evidence |
