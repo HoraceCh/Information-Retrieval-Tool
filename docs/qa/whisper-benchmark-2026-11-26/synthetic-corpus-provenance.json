@@ -1,0 +1,36 @@
+{
+  "dataset_version": "synthetic-espeak-ng-corpus-v1",
+  "source_kind": "synthetic-espeak-ng",
+  "purpose": "Reproducible smoke/benchmark plumbing; not representative human speech recognition accuracy.",
+  "prompts_sha256": "1b4a5601209ac87c51ffc335456eb5cf4aa70b2fd1be8aec7d257fada272fe55",
+  "manifest_sha256": "56e96e67eaa7a499f014d638509db0a9cca5e321a6cfaef8a1c5029d773ff7b2",
+  "generator_sha256": "16f44f57401ad589450189a2bd983fe38a6be1fe53e9bc7a8202386b735d4e7c",
+  "software": {
+    "python": "3.12.14",
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "espeakng_loader": "0.2.4",
+    "espeak_ng": "1.52.0",
+    "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers"
+  },
+  "library_sha256": "b15ce0803b26254e8a0d088c6b9281a2637b2b02613147cc320cfdefaf2c3ccf",
+  "voice_data_tree_sha256": "3ce44623349701757681633ee4e3de9325918379938b860d77407928fb5a309f",
+  "sample_count": 14,
+  "languages": {
+    "zh": {
+      "sample_count": 7,
+      "duration_seconds": 62.1574
+    },
+    "en": {
+      "sample_count": 7,
+      "duration_seconds": 41.4871
+    }
+  },
+  "total_audio_bytes": 3317716,
+  "limitations": [
+    "Single synthetic voice per language; not a human-recorded evaluation dataset.",
+    "Synthetic mixed-language pronunciation and noise do not establish real-world accuracy.",
+    "Compare models only on identical manifest/audio hashes and identical metric normalization.",
+    "Pinned software versions do not guarantee cross-platform byte identity; use the frozen hashes to identify an actual corpus.",
+    "Chinese WER is not linguistically segmented; use CER as the primary Chinese quality indicator."
+  ]
+}

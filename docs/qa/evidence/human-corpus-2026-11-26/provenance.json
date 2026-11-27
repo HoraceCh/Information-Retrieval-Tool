@@ -1,0 +1,46 @@
+{
+  "dataset_version": "wenet-public-human-pair-v1@be6ad97fdb512589df113042f7ff3a29d392fb38",
+  "acquired_utc": "2026-11-26T12:28:35Z",
+  "source_repository": "https://github.com/wenet-e2e/wenet",
+  "source_revision": "be6ad97fdb512589df113042f7ff3a29d392fb38",
+  "files": [
+    {
+      "file": "aishell-BAC009S0724W0121.wav",
+      "sha256": "2f9fc9c912bb71c85fb286cb88b599c81efb8f727c727a5ea8f6d1c89c55ac13",
+      "source_url": "https://github.com/wenet-e2e/wenet/blob/be6ad97fdb512589df113042f7ff3a29d392fb38/test/resources/aishell-BAC009S0724W0121.wav",
+      "reference_url": "https://github.com/wenet-e2e/wenet/blob/be6ad97fdb512589df113042f7ff3a29d392fb38/test/resources/dataset/text",
+      "license": "Apache-2.0",
+      "original_corpus_url": "https://www.openslr.org/33/"
+    },
+    {
+      "file": "librispeech-1995-1837-0001.wav",
+      "sha256": "a4d977939c2f673b370e7dd5840118947a8ae95f6d62d3a88f32b40c0631aaee",
+      "source_url": "https://github.com/wenet-e2e/wenet/blob/be6ad97fdb512589df113042f7ff3a29d392fb38/test/resources/librispeech-1995-1837-0001.wav",
+      "reference_url": "https://github.com/wenet-e2e/wenet/blob/be6ad97fdb512589df113042f7ff3a29d392fb38/test/resources/dataset/text",
+      "license": "CC-BY-4.0",
+      "original_corpus_url": "https://www.openslr.org/12/"
+    }
+  ],
+  "license_verification": {
+    "AISHELL": {
+      "source": "https://www.openslr.org/33/",
+      "declared_license": "Apache License v.2.0",
+      "recording_evidence": "400 invited participants; indoor microphone recordings downsampled to 16kHz; professional human annotation",
+      "attribution": "Beijing Shell Shell Technology Co., Ltd.; Hui Bu, Jiayu Du, Xingyu Na, Bengu Wu, Hao Zheng (2017), AIShell-1: An Open-Source Mandarin Speech Corpus and A Speech Recognition Baseline"
+    },
+    "LibriSpeech": {
+      "source": "https://www.openslr.org/12/",
+      "declared_license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "recording_evidence": "read English speech derived from LibriVox audiobooks",
+      "attribution": "Vassil Panayotov, Guoguo Chen, Daniel Povey, Sanjeev Khudanpur (2015), LibriSpeech: an ASR corpus based on public domain audio books"
+    }
+  },
+  "transformations": "No local audio modification: exact WAV bytes from pinned WeNet fixtures. Original corpus audio may have been converted to WAV upstream; no claim of bit identity to original full corpus archives. References copied verbatim from pinned WeNet dataset/text.",
+  "selection": "Two pre-existing fixtures selected by language before recognition. One Mandarin and one English utterance; not representative or held-out validation. Excludes private recordings and speaker identities.",
+  "limitations": [
+    "Google FLEURS official GCS/HF fetch blocked by current network policy (403); no bypass attempted.",
+    "Repository license is not substituted for original corpus licensing: OpenSLR original corpus declarations checked independently.",
+    "No audio is committed to product repository."
+  ]
+}

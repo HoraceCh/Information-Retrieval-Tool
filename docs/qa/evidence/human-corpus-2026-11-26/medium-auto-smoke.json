@@ -1,0 +1,55 @@
+{
+  "recorded_at_utc": "2026-11-26T13:47:28.304144+00:00",
+  "scope": "Actual local HTTP transcription with auto language hint as sent by browser adapter; not microphone/browser E2E or model accuracy gate. Separate from explicit-language comparative benchmark.",
+  "manifest_sha256": "dfe3199a7b2e5063b18eb2578a57fc36c6404ca4e1c849f2125c0b2c05525dfa",
+  "service_health": {
+    "versions": {
+      "faster-whisper": "1.2.1",
+      "ctranslate2": "4.9.0"
+    },
+    "model_load_seconds": 1.9120305160004136,
+    "model_acquisition_seconds": 4.16430002587731e-05,
+    "model_initialization_seconds": 1.9120721590006724,
+    "model_artifact_bytes": 791630576,
+    "model_revision": "rhasspy-v1.0-int8",
+    "max_concurrent_requests": 1,
+    "status": "ok",
+    "model_loaded": true,
+    "model": "/workspace/work/cpu-benchmark-2026-11-26/models/medium-int8/medium-int8",
+    "device": "cpu",
+    "compute_type": "int8",
+    "max_concurrent_inferences": 1,
+    "providers": {
+      "gemini": false,
+      "whisper-local": true,
+      "openai": false,
+      "deepgram": false
+    }
+  },
+  "rows": [
+    {
+      "audio": "aishell-BAC009S0724W0121.wav",
+      "sha256": "2f9fc9c912bb71c85fb286cb88b599c81efb8f727c727a5ea8f6d1c89c55ac13",
+      "reference_language": "zh",
+      "request_language": "auto",
+      "reference": "广州市房地产中介协会分析",
+      "hypothesis": "廣州市房地產中介協會分析",
+      "latency_seconds": 11.294201640999745,
+      "rtf": 2.6382157535621924,
+      "wer": 1.0,
+      "cer": 0.3333333333333333
+    },
+    {
+      "audio": "librispeech-1995-1837-0001.wav",
+      "sha256": "a4d977939c2f673b370e7dd5840118947a8ae95f6d62d3a88f32b40c0631aaee",
+      "reference_language": "en",
+      "request_language": "auto",
+      "reference": "IT WAS THE FIRST GREAT SORROW OF HIS LIFE IT WAS NOT SO MUCH THE LOSS OF THE COTTON ITSELF BUT THE FANTASY THE HOPES THE DREAMS BUILT AROUND IT",
+      "hypothesis": "It was the first great sorrow of his life. It was not so much the loss of the cotton itself, but the fantasy, the hopes, the dreams built around it.",
+      "latency_seconds": 12.426381598999797,
+      "rtf": 1.423411408820137,
+      "wer": 0.0,
+      "cer": 0.043859649122807015
+    }
+  ]
+}

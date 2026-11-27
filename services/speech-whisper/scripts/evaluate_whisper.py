@@ -88,7 +88,10 @@ def resolve_audio_path(root: Path, relative_path: str) -> Path:
     return audio_path
 
 
-def transcribe(base_url: str, item: dict, root: Path, timeout: float) -> str:
+PROVIDER_ROUTES = {"whisper-local": "whisper", "gemini": "gemini", "openai": "openai", "deepgram": "deepgram"}
+
+
+def transcribe(base_url: str, item: dict, root: Path, timeout: float, provider: str = "whisper-local") -> str:
     audio_path = resolve_audio_path(root, item["audio"])
     boundary = "----AI_RETRIEVAL_X_BENCHMARK_BOUNDARY"
     audio_bytes = audio_path.read_bytes()
@@ -102,7 +105,7 @@ def transcribe(base_url: str, item: dict, root: Path, timeout: float) -> str:
         f"Content-Type: {content_type}\r\n\r\n"
     ).encode() + audio_bytes + f"\r\n--{boundary}--\r\n".encode()
     request = urllib.request.Request(
-        base_url.rstrip("/") + "/api/speech/whisper/transcriptions",
+        f"{base_url.rstrip('/')}/api/speech/{PROVIDER_ROUTES[provider]}/transcriptions",
         data=body,
         headers={"Content-Type": f"multipart/form-data; boundary={boundary}", "Accept": "application/json"},
         method="POST",
@@ -110,8 +113,8 @@ def transcribe(base_url: str, item: dict, root: Path, timeout: float) -> str:
     with urllib.request.urlopen(request, timeout=timeout) as response:
         payload = json.loads(response.read().decode("utf-8"))
     transcript = payload.get("text")
-    if not isinstance(transcript, str):
-        raise ValueError("Service response did not contain a text string.")
+    if not isinstance(transcript, str) or not transcript.strip():
+        raise ValueError("Service response did not contain a nonempty transcript.")
     return transcript
 
 
@@ -156,6 +159,36 @@ class ResourceSampler:
                 "scope": "GPU sums all visible devices and other processes; CPU/RSS requires --service-pid on this host. Null means unavailable, never zero usage."}
 
 
+def summarize_languages(rows: list[dict]) -> dict:
+    """Keep Chinese CER and whitespace WER separate; weight by reference length."""
+    summary = {}
+    for language in sorted({row["language"] for row in rows}):
+        selected = [row for row in rows if row["language"] == language]
+        word_reference_count = character_reference_count = word_errors = character_errors = 0
+        for row in selected:
+            reference_words = normalize_text(row["reference"]).split()
+            reference_chars = list(normalize_characters(row["reference"]))
+            word_reference_count += len(reference_words)
+            character_reference_count += len(reference_chars)
+            word_errors += edit_distance(reference_words, normalize_text(row["hypothesis"]).split())
+            character_errors += edit_distance(reference_chars, list(normalize_characters(row["hypothesis"])))
+        warm = [row for row in selected if row["phase"] == "warm"]
+        summary[language] = {
+            "unique_audio_count": len({row["audio"] for row in selected}),
+            "request_count": len(selected),
+            "aggregate_wer": word_errors / word_reference_count if word_reference_count else None,
+            "aggregate_cer": character_errors / character_reference_count if character_reference_count else None,
+            "reference_word_count": word_reference_count,
+            "reference_character_count": character_reference_count,
+            "word_edit_count": word_errors,
+            "character_edit_count": character_errors,
+            "warm_median_latency_seconds": statistics.median(row["latency_seconds"] for row in warm) if warm else None,
+            "warm_median_real_time_factor": statistics.median(row["real_time_factor"] for row in warm) if warm else None,
+            "primary_quality_indicator": "CER (Chinese WER is not linguistically segmented)" if language == "zh" else "WER",
+        }
+    return summary
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True)
@@ -194,7 +227,7 @@ def main() -> int:
             "pass": (index - 1) // len(manifest),
             "phase": "cold-first-request" if index == 1 and health_before.get("model_loaded") is False else "warm",
             "sha256": hashlib.sha256(resolve_audio_path(args.manifest.parent, item["audio"]).read_bytes()).hexdigest(),
-            "audio": item["audio"], "language": item.get("language", "auto"),
+            "audio": item["audio"], "language": item.get("language", "auto"), "condition": item.get("condition", "unspecified"),
             "reference": item["reference"], "hypothesis": hypothesis,
             "wer": word_errors / len(reference_tokens) if reference_tokens else None,
             "cer": character_errors / len(reference_chars) if reference_chars else None,
@@ -238,6 +271,7 @@ def main() -> int:
         "median_latency_seconds": statistics.median(row["latency_seconds"] for row in rows),
         "median_real_time_factor": statistics.median(row["real_time_factor"] for row in rows),
         "results": rows,
+        "language_summaries": summarize_languages(rows),
         "notes": [
             "model_artifact_bytes is the acquired model snapshot file size, including cache hits; it is not network traffic. model_download_bytes remains null unless separately measured.",
             "model_acquisition_seconds includes download or cache lookup; model_load_seconds is construction after acquisition; initialization includes both.",

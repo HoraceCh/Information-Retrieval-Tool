@@ -16,6 +16,12 @@ page.on("pageerror", error => errors.push(error.message));
 // Suppress the first-run tour overlay while exercising stable navigation.
 await page.addInitScript(() => {
   try { localStorage.setItem("visited-guided-search-v1.0", "true"); } catch {}
+  if (!sessionStorage.getItem('seeded-provider-upgrade')) {
+    sessionStorage.setItem('seeded-provider-upgrade', '1');
+    localStorage.setItem('ai_retrieval_providers', JSON.stringify([{
+      id: 'gemini', name: 'Gemini', models: 'gemini-flash-latest', apiKey: 'upgrade-test-fixture',
+    }]));
+  }
   localStorage.setItem('suYangFinalV6_react', JSON.stringify({links:[{
     name:'用户名: example-user 密码: example-placeholder',url:'https://www.fenqubiao.com/',cat:'九、学术写作'
   }],files:[]}));
@@ -31,6 +37,11 @@ try {
   const speechProvider = page.locator("#speech-provider-select");
   await speechProvider.waitFor({ state: "visible", timeout: 15000 });
   assert(await speechProvider.locator("option").count() === 4, "Speech provider selector should expose four engines");
+  const migrated = await page.evaluate(() => JSON.parse(localStorage.getItem('ai_retrieval_providers')));
+  const gemini = migrated.find(provider => provider.id === 'gemini');
+  assert(gemini?.models === 'gemini-flash-latest', 'Migration lost the selected provider model preference');
+  assert(!JSON.stringify(migrated).includes('upgrade-test-fixture'), 'Stored provider credentials survived startup');
+  assert(await page.locator('input[type=password]').count() === 0, 'Public settings expose a credential input');
   await speechProvider.selectOption("whisper-local");
   assert(await speechProvider.inputValue() === "whisper-local", "Local Whisper provider could not be selected");
   await page.reload({ waitUntil: "networkidle" });

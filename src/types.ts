@@ -40,10 +40,7 @@ export interface ProviderConfig {
   id: string;
   name: string;
   isGemini: boolean;
-  endpoint: string;
-  authType: 'Bearer' | 'Header';
-  authHeaderName?: string;
-  apiKey: string;
+  serviceUrl: string;
   models: string;
 }
 

@@ -1,0 +1,59 @@
+{
+  "scope": "local container, intentionally unconfigured servers; real HTTP only",
+  "results": [
+    {
+      "provider": "gemini",
+      "manifest_sha256": "dfe3199a7b2e5063b18eb2578a57fc36c6404ca4e1c849f2125c0b2c05525dfa",
+      "recordings": [
+        {
+          "language": "zh",
+          "audio_sha256": "2f9fc9c912bb71c85fb286cb88b599c81efb8f727c727a5ea8f6d1c89c55ac13",
+          "transcribed": false,
+          "http_status": 503
+        },
+        {
+          "language": "en",
+          "audio_sha256": "a4d977939c2f673b370e7dd5840118947a8ae95f6d62d3a88f32b40c0631aaee",
+          "transcribed": false,
+          "http_status": 503
+        }
+      ]
+    },
+    {
+      "provider": "openai",
+      "manifest_sha256": "dfe3199a7b2e5063b18eb2578a57fc36c6404ca4e1c849f2125c0b2c05525dfa",
+      "recordings": [
+        {
+          "language": "zh",
+          "audio_sha256": "2f9fc9c912bb71c85fb286cb88b599c81efb8f727c727a5ea8f6d1c89c55ac13",
+          "transcribed": false,
+          "http_status": 503
+        },
+        {
+          "language": "en",
+          "audio_sha256": "a4d977939c2f673b370e7dd5840118947a8ae95f6d62d3a88f32b40c0631aaee",
+          "transcribed": false,
+          "http_status": 503
+        }
+      ]
+    },
+    {
+      "provider": "deepgram",
+      "manifest_sha256": "dfe3199a7b2e5063b18eb2578a57fc36c6404ca4e1c849f2125c0b2c05525dfa",
+      "recordings": [
+        {
+          "language": "zh",
+          "audio_sha256": "2f9fc9c912bb71c85fb286cb88b599c81efb8f727c727a5ea8f6d1c89c55ac13",
+          "transcribed": false,
+          "http_status": 503
+        },
+        {
+          "language": "en",
+          "audio_sha256": "a4d977939c2f673b370e7dd5840118947a8ae95f6d62d3a88f32b40c0631aaee",
+          "transcribed": false,
+          "http_status": 503
+        }
+      ]
+    }
+  ]
+}

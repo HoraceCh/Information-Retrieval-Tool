@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Mic, MicOff, Square, Loader2, Sparkles, AlertCircle, Check, Volume2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { safeServiceUrl } from "./providerSettings.mjs";
 import { transcribeWithProvider } from "../services/speech/speechService";
 import { SPEECH_PROVIDERS, type SpeechProviderId } from "../services/speech/speechProviders.mjs";
 
 interface AudioTranscriberProps {
-  geminiKey?: string;
   speechProxyUrl?: string;
   onTranscribe: (text: string) => void;
   uiLang?: string;
@@ -13,7 +13,6 @@ interface AudioTranscriberProps {
 }
 
 export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
-  geminiKey,
   speechProxyUrl,
   onTranscribe,
   uiLang = "mix",
@@ -28,14 +27,15 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
   });
   const selectedProvider = SPEECH_PROVIDERS.find(provider => provider.id === providerId) || SPEECH_PROVIDERS[0];
   const [proxyBaseUrl, setProxyBaseUrl] = useState(() => {
-    try { return localStorage.getItem("ai_retrieval_speech_proxy_url") || ""; }
+    try { return safeServiceUrl(localStorage.getItem("ai_retrieval_speech_proxy_url")); }
     catch { return ""; }
   });
   const effectiveProxyBaseUrl = proxyBaseUrl.trim() || speechProxyUrl;
   const saveProxyBaseUrl = (next: string) => {
     setProxyBaseUrl(next);
     try {
-      if (next.trim()) localStorage.setItem("ai_retrieval_speech_proxy_url", next.trim());
+      const safeUrl = safeServiceUrl(next);
+      if (safeUrl) localStorage.setItem("ai_retrieval_speech_proxy_url", safeUrl);
       else localStorage.removeItem("ai_retrieval_speech_proxy_url");
     } catch { /* storage is optional */ }
   };
@@ -103,6 +103,13 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
     const requestId = ++startRequestIdRef.current;
     setErrorMsg(null);
     setSuccessNotice(null);
+    if (!safeServiceUrl(effectiveProxyBaseUrl)) {
+      setErrorMsg(uiLang === "en"
+        ? "Configure a trusted speech service URL first. Provider keys belong on that server."
+        : "请先配置可信语音服务地址。服务商密钥只应配置在该服务端。");
+      startPendingRef.current = false;
+      return;
+    }
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setErrorMsg(
@@ -156,7 +163,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
           updateLevel();
         }
       } catch (e) {
-        console.warn("AudioContext analyzer setup ignored:", e);
+        console.warn("Audio level visualization is unavailable.");
       }
 
       // Determine best supported MIME type
@@ -226,7 +233,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
       if (requestId !== startRequestIdRef.current || !mountedRef.current) return;
       cleanupAudio();
       setIsRecording(false);
-      console.error("Microphone Access Error:", err);
+      console.error("Microphone access failed.");
       if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
         setErrorMsg(
           uiLang === "zh" || uiLang === "mix"
@@ -248,7 +255,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
       try {
         mediaRecorderRef.current.stop();
       } catch (e) {
-        console.warn("Error stopping recorder:", e);
+        console.warn("Unable to stop the audio recorder normally.");
       }
     }
   };
@@ -287,7 +294,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
     setErrorMsg(null);
 
     try {
-      const text = await transcribeWithProvider(providerId, audioBlob, { geminiKey, proxyBaseUrl: effectiveProxyBaseUrl, signal: controller.signal });
+      const text = await transcribeWithProvider(providerId, audioBlob, { proxyBaseUrl: effectiveProxyBaseUrl, signal: controller.signal });
       if (!mountedRef.current || controller.signal.aborted) return;
       if (!text) {
         setErrorMsg(
@@ -353,6 +360,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
             id="speech-proxy-url"
             type="url"
             aria-label={uiLang === "zh" || uiLang === "mix" ? "语音服务地址" : "Speech service URL"}
+            aria-invalid={Boolean(proxyBaseUrl.trim() && !safeServiceUrl(proxyBaseUrl))}
             value={proxyBaseUrl}
             onChange={(event) => saveProxyBaseUrl(event.target.value)}
             placeholder={speechProxyUrl || "http://127.0.0.1:8000"}
@@ -362,11 +370,11 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
         </label>
       )}
 
-      {providerId === "gemini" && !isRecording && !isTranscribing && (
-        <span role="status" className="max-w-[220px] text-[10px] text-slate-400" title={uiLang === "en" ? "Prefer a trusted speech service with server-side keys. An empty service URL uses legacy browser BYOK." : "建议使用服务端保存密钥的可信语音服务。服务地址为空时，使用浏览器 BYOK 兼容模式。"}>
-          {effectiveProxyBaseUrl?.trim()
-            ? (uiLang === "en" ? "Gemini: server proxy" : "Gemini：服务端代理")
-            : (uiLang === "en" ? "BYOK compatibility · browser key" : "BYOK 兼容模式 · 密钥位于浏览器")}
+      {!isRecording && !isTranscribing && (
+        <span role="status" className="max-w-[220px] text-[10px] text-content-secondary">
+          {safeServiceUrl(effectiveProxyBaseUrl)
+            ? (uiLang === "en" ? "Trusted server · keys stay server-side" : "可信服务端 · 密钥仅在服务端配置")
+            : (uiLang === "en" ? "Speech service not configured" : "尚未配置语音服务")}
         </span>
       )}
 

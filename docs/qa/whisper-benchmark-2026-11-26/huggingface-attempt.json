@@ -1,0 +1,18 @@
+{
+  "recorded_at_utc": "2026-11-26T02:29:29.788026+00:00",
+  "model": "small",
+  "device": "cpu",
+  "compute_type": "int8",
+  "cpu_threads": 3,
+  "python": "3.12.14",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.0",
+    "huggingface-hub": "2.4.0"
+  },
+  "operation": "actual WhisperModel initialization using official model distribution",
+  "status": "BLOCKED",
+  "elapsed_seconds": 0.5612,
+  "error_type": "ProxyError",
+  "error": "403 Forbidden"
+}

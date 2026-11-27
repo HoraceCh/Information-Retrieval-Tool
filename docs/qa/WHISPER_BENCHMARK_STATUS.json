@@ -1,73 +1,183 @@
 {
-  "date": "2026-11-16",
-  "status": "BLOCKED",
+  "date": "2026-11-26",
+  "status": "PASS WITH WARNINGS",
+  "scope": "G3 bounded real native CPU/int8 synthetic corpus experiment; broad human accuracy and GPU remain unverified",
   "environment": {
-    "kind": "cloud",
-    "cpu": "Intel Xeon Platinum 8573C",
-    "vcpus": 3,
-    "ram_gib_approx": 9.7,
-    "gpu_devices": 0,
-    "python_host": "3.12.14",
-    "python_container": "3.11.18"
-  },
-  "software": {
-    "faster_whisper": "1.2.1",
-    "ctranslate2": "4.9.0",
-    "device_attempted": "cpu",
-    "compute_type": "int8"
+    "recorded_at_utc": "2026-11-26T13:40:24.865602+00:00",
+    "python": "3.12.14",
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "allocated_logical_cpus": 3,
+    "physical_ram_bytes": 10452459520,
+    "gpu_available": false,
+    "thread_environment": {
+      "OMP_NUM_THREADS": "3",
+      "OPENBLAS_NUM_THREADS": "1"
+    },
+    "packages": {
+      "faster-whisper": "1.2.1",
+      "ctranslate2": "4.9.0",
+      "av": "18.1.1",
+      "fastapi": "0.165.0",
+      "starlette": "1.10.0",
+      "uvicorn": "0.54.0",
+      "httpx": "0.28.1",
+      "huggingface-hub": "2.4.0",
+      "tokenizers": "0.23.3",
+      "onnxruntime": "1.32.0",
+      "numpy": "2.5.5",
+      "psutil": "7.2.2",
+      "espeakng-loader": "0.2.4"
+    },
+    "inference_source_sha256": "e4899af061feaf07cbc88ee38dc672cd4338020c86a82573c5eeac49fae47236",
+    "source_hash_scope": "File hash at report collection; model/corpus/software hashes are the reproducible inference inputs.",
+    "load_control": "ASR models run sequentially. Shared host/cgroup not isolated from other tasks/local Qwen inference; latency is observational.",
+    "cgroup_v2": {
+      "cpu_max": "200000 100000",
+      "cpu_quota_equivalent_cores": 2,
+      "cpuset_cpus_effective": "0-2",
+      "memory_limit_bytes": 8589934592,
+      "interpretation": "3 visible logical CPUs with 2 CPU-equivalent quota and 8 GiB memory limit; host physical memory is not the process budget."
+    }
   },
   "dataset": {
-    "prompt_specification": "services/speech-whisper/evaluation/corpus-v1.prompts.json",
-    "version": "corpus-v1-prompts",
-    "audio_recorded": false,
-    "note": "Fourteen fixed prompts are a recording specification, not an audio corpus or completed quality evaluation."
+    "version": "synthetic-espeak-ng-corpus-v1",
+    "source_kind": "synthetic-espeak-ng",
+    "human_recorded": false,
+    "audio_generated": true,
+    "unique_audio_count": 14,
+    "duration_seconds": 103.6445,
+    "manifest_sha256": "56e96e67eaa7a499f014d638509db0a9cca5e321a6cfaef8a1c5029d773ff7b2",
+    "same_frozen_audio_used_for_both_models": true,
+    "repeated_generation_audio_hashes_match": true,
+    "corpus_artifact": "synthetic-corpus-v1.zip"
   },
-  "attempt": {
-    "model": "small",
-    "operation": "actual WhisperModel initialization and download",
-    "status": "BLOCKED",
-    "error_type": "ProxyError",
-    "reason": "Model-host egress returned 403 Forbidden",
-    "elapsed_seconds": 1.31
-  },
-  "measurements": {
-    "chinese_wer": null,
-    "chinese_cer": null,
-    "english_wer": null,
-    "english_cer": null,
-    "cold_latency_seconds": null,
-    "warm_latency_seconds": null,
-    "real_time_factor": null,
-    "gpu_memory_peak_mib": null,
-    "cpu_percent": null,
-    "model_download_bytes": null,
-    "model_load_seconds": null,
-    "model_artifact_bytes": null,
-    "model_acquisition_seconds": null,
-    "model_initialization_seconds": null,
-    "model_revision": null
-  },
-  "models": [
-    {
-      "model": "small",
-      "status": "BLOCKED",
-      "reason": "Actual CPU model load attempted; egress denied"
+  "models": {
+    "small": {
+      "request_count": 42,
+      "cold_first_request_seconds": 4.759,
+      "warm_median_latency_seconds": 2.937,
+      "warm_median_real_time_factor": 0.428,
+      "model_acquisition_seconds": 3.895899999406538e-05,
+      "model_load_seconds": 0.7834026070000846,
+      "model_artifact_bytes": 260792184,
+      "download_archive_bytes": 213822367,
+      "network_download_bytes": null,
+      "resources": {
+        "gpu_device_memory_peak_mib": null,
+        "service_cpu_percent_mean": 155.13002159827215,
+        "service_rss_peak_bytes": 701648896,
+        "sampling_interval_seconds": 0.1,
+        "scope": "GPU sums all visible devices and other processes; CPU/RSS requires --service-pid on this host. Null means unavailable, never zero usage."
+      },
+      "language_summaries": {
+        "en": {
+          "unique_audio_count": 7,
+          "request_count": 21,
+          "aggregate_wer": 0.02247191011235955,
+          "aggregate_cer": 0.012152777777777778,
+          "reference_word_count": 267,
+          "reference_character_count": 1728,
+          "word_edit_count": 6,
+          "character_edit_count": 21,
+          "warm_median_latency_seconds": 2.645,
+          "warm_median_real_time_factor": 0.441,
+          "primary_quality_indicator": "WER"
+        },
+        "zh": {
+          "unique_audio_count": 7,
+          "request_count": 21,
+          "aggregate_wer": 1.8571428571428572,
+          "aggregate_cer": 0.5866666666666667,
+          "reference_word_count": 42,
+          "reference_character_count": 675,
+          "word_edit_count": 78,
+          "character_edit_count": 396,
+          "warm_median_latency_seconds": 3.617,
+          "warm_median_real_time_factor": 0.426,
+          "primary_quality_indicator": "CER (Chinese WER is not linguistically segmented)"
+        }
+      },
+      "model_archive_sha256": "40a0ba985a48c315b2552760ee15ca663b1af398405214ac1851a83438aafd8b"
     },
-    {
-      "model": "medium",
-      "status": "BLOCKED",
-      "reason": "Not attempted after shared model-host egress denial"
-    },
-    {
-      "model": "large-v3",
-      "status": "BLOCKED",
-      "reason": "Optional comparison; no weights or available GPU"
+    "medium": {
+      "request_count": 42,
+      "cold_first_request_seconds": 9.813,
+      "warm_median_latency_seconds": 8.488,
+      "warm_median_real_time_factor": 1.197,
+      "model_acquisition_seconds": 4.16430002587731e-05,
+      "model_load_seconds": 1.9120305160004136,
+      "model_artifact_bytes": 791630576,
+      "download_archive_bytes": 672892749,
+      "network_download_bytes": null,
+      "resources": {
+        "gpu_device_memory_peak_mib": null,
+        "service_cpu_percent_mean": 153.99561806870435,
+        "service_rss_peak_bytes": 1458212864,
+        "sampling_interval_seconds": 0.1,
+        "scope": "GPU sums all visible devices and other processes; CPU/RSS requires --service-pid on this host. Null means unavailable, never zero usage."
+      },
+      "language_summaries": {
+        "en": {
+          "unique_audio_count": 7,
+          "request_count": 21,
+          "aggregate_wer": 0.02247191011235955,
+          "aggregate_cer": 0.013888888888888888,
+          "reference_word_count": 267,
+          "reference_character_count": 1728,
+          "word_edit_count": 6,
+          "character_edit_count": 24,
+          "warm_median_latency_seconds": 6.645,
+          "warm_median_real_time_factor": 1.34,
+          "primary_quality_indicator": "WER"
+        },
+        "zh": {
+          "unique_audio_count": 7,
+          "request_count": 21,
+          "aggregate_wer": 1.4285714285714286,
+          "aggregate_cer": 0.5911111111111111,
+          "reference_word_count": 42,
+          "reference_character_count": 675,
+          "word_edit_count": 60,
+          "character_edit_count": 399,
+          "warm_median_latency_seconds": 9.141,
+          "warm_median_real_time_factor": 1.075,
+          "primary_quality_indicator": "CER (Chinese WER is not linguistically segmented)"
+        }
+      },
+      "model_archive_sha256": "366029fd1ec55b15431f6a35b5ec2db033c5f735031687bed5c449bed59f720a"
     }
-  ],
+  },
+  "gpu": {
+    "status": "BLOCKED",
+    "reason": "No GPU visible; CPU measurements are not GPU validation",
+    "gpu_memory_peak_mib": null
+  },
+  "large_v3": {
+    "status": "BLOCKED",
+    "reason": "Optional comparison not acquired or run under the shared 8 GiB cgroup budget"
+  },
+  "model_host_access": {
+    "default_huggingface": "BLOCKED: actual model initialization failed with ProxyError403",
+    "official_openai_azure": "BLOCKED: independent tiny/small checkpoint HEAD requests returned CONNECT403",
+    "independent_rhasspy_github_release": "PASS: exact archive/file hashes preserved; local paths used with HF_HUB_OFFLINE=1"
+  },
+  "decoder": {
+    "initial_pyav": "19.0.2",
+    "initial_result": "FAIL: real model loaded but av.open metadata_errors argument was rejected",
+    "verified_pyav": "18.1.1",
+    "verified_result": "PASS: actual model HTTP inference completed; pin and decoder CI test added"
+  },
+  "evidence": "whisper-benchmark-2026-11-26/README.md",
+  "historical_status": "whisper-benchmark-2026-11-26/historical-status-2026-11-16.json",
   "notes": [
-    "Null means unmeasured, not zero.",
-    "No mock result is represented as actual inference.",
-    "CPU/Docker readiness does not prove model transcription.",
-    "No workaround bypassed the configured outbound policy."
+    "No mock inference is described as model validation.",
+    "Chinese CER and English WER are primary; Chinese WER is not linguistically segmented.",
+    "No reference/normalization changes were made to improve scores. High Chinese CER remains a quality risk.",
+    "Synthetic results do not substitute for representative licensed human-speech quality testing; separate human diagnostics are not mixed into these scores.",
+    "Observed latency is under variable shared CPU load, including separate Qwen activity; no isolated speedup claim.",
+    "Archive byte sizes identify downloaded payload artifacts; network traffic remains unmeasured.",
+    "Null GPU memory means unmeasured, never zero usage.",
+    "First request includes model initialization/inference with already-acquired weights; service startup/download excluded."
   ]
 }

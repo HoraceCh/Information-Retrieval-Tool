@@ -5,7 +5,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 ca-cer
     && mkdir /models && chown speech:speech /models
 WORKDIR /app
 COPY requirements.txt .
-RUN python -m pip install --no-cache-dir --upgrade pip==26.3 setuptools==84.2.1 \
+# Optional builder trust bundle for an organization-managed HTTPS proxy.
+RUN --mount=type=secret,id=pip_ca_bundle \
+    if [ -f /run/secrets/pip_ca_bundle ]; then export PIP_CERT=/run/secrets/pip_ca_bundle; fi \
+    && python -m pip install --no-cache-dir --upgrade pip==26.3 setuptools==84.2.1 \
     && python -m pip install --no-cache-dir -r requirements.txt
 COPY --chown=10001:10001 app ./app
 USER 10001:10001

@@ -1,0 +1,53 @@
+{
+  "model": "Rhasspy multilingual tiny-int8",
+  "model_archive_sha256": "7dff611f8953d22f3c62c21435d22e2202b791b9955188f7d83dd7c812be4200",
+  "tokenizer_sha256": "2e87bb8b733a5c03b8a19a918b649ad3ab39d1968723faba197e4e6444f4b47a",
+  "inference": "real CPU Docker, local HTTP preview",
+  "speech_source": "eSpeak NG synthetic WAV",
+  "results": [
+    {
+      "browser": "158.0.8127.88",
+      "language": "zh",
+      "sampleSha256": "93ff227c2636727f998d420980634bf5b03e74a70f8232b293c56559312740a2",
+      "source": "file-backed microphone",
+      "permission": "pre-granted",
+      "provider": "whisper-local",
+      "httpStatus": 200,
+      "transcriptCharacters": 23,
+      "insertedInQuery": true
+    },
+    {
+      "browser": "158.0.8127.88",
+      "language": "en",
+      "sampleSha256": "c8f0afb747cedcc784261ca826479a8b7649ad57b08ec3f8edd028b26f6ef47b",
+      "source": "file-backed microphone",
+      "permission": "pre-granted",
+      "provider": "whisper-local",
+      "httpStatus": 200,
+      "transcriptCharacters": 90,
+      "insertedInQuery": true
+    },
+    {
+      "browser": "158.0.4370.45",
+      "language": "zh",
+      "sampleSha256": "93ff227c2636727f998d420980634bf5b03e74a70f8232b293c56559312740a2",
+      "source": "file-backed microphone",
+      "permission": "pre-granted",
+      "provider": "whisper-local",
+      "httpStatus": 200,
+      "transcriptCharacters": 26,
+      "insertedInQuery": true
+    },
+    {
+      "browser": "158.0.4370.45",
+      "language": "en",
+      "sampleSha256": "c8f0afb747cedcc784261ca826479a8b7649ad57b08ec3f8edd028b26f6ef47b",
+      "source": "file-backed microphone",
+      "permission": "pre-granted",
+      "provider": "whisper-local",
+      "httpStatus": 200,
+      "transcriptCharacters": 90,
+      "insertedInQuery": true
+    }
+  ]
+}

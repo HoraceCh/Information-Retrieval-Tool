@@ -29,7 +29,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error in React Error Boundary:", error, errorInfo);
+    console.error("An application view could not render.");
   }
 
   private handleReset = () => {
@@ -42,7 +42,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       try {
         clearAppStorage(storage);
       } catch (error) {
-        console.error("Unable to clear app-scoped browser data:", error);
+        console.error("Unable to clear app-scoped browser data.");
       }
     }
 

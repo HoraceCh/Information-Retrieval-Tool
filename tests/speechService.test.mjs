@@ -56,3 +56,10 @@ test('network failure can be followed by a successful new request', async () => 
   globalThis.fetch = async () => new Response(JSON.stringify({ text: 'recovered' }));
   assert.equal(await transcribeWithProvider('openai', audio, options), 'recovered');
 });
+
+test('Gemini without a trusted service URL fails before any direct provider request', async () => {
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; throw new Error('unexpected direct request'); };
+  await assert.rejects(transcribeWithProvider('gemini', audio), /speech service URL/);
+  assert.equal(calls, 0);
+});

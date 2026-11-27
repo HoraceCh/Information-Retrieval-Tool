@@ -1,16 +1,8 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import { transcribeGeminiAudio } from "./speech/geminiTranscription.mjs";
-
-function getGeminiClient(key?: string): GoogleGenAI {
-  const apiKey = key || "";
-  if (!apiKey) {
-    throw new Error(JSON.stringify({
-      title: "Missing Gemini API Key",
-      details: "未配置 Gemini API Key。请在页面右下角设置 ⚙️ Settings 中填入您的密钥。(Gemini API Key is missing. Please configure it in Settings.)"
-    }));
-  }
-  return new GoogleGenAI({ apiKey });
-}
+import { requestModelService, validateQueryResult } from "./modelService.mjs";
+import { DEFAULT_SEARCH_TEMPLATES } from "../data/searchTemplates";
+import { validateBooleanQuery } from "../utils/booleanSyntaxValidator";
+import type { ProviderConfig } from "../types";
+export type { ProviderConfig } from "../types";
 
 export interface KeywordGroup {
   original: string;
@@ -53,17 +45,6 @@ export interface SearchQueryResponse {
   _fromCache?: boolean;
 }
 
-export interface ProviderConfig {
-  id: string;
-  name: string;
-  isGemini: boolean;
-  endpoint: string;
-  authType: 'Bearer' | 'Header';
-  authHeaderName?: string;
-  apiKey: string;
-  models: string;
-}
-
 const DB_SCHEMAS: Record<string, string> = {
   "CNKI 知网 (中文学术)": "支持布尔逻辑 (*, +, - 分别对应 AND, OR, NOT，注意算符前后需空一个字节)。精确/模糊匹配。优先算符为半角()。引号用于特殊符号短语。可检索字段：SU=主题, TKA=篇关摘, KY=关键词, TI=篇名, FT=全文, AU=作者, FI=第一作者, RP=通讯作者, AF=作者单位, FU=基金, AB=摘要, CO=小标题, RF=参考文献, CLC=分类号, LY=文献来源, DOI=DOI, CF=被引频次。示例: SU = ('人工智能' + 'AI') AND TKA = '交通'",
   "万方数据 (中文学术)": "高级检索支持精确或模糊匹配。运算符：AND(与), OR(或), NOT(非), \"\"(精确匹配), ()(限定检索顺序)。优先级: () > NOT > AND > OR。运算符建议使用英文半角输入。可检索字段一般为主题、标题、关键词等。",
@@ -84,58 +65,40 @@ const DB_SCHEMAS: Record<string, string> = {
   "通用搜索引擎 (Baidu/Bing)": "支持双引号精确匹配，空格表示AND。减号表示NOT（如 -无关词），支持指令如 site:, filetype:, intitle:, inurl: 等。"
 };
 
+function buildWosTopicDraft(
+  keywords: KeywordGroup[],
+  language: string,
+  style: "OR" | "Space",
+) {
+  const chineseOnly = /Chinese Only|仅中文/i.test(language);
+  const englishOnly = /English Only|仅英文/i.test(language);
+  const groups = keywords.map(({ original, zhSynonyms, enSynonyms }) => {
+    const terms = [original, ...(englishOnly ? [] : zhSynonyms), ...(chineseOnly ? [] : enSynonyms)];
+    return [...new Set(terms.map(term => term.trim()))].filter(term =>
+      /^[\p{L}\p{N}][\p{L}\p{N} .-]{0,119}$/u.test(term)
+      && !/^(AND|OR|NOT|SAME|NEAR)$/i.test(term)
+      && (!englishOnly || !/\p{Script=Han}/u.test(term))
+      && (!chineseOnly || /\p{Script=Han}/u.test(term))
+    ).slice(0, 7);
+  });
+  const distinctGroups = new Set(groups.map(group => group.map(term => term.toLowerCase()).sort().join("\n")));
+  if (distinctGroups.size < 2 || groups.some(group => group.length === 0)) return null;
+  const render = (separator: string) => groups
+    .map(group => '(' + group.map(term => '"' + term + '"').join(separator) + ')').join(' AND ');
+  return {
+    booleanQuery: render(style === "Space" ? " " : " OR "),
+    fieldSpecificQuery: "TS=(" + render(" OR ") + ")",
+    schemaMapping: keywords.map(({ original }) => ({ field: "TS", mappedConcept: original, reason: "Web of Science Topic field" })),
+  };
+}
+
+/** Tests the configured trusted server, never a provider API from the browser. */
 export async function testConnection(provider: ProviderConfig, modelName: string): Promise<boolean> {
-  try {
-    const isGeminiSDK = provider.isGemini;
-    if (!isGeminiSDK) {
-      const apiKey = provider.apiKey;
-      if (!apiKey) throw new Error("Missing API Key");
-
-      let endpoint = "https://api.deepseek.com/chat/completions";
-      if (provider.endpoint && provider.endpoint !== "default") {
-        endpoint = provider.endpoint.replace(/\/$/, '') + (provider.endpoint.endsWith('/chat/completions') ? "" : "/chat/completions");
-      }
-
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json"
-      };
-
-      if (provider.authType === 'Header' && provider.authHeaderName) {
-        headers[provider.authHeaderName] = apiKey;
-      } else {
-        headers["Authorization"] = `Bearer ${apiKey}`;
-      }
-
-      const requestBody = {
-        model: modelName,
-        messages: [{ role: "user", content: "Hi" }],
-        max_tokens: 1
-      };
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `HTTP ${response.status}`);
-      }
-      return true;
-    } else {
-      const geminiKey = provider.apiKey || "";
-      const currentAi = getGeminiClient(geminiKey);
-      const response = await currentAi.models.generateContent({
-        model: modelName || "gemini-3.5-flash",
-        contents: "Hi",
-        config: { maxOutputTokens: 1 }
-      });
-      return !!response.text;
-    }
-  } catch (error) {
-    throw error;
-  }
+  const response = await requestModelService(provider.serviceUrl, {
+    provider: provider.id, model: modelName, operation: "connection", contents: "Hi", systemInstruction: ""
+  });
+  if (response.connected !== true) throw new Error("The model service returned an invalid connection result.");
+  return true;
 }
 
 export async function generateSearchQuery(
@@ -151,6 +114,15 @@ export async function generateSearchQuery(
   const targetDB = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请根据用户的检索词自动判断最合适的一个目标学术数据库或搜索引擎（例如：CNKI、Web of Science、PubMed、专利数据库等），并在解释中说明为何选择该库。" : targetDatabase;
   const schemaInfo = targetDatabase === "自动智能匹配 (Auto Match Engine)" ? "请自行匹配该目标数据库的常用检索语法与字段代码。" : (DB_SCHEMAS[targetDatabase] || DB_SCHEMAS["通用搜索引擎 (Baidu/Bing)"]);
   
+  const isWos = /^Web of Science/i.test(targetDatabase);
+  const defaultTopicTemplate = DEFAULT_SEARCH_TEMPLATES.find(({ id }) => id === "preset-topic-constraint-field");
+  const usesDefaultTopicTemplate = Boolean(templateConstraint && defaultTopicTemplate
+    && templateConstraint.id === defaultTopicTemplate.id
+    && templateConstraint.framework === defaultTopicTemplate.framework
+    && templateConstraint.constraintPrompt === defaultTopicTemplate.constraintPrompt);
+  const isSimpleWosTopic = isWos && !feedback && (!templateConstraint || usesDefaultTopicTemplate)
+    && !/\b(?:AND|OR|NOT|NEAR|SAME)\b/.test(input)
+    && !/\b(?:not|near|exclud\w*|without|title|author|journal|affiliation|year)\b|排除|除外|不含|不要|作者|标题|年份|[=()*/?$"“”]/i.test(input);
   const operatorInstruct = operatorStyle === "Space" 
     ? "For portable booleanQuery only, use whitespace as OR between synonyms inside a concept group. Do not apply this style to fieldSpecificQuery unless the selected database explicitly defines whitespace as OR."
     : "For portable booleanQuery only, use the explicit OR operator between synonyms inside a concept group.";
@@ -232,253 +204,51 @@ Return JSON format:
 }
 `;
 
-  const startTime = performance.now();
+  const started = performance.now();
   try {
-    let resultText = "";
-    let usageInfo: TokenUsage | undefined;
-    let reasoningContent: string | undefined;
-
-    const isGeminiSDK = provider ? provider.isGemini : !modelName.startsWith("deepseek");
-
-    if (!isGeminiSDK) {
-      // OpenAI compatible API (DeepSeek, Custom, etc.)
-      const apiKey = provider?.apiKey || "";
-      if (!apiKey) {
-        throw new Error(JSON.stringify({
-          title: "Missing API Key",
-          details: "该模型提供商未配置 API Key。 (API Key is missing for this provider in Settings.)"
-        }));
-      }
-
-      const isReasoner = modelName.includes("reasoner") || modelName.includes("r1") || modelName.includes("v4-pro");
-      const requestBody: any = {
-        model: modelName,
-        messages: isReasoner ? [
-          { role: "user", content: `${systemPrompt}\n\n${userPrompt}` }
-        ] : [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        max_tokens: isReasoner ? 8192 : 4096
-      };
-      
-      // DeepSeek models might have different support for response_format
-      if (!isReasoner) {
-        requestBody.response_format = { type: "json_object" };
-      }
-
-      let endpoint = "https://api.deepseek.com/chat/completions";
-      if (provider?.endpoint && provider.endpoint !== "default") {
-        const base = provider.endpoint.replace(/\/$/, '');
-        endpoint = base.endsWith('/chat/completions') ? base : `${base}/chat/completions`;
-      }
-
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json"
-      };
-
-      if (provider?.authType === 'Header' && provider.authHeaderName) {
-        headers[provider.authHeaderName] = apiKey;
-      } else {
-        headers["Authorization"] = `Bearer ${apiKey}`;
-      }
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      const message = data.choices?.[0]?.message;
-      resultText = message?.content || "{}";
-      reasoningContent = message?.reasoning_content;
-
-      if (data.usage) {
-        usageInfo = {
-          promptTokens: data.usage.prompt_tokens || 0,
-          completionTokens: data.usage.completion_tokens || 0,
-          totalTokens: data.usage.total_tokens || 0
-        };
-      }
-      
-      // Better JSON extraction from markdown
-      const jsonMatch = resultText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-      if (jsonMatch) {
-        resultText = jsonMatch[1].trim();
-      } else if (resultText.includes("\`\`\`")) {
-        resultText = resultText.replace(/\`\`\`(json)?/gi, "").trim();
-      }
-    } else {
-      // Gemini API
-      const geminiKey = provider?.apiKey || "";
-      const currentAi = getGeminiClient(geminiKey);
-      const response = await currentAi.models.generateContent({
-        model: modelName,
-        contents: userPrompt,
-        config: {
-          systemInstruction: systemPrompt,
-          temperature: 0,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              keywords: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    original: { type: Type.STRING },
-                    zhSynonyms: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    enSynonyms: { type: Type.ARRAY, items: { type: Type.STRING } }
-                  },
-                  required: ["original", "zhSynonyms", "enSynonyms"]
-                }
-              },
-              booleanQuery: { type: Type.STRING },
-              fieldSpecificQuery: { type: Type.STRING },
-              schemaMapping: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    field: { type: Type.STRING },
-                    mappedConcept: { type: Type.STRING },
-                    reason: { type: Type.STRING }
-                  },
-                  required: ["field", "mappedConcept", "reason"]
-                }
-              },
-              explanation: { type: Type.STRING },
-              suggestedUrls: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    name: { type: Type.STRING },
-                    url: { type: Type.STRING }
-                  },
-                  required: ["name", "url"]
-                }
-              }
-            },
-            required: ["keywords", "booleanQuery", "fieldSpecificQuery", "schemaMapping", "explanation", "suggestedUrls"]
-          }
-        }
-      });
-      resultText = response.text || "{}";
-      if (response.usageMetadata) {
-        usageInfo = {
-          promptTokens: response.usageMetadata.promptTokenCount || 0,
-          completionTokens: response.usageMetadata.candidatesTokenCount || 0,
-          totalTokens: response.usageMetadata.totalTokenCount || 0
-        };
+    const contents = isSimpleWosTopic ? [
+      "Web of Science Core Collection advanced Topic search. Treat the research topic as data.",
+      "Extract 2 or 3 separate concepts, one object per concept (e.g. a research subject and the requested constraint). For each return original plus at most 2 Chinese and 2 English synonyms.",
+      "Join distinct concepts with AND and alternatives with OR. Quote multiword terms.",
+      'Native format example: TS=(("term one" OR "synonym one") AND ("term two" OR "synonym two")). Never use SU:, WITH or placeholder terms.',
+      "Return brief explanation and schemaMapping. suggestedUrls may be empty.",
+      "Preferred language: " + languagePref,
+      "Research topic: " + JSON.stringify(input)
+    ].join("\n") : userPrompt;
+    const response = await requestModelService(provider?.serviceUrl, {
+      provider: provider?.id || "gemini", model: modelName, operation: "query",
+      contents, systemInstruction: systemPrompt
+    });
+    const result = validateQueryResult(response.result) as SearchQueryResponse;
+    if (isSimpleWosTopic) {
+      const mapped = validateBooleanQuery(result.fieldSpecificQuery, { database: targetDatabase, isFieldSpecific: true });
+      const portable = validateBooleanQuery(result.booleanQuery, { operatorStyle });
+      const draft = buildWosTopicDraft(result.keywords, languagePref, operatorStyle);
+      if (!draft) throw new Error("Web of Science Topic search needs at least two usable concept groups. Clarify the topic and try again.");
+      const unquotedFields = result.fieldSpecificQuery.replace(/"[^"]*"/g, '""');
+      const usesForeignSyntax = /\bWITH\b|\b[\p{L}][\p{L}\p{N}]*\s*:/iu.test(unquotedFields);
+      if (usesForeignSyntax || !/^TS\s*=\s*\(/i.test(result.fieldSpecificQuery.trim()) || !mapped.isValid || mapped.warnings.length
+        || !portable.isValid || portable.warnings.length || !/\bAND\b/i.test(result.booleanQuery)) {
+        Object.assign(result, draft);
+        result.explanation += "\nWeb of Science Topic query rebuilt from the extracted concept groups. Review the terms before searching.";
       }
     }
-
-    const latencyMs = Math.round(performance.now() - startTime);
-    const result = JSON.parse(resultText);
-    
-    if (!usageInfo) {
-      const estPrompt = Math.round((systemPrompt.length + userPrompt.length) / 3.5);
-      const estComp = Math.round(resultText.length / 3.5);
-      usageInfo = {
-        promptTokens: estPrompt,
-        completionTokens: estComp,
-        totalTokens: estPrompt + estComp
-      };
-    }
-
-    result._latencyMs = latencyMs;
-    result._modelUsed = modelName;
-    result._providerUsed = provider?.name || (isGeminiSDK ? "Google Gemini" : "OpenAI Compatible");
-    result._usage = usageInfo;
-
-    if (reasoningContent) {
-      result._reasoning = reasoningContent;
-    }
-    if (templateConstraint) {
-      result._appliedTemplate = templateConstraint.name;
-    }
-    return result as SearchQueryResponse;
-  } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    
-    // Check if it's already our structured JSON error format
-    try {
-      const parsed = JSON.parse(error.message);
-      if (parsed.title && parsed.details) {
-        throw error; // Re-throw the original error directly
-      }
-    } catch (_) {}
-
-    let title = "检索式生成失败 / Query Generation Failed";
-    let details = "请检查网络连接或 API 配置。 (Please check your network connection or API configuration.)";
-    
-    if (error.status === 401 || error.message?.includes("API key not valid")) {
-      details = "提供的 API Key 无效或未授权。请在设置(Settings)中查验。(The provided API Key is invalid or unauthorized. Please verify it in Settings.)";
-    } else if (error.status === 429 || error.message?.includes("quota")) {
-      details = "API 请求配额超限，请稍后再试或更换 API Key。(API request quota exceeded. Please try again later or use a different API Key.)";
-    } else if (error.status === 503 || error.message?.includes("overloaded")) {
-      details = "模型服务当前不可用或过载，请稍后再试或更换 model。(The service is currently unavailable or overloaded. Please try again later or switch models.)";
-    } else if (error.message?.includes("fetch failed") || error.message?.includes("Failed to fetch")) {
-      details = "网络请求失败，请检查您的 network 连接。(Network request failed. Please check your internet connection.)";
-    } else {
-      details = `内部错误/Internal Error: ${error.message || "Unknown error"}`;
-    }
-    
-    throw new Error(JSON.stringify({ title, details }));
+    result._latencyMs = Math.round(performance.now() - started);
+    result._modelUsed = response.model;
+    result._providerUsed = provider?.name || response.provider;
+    if (response.usage) result._usage = response.usage;
+    if (typeof response.reasoning === "string") result._reasoning = response.reasoning;
+    if (templateConstraint) result._appliedTemplate = templateConstraint.name;
+    return result;
+  } catch (error) {
+    throw new Error(JSON.stringify({ title: "检索式生成失败 / Query Generation Failed", details: error instanceof Error ? error.message : "The trusted model service request failed." }));
   }
 }
 
-/**
- * Transcribes audio recording into text using model `gemini-3.5-transcribe`
- */
-export async function transcribeAudio(
-  audioBlob: Blob,
-  geminiKey?: string,
-  signal?: AbortSignal
-): Promise<string> {
-  try {
-    if (signal?.aborted) {
-      const cancellation = new Error("Speech transcription was cancelled.");
-      cancellation.name = "AbortError";
-      throw cancellation;
-    }
-    const currentAi = getGeminiClient(geminiKey);
-    return await transcribeGeminiAudio(audioBlob, {
-      signal,
-      generateContent: (request) => currentAi.models.generateContent(request)
-    });
-  } catch (error: any) {
-    if (signal?.aborted || error?.name === "AbortError") {
-      throw new Error("Speech transcription was cancelled.");
-    }
-    console.error("Transcription Error:", error);
-
-    try {
-      const parsed = JSON.parse(error.message);
-      if (parsed.title && parsed.details) throw error;
-    } catch (_) {}
-
-    let title = "语音转文字失败 / Audio Transcription Failed";
-    let details = "请检查麦克风录音及 Gemini API 配置。(Please check microphone audio and Gemini API configuration.)";
-
-    if (error.status === 401 || error.message?.includes("API key not valid")) {
-      details = "Gemini API Key 无效或未授权。请在设置 ⚙️ Settings 中配置有效的 Gemini API Key。(Invalid Gemini API Key.)";
-    } else if (error.message?.includes("Missing Gemini API Key")) {
-      details = "未配置 Gemini API Key。请在页面右下角设置 ⚙️ Settings 中填入 Gemini API 密钥。(Gemini API Key missing.)";
-    } else if (error.status === 429 || error.message?.includes("quota")) {
-      details = "Gemini API 配额已超限，请稍后再试。(Gemini API quota exceeded.)";
-    } else if (error.message) {
-      details = error.message;
-    }
-
-    throw new Error(JSON.stringify({ title, details }));
-  }
+/** Optional standalone expansion uses the same server-only contract. */
+export async function expandKeywords(input: string, provider: ProviderConfig, modelName: string) {
+  return requestModelService(provider.serviceUrl, {
+    provider: provider.id, model: modelName, operation: "expand", contents: input,
+    systemInstruction: "Expand the research concepts into Chinese and English synonyms. Return keywords and a concise explanation as JSON."
+  });
 }

@@ -1,0 +1,122 @@
+{
+  "distribution": "Docker Hub ai/qwen3:0.6B-Q4_K_M",
+  "modelSha256": "ebfd42b196c529c3b692c549585e62cc6e817b5a5aff8375b3724cdfbafa651a",
+  "runtime": "llama.cpp b12776",
+  "transport": "Chromium to loopback trusted API, then authenticated HTTPS to local inference",
+  "testIntent": "Robotic arm motion planning with collision avoidance",
+  "targetDatabase": "Auto Match Engine",
+  "modelEvaluationSeconds": 61.63975,
+  "browser": "156.0.8078.79",
+  "status": 200,
+  "model": "qwen3-0.6b",
+  "provider": "local-qwen",
+  "rendered": true,
+  "usage": {
+    "promptTokens": 1429,
+    "completionTokens": 271,
+    "totalTokens": 1700
+  },
+  "result": {
+    "keywords": [
+      {
+        "original": "robotic arm",
+        "zhSynonyms": [
+          "robotic-arms"
+        ],
+        "enSynonyms": [
+          "robot-arms"
+        ]
+      }
+    ],
+    "explanation": "core concepts are mapped as per the framework structure",
+    "booleanQuery": "robotic-arms motion-planning collision-avoidance",
+    "fieldSpecificQuery": "topic-motion-collision",
+    "schemaMapping": [
+      {
+        "field": "topic",
+        "mappedConcept": "concept",
+        "reason": "topic"
+      },
+      {
+        "field": "motion",
+        "mappedConcept": "concept",
+        "reason": "motion"
+      },
+      {
+        "field": "planning",
+        "mappedConcept": "concept",
+        "reason": "planning"
+      },
+      {
+        "field": "avoidance",
+        "mappedConcept": "concept",
+        "reason": "avoidance"
+      }
+    ],
+    "suggestedUrls": [
+      {
+        "name": "CNKI",
+        "url": "https://kns.cnki.net/kns8s/AdvSearch"
+      },
+      {
+        "name": "Wanfang",
+        "url": "https://s.wanfangdata.com.cn/paper?q="
+      }
+    ]
+  },
+  "validation": {
+    "portable": {
+      "isValid": true,
+      "errors": [],
+      "warnings": [
+        {
+          "id": "missing-operator-13",
+          "type": "MISSING_OPERATOR",
+          "severity": "warning",
+          "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+          "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+          "snippet": "motion-planning",
+          "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+        },
+        {
+          "id": "missing-operator-29",
+          "type": "MISSING_OPERATOR",
+          "severity": "warning",
+          "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+          "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+          "snippet": "collision-avoidance",
+          "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+        },
+        {
+          "id": "missing-operator-29",
+          "type": "MISSING_OPERATOR",
+          "severity": "warning",
+          "title": "相邻检索项之间缺少显式算符 (Missing Operator)",
+          "message": "检测到相邻检索项、字段或括号组。数据库对空格的默认含义因检索入口而异，不能据此推断为 OR。",
+          "snippet": "collision-avoidance",
+          "fixSuggestion": "请根据目标数据库当前检索模式明确补充 AND 或 OR。"
+        }
+      ],
+      "stats": {
+        "openParens": 0,
+        "closeParens": 0,
+        "doubleQuotes": 0,
+        "phraseCount": 0,
+        "hasFullwidth": false
+      }
+    },
+    "fieldSpecific": {
+      "isValid": true,
+      "errors": [],
+      "warnings": [],
+      "stats": {
+        "openParens": 0,
+        "closeParens": 0,
+        "doubleQuotes": 0,
+        "phraseCount": 0,
+        "hasFullwidth": false
+      }
+    }
+  },
+  "qualityNotes": "The model did not preserve requested Boolean operators or produce meaningful database fields. This is a real browser/service integration result, with limited model output quality."
+}

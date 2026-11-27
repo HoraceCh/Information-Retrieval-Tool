@@ -1,0 +1,215 @@
+[
+  {
+    "id": "zh-ordinary",
+    "language": "zh",
+    "condition": "clean",
+    "reference": "请帮我查找近年来关于城市公共交通发展的研究。",
+    "audio": "zh-ordinary.wav",
+    "duration_seconds": 6.84125,
+    "content_type": "audio/wav",
+    "sha256": "93ff227c2636727f998d420980634bf5b03e74a70f8232b293c56559312740a2",
+    "source_kind": "synthetic-espeak-ng",
+    "transforms": [
+      "espeak-ng:cmn:rate155",
+      "resample:16000Hz:mono:pcm_s16le"
+    ]
+  },
+  {
+    "id": "zh-long",
+    "language": "zh",
+    "condition": "long",
+    "reference": "我希望检索同时讨论机器人路径规划、多传感器融合以及复杂环境下动态避障的方法，并比较这些方法在工业场景中的可靠性。",
+    "audio": "zh-long.wav",
+    "duration_seconds": 17.061625,
+    "content_type": "audio/wav",
+    "sha256": "5ca6390c27cfc9f3e4d980a1ecc8d9bbf2f9560583e4645caf8692c9e36a6784",
+    "source_kind": "synthetic-espeak-ng",
+    "transforms": [
+      "espeak-ng:cmn:rate155",
+      "resample:16000Hz:mono:pcm_s16le"
+    ]
+  },
+  {
+    "id": "zh-mixed",
+    "language": "zh",
+    "condition": "mixed-language",
+    "reference": "请比较 reinforcement learning 和模型预测控制在移动机器人中的应用。",
+    "audio": "zh-mixed.wav",
+    "duration_seconds": 7.539875,
+    "content_type": "audio/wav",
+    "sha256": "978e0a9ed137e2463ecf2ca4f8f8dd9e99bf47b5220b4e1a4ac8462e9fc087f6",
+    "source_kind": "synthetic-espeak-ng",
+    "transforms": [
+      "espeak-ng:cmn:rate155",
+      "resample:16000Hz:mono:pcm_s16le"
+    ]
+  },
+  {
+    "id": "zh-mechanical",
+    "language": "zh",
+    "condition": "technical",
+    "reference": "机械臂末端执行器的运动学标定需要考虑齿轮传动误差和关节刚度。",
+    "audio": "zh-mechanical.wav",
+    "duration_seconds": 8.7979375,
+    "content_type": "audio/wav",
+    "sha256": "336913ff4cc9a83730276fd4aefd24c081214c751c845edd7c61f823870de30c",
+    "source_kind": "synthetic-espeak-ng",
+    "transforms": [
+      "espeak-ng:cmn:rate155",
+      "resample:16000Hz:mono:pcm_s16le"
+    ]
+  },
+  {
+    "id": "zh-retrieval",
+    "language": "zh",
+    "condition": "academic",
+    "reference": "请使用布尔运算符构建检索式，限制标题和摘要字段，并检查括号与引号是否匹配。",
+    "audio": "zh-retrieval.wav",
+    "duration_seconds": 10.902,
+    "content_type": "audio/wav",
+    "sha256": "7b431a76a5cfeb5ff13485f1b918f3b88fbb567dc272f44dd65586b66101762e",
+    "source_kind": "synthetic-espeak-ng",
+    "transforms": [
+      "espeak-ng:cmn:rate155",
+      "resample:16000Hz:mono:pcm_s16le"
+    ]
+  },
+  {
+    "id": "zh-noise",
+    "language": "zh",
+    "condition": "background-noise",
+    "reference": "机械臂末端执行器的运动学标定需要考虑齿轮传动误差和关节刚度。",
+    "audio": "zh-noise.wav",
+    "duration_seconds": 8.8111875,
+    "content_type": "audio/wav",
+    "sha256": "0ba2981405bd8a22b81394ef640c676789bba1c0d2f3d25bdf1a1d1827bad5d8",
+    "source_kind": "synthetic-espeak-ng",
+    "transforms": [
+      "espeak-ng:cmn:rate155",
+      "resample:16000Hz:mono:pcm_s16le",
+      "white-noise:SNR15dB:seed20261131"
+    ]
+  },
+  {
+    "id": "zh-short",
+    "language": "zh",
+    "condition": "short",
+    "reference": "机器人路径规划。",
+    "audio": "zh-short.wav",
+    "duration_seconds": 2.2035,
+    "content_type": "audio/wav",
+    "sha256": "15f298a956749513dc4d0c6201f7f6643fdc1087847683ddf78306023900214f",
+    "source_kind": "synthetic-espeak-ng",
+    "transforms": [
+      "espeak-ng:cmn:rate155",
+      "resample:16000Hz:mono:pcm_s16le"
+    ]
+  },
+  {
+    "id": "en-ordinary",
+    "language": "en",
+    "condition": "clean",
+    "reference": "Please help me find recent studies on urban public transportation.",
+    "audio": "en-ordinary.wav",
+    "duration_seconds": 4.2595,
+    "content_type": "audio/wav",
+    "sha256": "c8f0afb747cedcc784261ca826479a8b7649ad57b08ec3f8edd028b26f6ef47b",
+    "source_kind": "synthetic-espeak-ng",
+    "transforms": [
+      "espeak-ng:en-us:rate155",
+      "resample:16000Hz:mono:pcm_s16le"
+    ]
+  },
+  {
+    "id": "en-technical",
+    "language": "en",
+    "condition": "technical",
+    "reference": "The robot uses simultaneous localization and mapping with sensor fusion for dynamic obstacle avoidance.",
+    "audio": "en-technical.wav",
+    "duration_seconds": 6.4266875,
+    "content_type": "audio/wav",
+    "sha256": "ae08e7de51683cb96aee80ec642ed12b5240c809f00d23772b9b57efa445c671",
+    "source_kind": "synthetic-espeak-ng",
+    "transforms": [
+      "espeak-ng:en-us:rate155",
+      "resample:16000Hz:mono:pcm_s16le"
+    ]
+  },
+  {
+    "id": "en-academic",
+    "language": "en",
+    "condition": "academic",
+    "reference": "Construct a Boolean search query with title and abstract fields and check balanced parentheses.",
+    "audio": "en-academic.wav",
+    "duration_seconds": 6.3391875,
+    "content_type": "audio/wav",
+    "sha256": "e4dbf1b69eafdc751287cb40d610001b6d408e0aaa846f2bda11ef5c844a3c0b",
+    "source_kind": "synthetic-espeak-ng",
+    "transforms": [
+      "espeak-ng:en-us:rate155",
+      "resample:16000Hz:mono:pcm_s16le"
+    ]
+  },
+  {
+    "id": "en-long",
+    "language": "en",
+    "condition": "long",
+    "reference": "I would like to compare model predictive control and reinforcement learning for industrial manipulators while considering calibration errors, joint stiffness, reliability, and computational cost.",
+    "audio": "en-long.wav",
+    "duration_seconds": 12.1345625,
+    "content_type": "audio/wav",
+    "sha256": "2a04a594826fcc5b0b047945ed33171c13977e2f934dfef9282d7051b8b5b38c",
+    "source_kind": "synthetic-espeak-ng",
+    "transforms": [
+      "espeak-ng:en-us:rate155",
+      "resample:16000Hz:mono:pcm_s16le"
+    ]
+  },
+  {
+    "id": "en-noise",
+    "language": "en",
+    "condition": "background-noise",
+    "reference": "The robot uses simultaneous localization and mapping with sensor fusion for dynamic obstacle avoidance.",
+    "audio": "en-noise.wav",
+    "duration_seconds": 6.4265,
+    "content_type": "audio/wav",
+    "sha256": "3b10c64ccf612dd53496a42a73eb7ab941aff95cfb1539595ee344a6ab92ba91",
+    "source_kind": "synthetic-espeak-ng",
+    "transforms": [
+      "espeak-ng:en-us:rate155",
+      "resample:16000Hz:mono:pcm_s16le",
+      "white-noise:SNR15dB:seed20261137"
+    ]
+  },
+  {
+    "id": "en-low-quality",
+    "language": "en",
+    "condition": "low-quality",
+    "reference": "Search for peer reviewed papers about mechanical engineering and robotics.",
+    "audio": "en-low-quality.wav",
+    "duration_seconds": 4.4785,
+    "content_type": "audio/wav",
+    "sha256": "4b3b7338f9f497fc12a4370a6131adcce92f61f4712154e8a756900690f450ff",
+    "source_kind": "synthetic-espeak-ng",
+    "transforms": [
+      "espeak-ng:en-us:rate155",
+      "resample:16000Hz:mono:pcm_s16le",
+      "bandlimit:250-1800Hz:resample8000-then16000Hz"
+    ]
+  },
+  {
+    "id": "en-short",
+    "language": "en",
+    "condition": "short",
+    "reference": "Robotic path planning.",
+    "audio": "en-short.wav",
+    "duration_seconds": 1.4221875,
+    "content_type": "audio/wav",
+    "sha256": "f444612fb1e792c9932ec452f2ede17c704021f96cef97677a32d38fa1465709",
+    "source_kind": "synthetic-espeak-ng",
+    "transforms": [
+      "espeak-ng:en-us:rate155",
+      "resample:16000Hz:mono:pcm_s16le"
+    ]
+  }
+]

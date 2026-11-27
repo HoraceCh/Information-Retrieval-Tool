@@ -1,0 +1,220 @@
+{
+  "status": "PASS WITH WARNINGS",
+  "recorded_at_utc": "2026-11-26T13:47:04.506461+00:00",
+  "dataset": {
+    "version": "wenet-public-human-pair-v1@be6ad97fdb512589df113042f7ff3a29d392fb38",
+    "manifest_sha256": "dfe3199a7b2e5063b18eb2578a57fc36c6404ca4e1c849f2125c0b2c05525dfa"
+  },
+  "environment": {
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "python": "3.12.14",
+    "hardware": "Codex Cloud Linux x86_64 AMD EPYC 9V74; 3 visible CPUs, 2 CPU quota, 8GiB cgroup; CPU int8; background load not isolated; not local WSL2/RTX"
+  },
+  "service_health_before": {
+    "versions": {
+      "faster-whisper": "1.2.1",
+      "ctranslate2": "4.9.0"
+    },
+    "model_load_seconds": 1.9120305160004136,
+    "model_acquisition_seconds": 4.16430002587731e-05,
+    "model_initialization_seconds": 1.9120721590006724,
+    "model_artifact_bytes": 791630576,
+    "model_revision": "rhasspy-v1.0-int8",
+    "max_concurrent_requests": 1,
+    "status": "ok",
+    "model_loaded": true,
+    "model": "/workspace/work/cpu-benchmark-2026-11-26/models/medium-int8/medium-int8",
+    "device": "cpu",
+    "compute_type": "int8",
+    "max_concurrent_inferences": 1,
+    "providers": {
+      "gemini": false,
+      "whisper-local": true,
+      "openai": false,
+      "deepgram": false
+    }
+  },
+  "service_health_after": {
+    "versions": {
+      "faster-whisper": "1.2.1",
+      "ctranslate2": "4.9.0"
+    },
+    "model_load_seconds": 1.9120305160004136,
+    "model_acquisition_seconds": 4.16430002587731e-05,
+    "model_initialization_seconds": 1.9120721590006724,
+    "model_artifact_bytes": 791630576,
+    "model_revision": "rhasspy-v1.0-int8",
+    "max_concurrent_requests": 1,
+    "status": "ok",
+    "model_loaded": true,
+    "model": "/workspace/work/cpu-benchmark-2026-11-26/models/medium-int8/medium-int8",
+    "device": "cpu",
+    "compute_type": "int8",
+    "max_concurrent_inferences": 1,
+    "providers": {
+      "gemini": false,
+      "whisper-local": true,
+      "openai": false,
+      "deepgram": false
+    }
+  },
+  "resources": {
+    "gpu_device_memory_peak_mib": null,
+    "service_cpu_percent_mean": 189.0626168224299,
+    "service_rss_peak_bytes": 1443459072,
+    "sampling_interval_seconds": 0.1,
+    "scope": "GPU sums all visible devices and other processes; CPU/RSS requires --service-pid on this host. Null means unavailable, never zero usage."
+  },
+  "model_cache_bytes": null,
+  "model_download_bytes": null,
+  "model_artifact_bytes": 791630576,
+  "model_revision": "rhasspy-v1.0-int8",
+  "model_acquisition_seconds": 4.16430002587731e-05,
+  "model_initialization_seconds": 1.9120721590006724,
+  "model_load_seconds": 1.9120305160004136,
+  "cold_start_latency_seconds": null,
+  "warm_median_latency_seconds": 7.409,
+  "service": "http://127.0.0.1:18101",
+  "configuration": {
+    "model_size": "/workspace/work/cpu-benchmark-2026-11-26/models/medium-int8/medium-int8",
+    "device": "cpu",
+    "compute_type": "int8",
+    "hardware": "Codex Cloud Linux x86_64 AMD EPYC 9V74; 3 visible CPUs, 2 CPU quota, 8GiB cgroup; CPU int8; background load not isolated; not local WSL2/RTX"
+  },
+  "sample_count": 2,
+  "request_count": 6,
+  "aggregate_wer": 0.03225806451612903,
+  "aggregate_cer": 0.07142857142857142,
+  "median_latency_seconds": 7.409,
+  "median_real_time_factor": 1.203,
+  "results": [
+    {
+      "pass": 0,
+      "phase": "warm",
+      "sha256": "2f9fc9c912bb71c85fb286cb88b599c81efb8f727c727a5ea8f6d1c89c55ac13",
+      "audio": "aishell-BAC009S0724W0121.wav",
+      "language": "zh",
+      "condition": "unspecified",
+      "reference": "广州市房地产中介协会分析",
+      "hypothesis": "廣州市房地產中介協會分析",
+      "wer": 1.0,
+      "cer": 0.3333333333333333,
+      "latency_seconds": 6.746,
+      "audio_duration_seconds": 4.281,
+      "real_time_factor": 1.576
+    },
+    {
+      "pass": 0,
+      "phase": "warm",
+      "sha256": "a4d977939c2f673b370e7dd5840118947a8ae95f6d62d3a88f32b40c0631aaee",
+      "audio": "librispeech-1995-1837-0001.wav",
+      "language": "en",
+      "condition": "unspecified",
+      "reference": "IT WAS THE FIRST GREAT SORROW OF HIS LIFE IT WAS NOT SO MUCH THE LOSS OF THE COTTON ITSELF BUT THE FANTASY THE HOPES THE DREAMS BUILT AROUND IT",
+      "hypothesis": "It was the first great sorrow of his life. It was not so much the loss of the cotton itself, but the fantasy, the hopes, the dreams built around it.",
+      "wer": 0.0,
+      "cer": 0.043859649122807015,
+      "latency_seconds": 8.722,
+      "audio_duration_seconds": 8.73,
+      "real_time_factor": 0.999
+    },
+    {
+      "pass": 1,
+      "phase": "warm",
+      "sha256": "2f9fc9c912bb71c85fb286cb88b599c81efb8f727c727a5ea8f6d1c89c55ac13",
+      "audio": "aishell-BAC009S0724W0121.wav",
+      "language": "zh",
+      "condition": "unspecified",
+      "reference": "广州市房地产中介协会分析",
+      "hypothesis": "廣州市房地產中介協會分析",
+      "wer": 1.0,
+      "cer": 0.3333333333333333,
+      "latency_seconds": 6.023,
+      "audio_duration_seconds": 4.281,
+      "real_time_factor": 1.407
+    },
+    {
+      "pass": 1,
+      "phase": "warm",
+      "sha256": "a4d977939c2f673b370e7dd5840118947a8ae95f6d62d3a88f32b40c0631aaee",
+      "audio": "librispeech-1995-1837-0001.wav",
+      "language": "en",
+      "condition": "unspecified",
+      "reference": "IT WAS THE FIRST GREAT SORROW OF HIS LIFE IT WAS NOT SO MUCH THE LOSS OF THE COTTON ITSELF BUT THE FANTASY THE HOPES THE DREAMS BUILT AROUND IT",
+      "hypothesis": "It was the first great sorrow of his life. It was not so much the loss of the cotton itself, but the fantasy, the hopes, the dreams built around it.",
+      "wer": 0.0,
+      "cer": 0.043859649122807015,
+      "latency_seconds": 7.774,
+      "audio_duration_seconds": 8.73,
+      "real_time_factor": 0.89
+    },
+    {
+      "pass": 2,
+      "phase": "warm",
+      "sha256": "2f9fc9c912bb71c85fb286cb88b599c81efb8f727c727a5ea8f6d1c89c55ac13",
+      "audio": "aishell-BAC009S0724W0121.wav",
+      "language": "zh",
+      "condition": "unspecified",
+      "reference": "广州市房地产中介协会分析",
+      "hypothesis": "廣州市房地產中介協會分析",
+      "wer": 1.0,
+      "cer": 0.3333333333333333,
+      "latency_seconds": 7.044,
+      "audio_duration_seconds": 4.281,
+      "real_time_factor": 1.645
+    },
+    {
+      "pass": 2,
+      "phase": "warm",
+      "sha256": "a4d977939c2f673b370e7dd5840118947a8ae95f6d62d3a88f32b40c0631aaee",
+      "audio": "librispeech-1995-1837-0001.wav",
+      "language": "en",
+      "condition": "unspecified",
+      "reference": "IT WAS THE FIRST GREAT SORROW OF HIS LIFE IT WAS NOT SO MUCH THE LOSS OF THE COTTON ITSELF BUT THE FANTASY THE HOPES THE DREAMS BUILT AROUND IT",
+      "hypothesis": "It was the first great sorrow of his life. It was not so much the loss of the cotton itself, but the fantasy, the hopes, the dreams built around it.",
+      "wer": 0.0,
+      "cer": 0.043859649122807015,
+      "latency_seconds": 7.86,
+      "audio_duration_seconds": 8.73,
+      "real_time_factor": 0.9
+    }
+  ],
+  "language_summaries": {
+    "en": {
+      "unique_audio_count": 1,
+      "request_count": 3,
+      "aggregate_wer": 0.0,
+      "aggregate_cer": 0.043859649122807015,
+      "reference_word_count": 90,
+      "reference_character_count": 342,
+      "word_edit_count": 0,
+      "character_edit_count": 15,
+      "warm_median_latency_seconds": 7.86,
+      "warm_median_real_time_factor": 0.9,
+      "primary_quality_indicator": "WER"
+    },
+    "zh": {
+      "unique_audio_count": 1,
+      "request_count": 3,
+      "aggregate_wer": 1.0,
+      "aggregate_cer": 0.3333333333333333,
+      "reference_word_count": 3,
+      "reference_character_count": 36,
+      "word_edit_count": 3,
+      "character_edit_count": 12,
+      "warm_median_latency_seconds": 6.746,
+      "warm_median_real_time_factor": 1.576,
+      "primary_quality_indicator": "CER (Chinese WER is not linguistically segmented)"
+    }
+  },
+  "notes": [
+    "model_artifact_bytes is the acquired model snapshot file size, including cache hits; it is not network traffic. model_download_bytes remains null unless separately measured.",
+    "model_acquisition_seconds includes download or cache lookup; model_load_seconds is construction after acquisition; initialization includes both.",
+    "Cold first request includes lazy model loading and possibly download; pre-cache weights for load-only comparison.",
+    "Only compare reports with identical manifest and audio hashes; separate results by language and recording condition.",
+    "WER uses NFKC/casefolded word tokens and is most useful for whitespace-separated languages.",
+    "CER uses NFKC/casefolded Unicode code points with whitespace removed; punctuation is retained.",
+    "Latency includes upload and service inference. Compare cold-start and warm runs separately.",
+    "Record the same corpus, model, device, compute type, and hardware when comparing configurations."
+  ]
+}

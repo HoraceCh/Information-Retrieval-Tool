@@ -12,23 +12,21 @@
 - **官方网址速查**：浏览内置的数据库、专利和标准平台入口。
 - **项目介绍**：了解项目能力、工作流程、配置方式和相关文档。
 
-## 2. 配置模型服务商
+## 2. 配置可信模型服务
 
-1. 打开页面顶部的 **设置**。
-2. 在模型配置中选择服务商。
-3. 填入该服务商提供的 API Key。
-4. 选择要使用的模型。
-5. 点击 **测试连接**，成功后保存配置。
+本指南描述待审查的 Release Candidate，不表示线上版本已经更新。
 
-支持预设 Gemini、DeepSeek、SiliconFlow、Kimi / Moonshot、Zhipu GLM、DashScope / Qwen、OpenAI 和 OpenRouter；也可以添加自定义 OpenAI-compatible endpoint。
+1. 由服务维护者启动可信服务，在服务端配置所需供应商密钥；GitHub Pages 不自带推理服务。
+2. 打开页面 **设置**，填入可信服务地址，并选择服务支持且已配置的供应商与模型。
+3. 点击 **测试连接**，连接正常后保存。
 
-**费用提醒：** 模型调用可能产生费用，具体价格和额度由服务商决定。请在服务商控制台确认计费方式和剩余额度。
+页面不接受供应商 API Key，也不提供浏览器直连兼容入口。服务地址不可包含密码或令牌。模型调用可能产生费用，额度、鉴权与数据政策由服务维护者和上游供应商管理。未配置服务时不能进行模型生成，不会自动转到其他目的地。
 
 ### 语音输入
 
 在研究意图输入区的 **语音识别引擎** 下拉框中选择 Gemini、OpenAI、Deepgram 或 Whisper 本地服务。它独立于检索式生成模型，并在当前浏览器记住选择。
 
-- **Gemini**：使用设置中现有的 Gemini API Key；主要文本模型选其他服务商也不影响此要求。
+- **Gemini**：通过配置的可信语音服务转写，密钥由服务维护者设置，浏览器不接收该密钥。
 - **OpenAI / Deepgram**：需要另行配置的可信服务端代理；不要在前端或浏览器存储中填入语音专用密钥。
 - **Whisper 本地服务**：需要自行运行本地 runtime 和配置代理地址；选择菜单不会安装模型或启动服务。
 
@@ -36,7 +34,7 @@
 
 #### 本地 Whisper 与 GPU
 
-主分支提供代理适配器，runtime 在 [Draft PR #14](https://github.com/HoraceCh/Information-Retrieval-Tool/pull/14) 独立开发。使用该 PR 分支前请阅读其 [runtime README](https://github.com/HoraceCh/Information-Retrieval-Tool/blob/feat/local-whisper-runtime/services/speech-whisper/README.md)。CPU 默认 small / int8 / 单路并发；GPU 模式需 Windows 11、WSL2、兼容 NVIDIA 驱动、Docker GPU passthrough 和独立 GPU Compose 配置。不要把云端 CI 的模拟结果视为本机 RTX 验收。
+RC 包含独立 runtime，运行前请阅读 [runtime README](../services/speech-whisper/README.md) 和 [GPU 指南](WHISPER_GPU.md)。是否已合并或发布应核对实时 PR 与部署记录。CPU 默认 small / int8 / 单路并发；GPU 模式需 Windows 11、WSL2、兼容 NVIDIA 驱动、Docker GPU passthrough 和独立 GPU Compose 配置。不要把云端 CI 的模拟结果视为本机 RTX 验收。
 
 本地未认证服务应仅绑定 `127.0.0.1`。GitHub Pages 的 HTTPS 页面连接本地服务还可能受到浏览器的本地网络权限、混合内容或组织策略限制，需要在实际 Chrome / Edge 上验证；不要为绕过限制而关闭浏览器安全保护。代理配置、协议与安全边界见 [Speech Providers](SPEECH_PROVIDERS.md)。
 
@@ -111,21 +109,19 @@
 
 ## 8. 隐私、密钥与数据流向
 
-当前应用为静态前端；GitHub Pages 不托管模型代理。文本模型和 Gemini 使用现有浏览器 BYOK；其他语音引擎需要独立可信代理。
+当前 RC 前端为静态应用；GitHub Pages 不托管模型服务。文本生成和所有语音引擎均访问配置的可信服务。
 
-- 现有文本模型与 Gemini API Key 及部分配置存储在当前浏览器的 localStorage 中，应用不会对其进行加密。OpenAI / Deepgram 语音专用密钥只放在可信服务端。
-- 检索提示词发送给所选文本模型服务商；录音发送给独立选择的语音服务商或可信代理。本地 Whisper 需要自行确认 endpoint 确实指向本机。
-- 模型服务商的数据保留和使用政策由服务商决定。
-- 不要在公共设备保存 API Key，也不要输入不适合发送给模型服务商的敏感资料。
-- 公开部署不需要在 GitHub Actions 或 Vite 构建中注入个人 API Key。
-
-如需清除密钥，可在设置中清除对应服务商配置，或清除浏览器中该站点的本地数据。
+- 供应商密钥只放在可信服务端，页面不接受或保存 API Key；服务地址和模型偏好保存在当前浏览器。
+- 旧版本可能曾保存密钥。升级时需清理旧凭据；如果页面提示无法访问存储，应使用浏览器站点数据管理完成清理，不能把失败当作成功。旧备份不受页面清理影响，曾暴露的密钥应向供应商撤销。
+- 研究意图和录音发送到所配置的可信服务，由其联系上游供应商。请在录音前确认服务地址和数据政策。
+- 不要提交敏感资料。共享设备上请清理本应用的历史和站点数据。
+- 不在 GitHub Actions 或 Vite 构建中注入个人供应商密钥。
 
 ## 9. 常见问题
 
 ### 测试连接失败
 
-检查 API Key 是否正确、模型名称是否有效、账户是否有额度，以及网络或服务商接口是否可用。自定义 endpoint 需要符合对应服务商的 API 格式。
+检查可信服务地址、服务是否启动、所选模型是否支持以及浏览器网络错误。供应商凭据与账户额度由服务维护者在服务端检查；不要将密钥发给前端或粘贴到错误报告中。
 
 ### 生成请求失败或超时
 

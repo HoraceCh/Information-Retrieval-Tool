@@ -1,0 +1,3 @@
+# Optional, explicitly synthetic benchmark fixtures; not an API/runtime dependency.
+# The package bundles eSpeak NG and Mandarin/English voice data. ffmpeg is also required.
+espeakng-loader==0.2.4
