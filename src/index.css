@@ -543,3 +543,65 @@ html.theme-light, .theme-light {
 .app-shell .ui-validation-snippet-warning { background: var(--warning-surface) !important; color: var(--warning) !important; border-color: var(--warning) !important; }
 .app-shell .ui-normalized-query { background: var(--success-surface) !important; color: var(--success) !important; border-color: var(--success) !important; }
 .app-shell .ui-offline-content { background: var(--surface-muted) !important; }
+
+/* Academic Spell-Check Highlights & Interactive Tooltip */
+.ui-spell-error {
+  color: var(--warning) !important;
+  background-color: var(--warning-surface) !important;
+  text-decoration: underline wavy var(--warning);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  font-weight: 700;
+}
+.ui-spell-error:hover,
+.ui-spell-error:focus-visible {
+  background-color: var(--error-surface) !important;
+  color: var(--error) !important;
+  text-decoration-color: var(--error);
+}
+.ui-spell-tooltip {
+  background-color: var(--surface-elevated) !important;
+  border-color: var(--warning) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.theme-light .ui-spell-tooltip {
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+}
+.ui-spell-suggestion-btn {
+  background-color: var(--success-surface) !important;
+  color: var(--success) !important;
+  border-color: var(--success) !important;
+}
+.ui-spell-suggestion-btn:hover {
+  filter: brightness(1.1);
+}
+.theme-light .ui-spell-suggestion-btn:hover {
+  filter: brightness(0.95);
+}
+.app-shell .ui-spell-bar {
+  background-color: var(--warning-surface) !important;
+  border-color: var(--warning) !important;
+}
+.app-shell .ui-spell-preview {
+  background-color: var(--surface) !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+}
+.app-shell .ui-spell-fixall-btn {
+  background-color: var(--success-surface) !important;
+  color: var(--success) !important;
+  border-color: var(--success) !important;
+}
+.app-shell .ui-spell-fixall-btn:hover {
+  filter: brightness(1.08);
+}
+.app-shell .ui-spell-status-warn {
+  background-color: var(--warning-surface) !important;
+  color: var(--warning) !important;
+  border-color: var(--warning) !important;
+}
+.syntax-legend-bar .legend-spell {
+  color: var(--warning) !important;
+}
+

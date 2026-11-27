@@ -1,8 +1,15 @@
 import React, { useMemo } from "react";
+import { checkAcademicSpelling, SpellIssue } from "../utils/academicSpellChecker";
+import SpellCheckToken from "./SpellCheckToken";
 
 interface HighlightedBooleanQueryProps {
   query: string;
   className?: string;
+  spellCheck?: boolean;
+  ignoredWords?: Iterable<string>;
+  onApplySpellFix?: (issue: SpellIssue, replacement: string) => void;
+  onIgnoreSpellWord?: (word: string) => void;
+  uiLang?: string;
 }
 
 interface Token {
@@ -21,6 +28,8 @@ interface Token {
     | "WHITESPACE"
     | "TERM";
   text: string;
+  start: number;
+  end: number;
 }
 
 export function tokenizeBooleanQuery(queryStr: string): Token[] {
@@ -33,51 +42,127 @@ export function tokenizeBooleanQuery(queryStr: string): Token[] {
     const tokens: Token[] = [];
     let match: RegExpExecArray | null;
 
-  while ((match = masterRegex.exec(queryStr)) !== null) {
-    const groups = match.groups;
-    if (!groups) continue;
+    while ((match = masterRegex.exec(queryStr)) !== null) {
+      const groups = match.groups;
+      if (!groups) continue;
 
-    if (groups.STRING !== undefined) {
-      tokens.push({ type: "STRING", text: match[0] });
-    } else if (groups.FULLWIDTH !== undefined) {
-      tokens.push({ type: "FULLWIDTH", text: match[0] });
-    } else if (groups.FIELD_BRACKET !== undefined) {
-      tokens.push({ type: "FIELD_BRACKET", text: match[0] });
-    } else if (groups.FIELD_PREFIX !== undefined) {
-      tokens.push({ type: "FIELD_PREFIX", text: match[0] });
-    } else if (groups.OP_AND_NOT !== undefined) {
-      tokens.push({ type: "OP_AND_NOT", text: match[0] });
-    } else if (groups.OP_AND !== undefined) {
-      tokens.push({ type: "OP_AND", text: match[0] });
-    } else if (groups.OP_OR !== undefined) {
-      tokens.push({ type: "OP_OR", text: match[0] });
-    } else if (groups.OP_NOT !== undefined) {
-      tokens.push({ type: "OP_NOT", text: match[0] });
-    } else if (groups.OP_PROX !== undefined) {
-      tokens.push({ type: "OP_PROX", text: match[0] });
-    } else if (groups.PAREN !== undefined) {
-      tokens.push({ type: "PAREN", text: match[0] });
-    } else if (groups.PUNCT !== undefined) {
-      tokens.push({ type: "PUNCT", text: match[0] });
-    } else if (groups.WHITESPACE !== undefined) {
-      tokens.push({ type: "WHITESPACE", text: match[0] });
-    } else if (groups.TERM !== undefined) {
-      tokens.push({ type: "TERM", text: match[0] });
+      const start = match.index;
+      const end = start + match[0].length;
+
+      if (groups.STRING !== undefined) {
+        tokens.push({ type: "STRING", text: match[0], start, end });
+      } else if (groups.FULLWIDTH !== undefined) {
+        tokens.push({ type: "FULLWIDTH", text: match[0], start, end });
+      } else if (groups.FIELD_BRACKET !== undefined) {
+        tokens.push({ type: "FIELD_BRACKET", text: match[0], start, end });
+      } else if (groups.FIELD_PREFIX !== undefined) {
+        tokens.push({ type: "FIELD_PREFIX", text: match[0], start, end });
+      } else if (groups.OP_AND_NOT !== undefined) {
+        tokens.push({ type: "OP_AND_NOT", text: match[0], start, end });
+      } else if (groups.OP_AND !== undefined) {
+        tokens.push({ type: "OP_AND", text: match[0], start, end });
+      } else if (groups.OP_OR !== undefined) {
+        tokens.push({ type: "OP_OR", text: match[0], start, end });
+      } else if (groups.OP_NOT !== undefined) {
+        tokens.push({ type: "OP_NOT", text: match[0], start, end });
+      } else if (groups.OP_PROX !== undefined) {
+        tokens.push({ type: "OP_PROX", text: match[0], start, end });
+      } else if (groups.PAREN !== undefined) {
+        tokens.push({ type: "PAREN", text: match[0], start, end });
+      } else if (groups.PUNCT !== undefined) {
+        tokens.push({ type: "PUNCT", text: match[0], start, end });
+      } else if (groups.WHITESPACE !== undefined) {
+        tokens.push({ type: "WHITESPACE", text: match[0], start, end });
+      } else if (groups.TERM !== undefined) {
+        tokens.push({ type: "TERM", text: match[0], start, end });
+      }
     }
-  }
 
     return tokens;
   } catch (e) {
     console.error("Unable to highlight the current query.");
-    return [{ type: "TERM", text: queryStr }];
+    return [{ type: "TERM", text: queryStr, start: 0, end: queryStr.length }];
   }
+}
+
+function renderWithSpellHighlights(
+  token: Token,
+  tokenIssues: SpellIssue[],
+  onApplySpellFix?: (issue: SpellIssue, replacement: string) => void,
+  onIgnoreSpellWord?: (word: string) => void,
+  uiLang?: string
+): React.ReactNode {
+  if (tokenIssues.length === 0) return token.text;
+
+  const nodes: React.ReactNode[] = [];
+  let cursor = token.start;
+
+  for (const issue of tokenIssues) {
+    if (issue.start < cursor || issue.end > token.end) continue;
+    if (issue.start > cursor) {
+      nodes.push(
+        <React.Fragment key={`seg-${cursor}`}>
+          {token.text.slice(cursor - token.start, issue.start - token.start)}
+        </React.Fragment>
+      );
+    }
+    nodes.push(
+      <SpellCheckToken
+        key={issue.id}
+        issue={issue}
+        onApplySuggestion={onApplySpellFix}
+        onIgnore={onIgnoreSpellWord}
+        uiLang={uiLang}
+      />
+    );
+    cursor = issue.end;
+  }
+
+  if (cursor < token.end) {
+    nodes.push(
+      <React.Fragment key={`seg-${cursor}`}>
+        {token.text.slice(cursor - token.start)}
+      </React.Fragment>
+    );
+  }
+
+  return nodes;
 }
 
 export default function HighlightedBooleanQuery({
   query,
-  className = ""
+  className = "",
+  spellCheck = true,
+  ignoredWords,
+  onApplySpellFix,
+  onIgnoreSpellWord,
+  uiLang = "zh"
 }: HighlightedBooleanQueryProps) {
   const tokens = useMemo(() => tokenizeBooleanQuery(query), [query]);
+
+  const tokenSpellMap = useMemo(() => {
+    const map = new Map<number, SpellIssue[]>();
+    if (!spellCheck || !query) return map;
+
+    tokens.forEach((token, idx) => {
+      if (token.type !== "TERM" && token.type !== "STRING") return;
+      const localIssues = checkAcademicSpelling(token.text, {
+        ignoredWords,
+        skipBooleanSyntax: true
+      });
+      if (localIssues.length > 0) {
+        const globalIssues = localIssues.map((issue) => ({
+          ...issue,
+          id: `${issue.id}-tok-${idx}`,
+          start: token.start + issue.start,
+          end: token.start + issue.end
+        }));
+        map.set(idx, globalIssues);
+      }
+    });
+
+    return map;
+  }, [tokens, query, spellCheck, ignoredWords]);
 
   if (!query) return null;
 
@@ -146,12 +231,14 @@ export default function HighlightedBooleanQuery({
                 {token.text}
               </span>
             );
-          case "STRING":
+          case "STRING": {
+            const issues = tokenSpellMap.get(idx) || [];
             return (
               <span key={idx} className="syntax-token-string text-emerald-300 [.theme-light_&]:text-green-800 font-semibold">
-                {token.text}
+                {renderWithSpellHighlights(token, issues, onApplySpellFix, onIgnoreSpellWord, uiLang)}
               </span>
             );
+          }
           case "FULLWIDTH":
             return (
               <span
@@ -177,12 +264,14 @@ export default function HighlightedBooleanQuery({
           case "WHITESPACE":
             return <React.Fragment key={idx}>{token.text}</React.Fragment>;
           case "TERM":
-          default:
+          default: {
+            const issues = tokenSpellMap.get(idx) || [];
             return (
               <span key={idx} className="syntax-token-term text-slate-100 [.theme-light_&]:text-slate-900 font-medium">
-                {token.text}
+                {renderWithSpellHighlights(token, issues, onApplySpellFix, onIgnoreSpellWord, uiLang)}
               </span>
             );
+          }
         }
       })}
     </span>

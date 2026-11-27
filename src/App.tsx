@@ -43,7 +43,8 @@ import {
   CheckCircle2,
   Wrench,
   Cpu,
-  Zap
+  Zap,
+  SpellCheck2
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
@@ -60,6 +61,16 @@ import VisualQueryTree from "./components/VisualQueryTree";
 import HighlightedBooleanQuery from "./components/HighlightedBooleanQuery";
 import SyntaxValidationAlert from "./components/SyntaxValidationAlert";
 import { validateBooleanQuery } from "./utils/booleanSyntaxValidator";
+import SpellCheckInputBar from "./components/SpellCheckInputBar";
+import SpellCheckToken from "./components/SpellCheckToken";
+import {
+  checkAcademicSpelling,
+  checkKeywordTerm,
+  applySpellCorrection,
+  applyAllSpellCorrections,
+  replaceWordOccurrence,
+  SpellIssue
+} from "./utils/academicSpellChecker";
 import { AudioTranscriber } from "./components/AudioTranscriber";
 import { ComparisonKeywordChart } from "./components/ComparisonKeywordChart";
 import { PerformanceMetricsPanel } from "./components/PerformanceMetricsPanel";
@@ -606,11 +617,198 @@ export default function App() {
       : effectiveA.booleanQuery;
   }, [result, showMapped, effectiveA]);
 
+  // Academic spell-checking state & real-time issue detection
+  const [isSpellCheckEnabled, setIsSpellCheckEnabled] = useState(true);
+  const [ignoredSpellWords, setIgnoredSpellWords] = useState<string[]>([]);
+
+  const ignoredSpellSet = useMemo(
+    () => new Set(ignoredSpellWords.map((w) => w.toLowerCase())),
+    [ignoredSpellWords]
+  );
+
+  const handleIgnoreSpellWord = (word: string) => {
+    const normalized = word.trim().toLowerCase();
+    if (!normalized) return;
+    setIgnoredSpellWords((prev) => (prev.includes(normalized) ? prev : [...prev, normalized]));
+  };
+
+  const inputSpellIssues = useMemo(() => {
+    if (!isSpellCheckEnabled || !input.trim()) return [];
+    return checkAcademicSpelling(input, { ignoredWords: ignoredSpellSet, skipBooleanSyntax: true });
+  }, [isSpellCheckEnabled, input, ignoredSpellSet]);
+
+  const handleApplyInputSpellFix = (issue: SpellIssue, replacement: string) => {
+    setInput((prev) => applySpellCorrection(prev, issue, replacement));
+  };
+
+  const handleApplyAllInputSpellFixes = () => {
+    setInput((prev) => applyAllSpellCorrections(prev, inputSpellIssues));
+  };
+
   // Real-time syntax validation status
   const syntaxValidation = useMemo(() => {
     if (!result || result._isLoading || !activeFormulaQuery) return null;
     return validateBooleanQuery(activeFormulaQuery, { database: dbType, operatorStyle, isFieldSpecific: showMapped });
   }, [result, activeFormulaQuery, dbType, operatorStyle, showMapped]);
+
+  // Real-time academic spell check for active Boolean formula
+  const formulaSpellIssues = useMemo(() => {
+    if (!isSpellCheckEnabled || !result || result._isLoading || !activeFormulaQuery) return [];
+    return checkAcademicSpelling(activeFormulaQuery, {
+      ignoredWords: ignoredSpellSet,
+      skipBooleanSyntax: true
+    });
+  }, [isSpellCheckEnabled, result, activeFormulaQuery, ignoredSpellSet]);
+
+  const applySpellReplacementsToModel = (
+    targetIsModelB: boolean,
+    replacements: Array<{ word: string; replacement: string; exactIssue?: SpellIssue }>
+  ) => {
+    if (!result || replacements.length === 0) return;
+
+    const modelKey = targetIsModelB ? "B" : "A";
+    const keyRemaps: Array<{ oldKey: string; newKey: string }> = [];
+
+    const patchModelResp = (mResp: any) => {
+      if (!mResp) return mResp;
+      let nextBoolean = mResp.booleanQuery || "";
+      let nextField = mResp.fieldSpecificQuery || "";
+
+      for (const item of replacements) {
+        if (item.exactIssue && !showMapped && nextBoolean.slice(item.exactIssue.start, item.exactIssue.end) === item.word) {
+          nextBoolean = applySpellCorrection(nextBoolean, item.exactIssue, item.replacement);
+        } else {
+          nextBoolean = replaceWordOccurrence(nextBoolean, item.word, item.replacement);
+        }
+
+        if (item.exactIssue && showMapped && nextField.slice(item.exactIssue.start, item.exactIssue.end) === item.word) {
+          nextField = applySpellCorrection(nextField, item.exactIssue, item.replacement);
+        } else {
+          nextField = replaceWordOccurrence(nextField, item.word, item.replacement);
+        }
+      }
+
+      const nextKeywords = Array.isArray(mResp.keywords)
+        ? mResp.keywords.map((group: any, gIdx: number) => {
+            const patchTerm = (term: string) => {
+              let updated = term;
+              for (const item of replacements) {
+                updated = replaceWordOccurrence(updated, item.word, item.replacement);
+              }
+              if (updated !== term) {
+                keyRemaps.push({
+                  oldKey: `${activeIndex}:${modelKey}:${gIdx}:${term}`,
+                  newKey: `${activeIndex}:${modelKey}:${gIdx}:${updated}`
+                });
+              }
+              return updated;
+            };
+            return {
+              ...group,
+              original: typeof group.original === "string" ? patchTerm(group.original) : group.original,
+              zhSynonyms: Array.isArray(group.zhSynonyms) ? group.zhSynonyms.map(patchTerm) : group.zhSynonyms,
+              enSynonyms: Array.isArray(group.enSynonyms) ? group.enSynonyms.map(patchTerm) : group.enSynonyms
+            };
+          })
+        : mResp.keywords;
+
+      const nextSchemaMapping = Array.isArray(mResp.schemaMapping)
+        ? mResp.schemaMapping.map((map: any) => {
+            let mappedConcept = map.mappedConcept;
+            if (typeof mappedConcept === "string") {
+              for (const item of replacements) {
+                mappedConcept = replaceWordOccurrence(mappedConcept, item.word, item.replacement);
+              }
+            }
+            return { ...map, mappedConcept };
+          })
+        : mResp.schemaMapping;
+
+      return {
+        ...mResp,
+        booleanQuery: nextBoolean,
+        fieldSpecificQuery: nextField,
+        keywords: nextKeywords,
+        schemaMapping: nextSchemaMapping
+      };
+    };
+
+    setResults((prev) => {
+      const next = [...prev];
+      const cur = next[activeIndex];
+      if (!cur) return prev;
+      if (targetIsModelB) {
+        if (!cur._compareResult) return prev;
+        next[activeIndex] = {
+          ...cur,
+          _compareResult: patchModelResp(cur._compareResult)
+        };
+      } else {
+        next[activeIndex] = patchModelResp(cur);
+      }
+      return next;
+    });
+
+    if (keyRemaps.length > 0) {
+      setSelectedWords((prev) => {
+        const next = { ...prev };
+        for (const { oldKey, newKey } of keyRemaps) {
+          if (oldKey in next) {
+            next[newKey] = next[oldKey];
+            delete next[oldKey];
+          }
+        }
+        return next;
+      });
+    }
+  };
+
+  const handleApplyFormulaSpellFix = (
+    targetIsModelB: boolean,
+    issue: SpellIssue,
+    replacement: string
+  ) => {
+    applySpellReplacementsToModel(targetIsModelB, [{ word: issue.word, replacement, exactIssue: issue }]);
+  };
+
+  const handleApplyAllFormulaSpellFixes = (targetIsModelB: boolean, issues: SpellIssue[]) => {
+    const sortedDesc = [...issues].sort((a, b) => b.start - a.start);
+    const replacements = sortedDesc
+      .filter((i) => i.suggestions.length > 0)
+      .map((i) => ({ word: i.word, replacement: i.suggestions[0], exactIssue: i }));
+    applySpellReplacementsToModel(targetIsModelB, replacements);
+  };
+
+  const renderTermWithSpellCheck = (term: string, isModelB: boolean) => {
+    if (!isSpellCheckEnabled || !term) return term;
+    const issues = checkKeywordTerm(term, { ignoredWords: ignoredSpellSet });
+    if (issues.length === 0) return term;
+
+    const nodes: React.ReactNode[] = [];
+    let cursor = 0;
+    for (const issue of issues) {
+      if (issue.start < cursor || issue.end > term.length) continue;
+      if (issue.start > cursor) {
+        nodes.push(<React.Fragment key={`t-${cursor}`}>{term.slice(cursor, issue.start)}</React.Fragment>);
+      }
+      nodes.push(
+        <SpellCheckToken
+          key={issue.id}
+          issue={issue}
+          onApplySuggestion={(iss, replacement) =>
+            applySpellReplacementsToModel(isModelB, [{ word: iss.word, replacement }])
+          }
+          onIgnore={handleIgnoreSpellWord}
+          uiLang={uiLang}
+        />
+      );
+      cursor = issue.end;
+    }
+    if (cursor < term.length) {
+      nodes.push(<React.Fragment key={`t-${cursor}`}>{term.slice(cursor)}</React.Fragment>);
+    }
+    return nodes;
+  };
 
   // Handle applying automatic syntax fix for primary query
   const handleApplySyntaxFix = (fixedQuery: string) => {
@@ -877,24 +1075,56 @@ export default function App() {
     _reasoning: "First-stage clinical classification linked with high-level computing methodologies."
   };
 
+  const [hasVisitedTour, setHasVisitedTour] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("visited-guided-search-v1.0") === "true";
+    } catch {
+      return true;
+    }
+  });
+  const [tourViewport, setTourViewport] = useState(() => ({
+    width: typeof window !== "undefined" ? window.innerWidth : 1280,
+    height: typeof window !== "undefined" ? window.innerHeight : 800
+  }));
+
   const startTour = () => {
+    // Toggle closed if already open
+    if (tourStep !== null) {
+      exitTour();
+      return;
+    }
     setIsQuickWhitelistOpen(false);
     setIsConfigOpen(false);
     setIsHistoryOpen(false);
     setActiveTab('ai');
-    
-    setTimeout(() => {
+
+    // Only load demo result when workspace has no results yet; never overwrite user work
+    if (results.length === 0) {
       setResults([TOUR_DEMO_RESULT]);
       setActiveIndex(0);
-      setTourStep(0);
-    }, 100);
+    }
+
+    setTourStep(0);
+    setHasVisitedTour(true);
+    try {
+      localStorage.setItem("visited-guided-search-v1.0", "true");
+    } catch {
+      // Ignore storage write errors in restricted browser contexts
+    }
   };
 
   const exitTour = () => {
     setTourStep(null);
-    localStorage.setItem("visited-guided-search-v1.0", "true");
+    setTourBounds(null);
+    setHasVisitedTour(true);
+    try {
+      localStorage.setItem("visited-guided-search-v1.0", "true");
+    } catch {
+      // Ignore storage write errors in restricted browser contexts
+    }
   };
 
+  // Measure target bounds without scroll-fighting; scroll into view at most once per step change
   useEffect(() => {
     if (tourStep === null) {
       setTourBounds(null);
@@ -910,44 +1140,68 @@ export default function App() {
     ];
 
     const targetId = STEPS_TARGETS[tourStep];
-    const updateBoundsForTour = () => {
+    let rafId: number | null = null;
+
+    const measureBounds = () => {
+      if (typeof window !== "undefined") {
+        setTourViewport({ width: window.innerWidth, height: window.innerHeight });
+      }
       const el = document.getElementById(targetId);
       if (el) {
-        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
         const rect = el.getBoundingClientRect();
-        setTourBounds({
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height
-        });
-      } else {
-        setTourBounds(null);
+        if (rect.width > 0 && rect.height > 0) {
+          setTourBounds({
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height
+          });
+          return;
+        }
+      }
+      setTourBounds(null);
+    };
+
+    const scheduleMeasure = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        measureBounds();
+      });
+    };
+
+    // Scroll target into view once per step change only if outside the visible viewport
+    const initialEl = document.getElementById(targetId);
+    if (initialEl) {
+      const rect = initialEl.getBoundingClientRect();
+      const headerOffset = 72;
+      const isVisible = rect.top >= headerOffset && rect.bottom <= window.innerHeight - 24;
+      if (!isVisible) {
+        initialEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+
+    measureBounds();
+    const settleTimer = window.setTimeout(measureBounds, 280);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        exitTour();
       }
     };
 
-    const scrollTimer = setTimeout(updateBoundsForTour, 250);
-    const intervalTimer = setInterval(updateBoundsForTour, 600);
-    window.addEventListener('resize', updateBoundsForTour);
-    window.addEventListener('scroll', updateBoundsForTour, true);
+    window.addEventListener('resize', scheduleMeasure);
+    window.addEventListener('scroll', scheduleMeasure, true);
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      clearTimeout(scrollTimer);
-      clearInterval(intervalTimer);
-      window.removeEventListener('resize', updateBoundsForTour);
-      window.removeEventListener('scroll', updateBoundsForTour, true);
+      window.clearTimeout(settleTimer);
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', scheduleMeasure);
+      window.removeEventListener('scroll', scheduleMeasure, true);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, [tourStep]);
-
-  useEffect(() => {
-    const visited = localStorage.getItem("visited-guided-search-v1.0");
-    if (!visited) {
-      const initTourTimer = setTimeout(() => {
-        startTour();
-      }, 1500);
-      return () => clearTimeout(initTourTimer);
-    }
-  }, []);
 
   const TOUR_STEPS = useMemo(() => [
     {
@@ -1003,6 +1257,14 @@ export default function App() {
 
   const [usageStats, setUsageStats] = useState<UsageStatsRegistry>({});
   const [isStatsOpen, setIsStatsOpen] = useState(false);
+
+  // Close tour automatically if user switches away from query tab or opens a modal dialog
+  useEffect(() => {
+    if (tourStep !== null && (activeTab !== 'ai' || isConfigOpen || isHistoryOpen || isQuickWhitelistOpen || isStatsOpen)) {
+      setTourStep(null);
+      setTourBounds(null);
+    }
+  }, [tourStep, activeTab, isConfigOpen, isHistoryOpen, isQuickWhitelistOpen, isStatsOpen]);
 
   const [testConnStatus, setTestConnStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [testConnMessage, setTestConnMessage] = useState<string>('');
@@ -1669,8 +1931,11 @@ export default function App() {
     const effQueries = getEffectiveQueries(mResp, !isModelA);
     const queryStr = mResp ? (showMapped ? (effQueries.fieldSpecificQuery || effQueries.booleanQuery) : effQueries.booleanQuery) : "";
 
-    // Real-time syntax validation for compare card
+    // Real-time syntax validation & academic spell check for compare card
     const cardValidation = (queryStr && !isLoading && !isErr) ? validateBooleanQuery(queryStr, { database: dbType, operatorStyle, isFieldSpecific: showMapped }) : null;
+    const cardSpellIssues = (isSpellCheckEnabled && queryStr && !isLoading && !isErr)
+      ? checkAcademicSpelling(queryStr, { ignoredWords: ignoredSpellSet, skipBooleanSyntax: true })
+      : [];
 
     const handleApplyCompareFix = (fixedQuery: string) => {
       setResults(prev => {
@@ -1798,6 +2063,17 @@ export default function App() {
                 📐 {mResp._appliedTemplate}
               </span>
             )}
+            {cardSpellIssues.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handleApplyAllFormulaSpellFixes(!isModelA, cardSpellIssues)}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[8px] rounded-md font-bold uppercase tracking-wider font-mono cursor-pointer hover:bg-amber-500/25 transition-colors"
+                title={uiLang === 'en' ? `Fix ${cardSpellIssues.length} academic spelling issues` : `发现 ${cardSpellIssues.length} 处学术拼写错误，点击一键修正`}
+              >
+                <SpellCheck2 size={10} />
+                <span>{uiLang === 'en' ? `Spell (${cardSpellIssues.length})` : `修正拼写 (${cardSpellIssues.length})`}</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -1828,7 +2104,14 @@ export default function App() {
                     : 'border-white/10 [.theme-light_&]:border-slate-300'
                 }`}
               >
-                <HighlightedBooleanQuery query={queryStr} />
+                <HighlightedBooleanQuery
+                  query={queryStr}
+                  spellCheck={isSpellCheckEnabled}
+                  ignoredWords={ignoredSpellSet}
+                  onApplySpellFix={(issue, replacement) => handleApplyFormulaSpellFix(!isModelA, issue, replacement)}
+                  onIgnoreSpellWord={handleIgnoreSpellWord}
+                  uiLang={uiLang}
+                />
               </div>
               
               {/* Copy Overlay Button */}
@@ -2116,14 +2399,19 @@ export default function App() {
 
             {/* Guided Search Walkthrough Button */}
             <button
+              type="button"
               onClick={startTour}
+              aria-pressed={tourStep !== null}
               className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 hover:from-cyan-500/20 hover:to-indigo-500/20 text-cyan-400 hover:text-cyan-300 border border-cyan-500/25 hover:border-cyan-500/45 rounded-xl transition-all cursor-pointer relative group shrink-0"
-              title="交互式检索学步引导 (Interactive Search Walkthrough)"
+              title="非遮挡式功能引导 (Non-blocking Interactive Walkthrough)"
             >
-              <Sparkles size={13} className="text-cyan-400 animate-pulse" />
+              <Sparkles size={13} className="text-cyan-400" />
               <span className="text-xs font-extrabold tracking-wider uppercase font-mono">
                 {uiLang === 'zh' || i18n.language === 'mix' ? "新手引导" : "Tour"}
               </span>
+              {!hasVisitedTour && tourStep === null && (
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" aria-hidden="true" />
+              )}
             </button>
 
             {/* Quick Help/Offline Installer Corner Button */}
@@ -2243,12 +2531,17 @@ export default function App() {
 
             {/* Quick Tour Button on Mobile */}
             <button
+              type="button"
               onClick={startTour}
-              className="p-2 bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 text-cyan-400 border border-cyan-500/25 rounded-xl transition-all cursor-pointer"
-              title="新手引导"
+              aria-pressed={tourStep !== null}
+              className="p-2 bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 text-cyan-400 border border-cyan-500/25 rounded-xl transition-all cursor-pointer relative"
+              title="非遮挡式功能引导"
               aria-label="Tour"
             >
               <Sparkles size={15} />
+              {!hasVisitedTour && tourStep === null && (
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-cyan-400" aria-hidden="true" />
+              )}
             </button>
 
             {/* Streamlined System Menu Toggle Button */}
@@ -2513,6 +2806,30 @@ export default function App() {
                 {t('inputLabel')}
               </label>
               <div className="query-speech-row flex flex-wrap items-center gap-3 min-w-0">
+                <button
+                  type="button"
+                  aria-pressed={isSpellCheckEnabled}
+                  onClick={() => setIsSpellCheckEnabled((prev) => !prev)}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                    !isSpellCheckEnabled
+                      ? "bg-white/5 border-white/10 text-content-muted"
+                      : inputSpellIssues.length > 0
+                        ? "ui-spell-status-warn border"
+                        : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                  }`}
+                  title={uiLang === 'en'
+                    ? "Toggle real-time academic spelling checker to prevent recall loss"
+                    : "开启/关闭实时学术拼写检查，高亮常见学术拼写错误防止检索召回失败"}
+                >
+                  <SpellCheck2 size={12} className="shrink-0" />
+                  <span>
+                    {!isSpellCheckEnabled
+                      ? (uiLang === 'en' ? "Spell Check: Off" : "拼写检查: 关")
+                      : inputSpellIssues.length > 0
+                        ? (uiLang === 'en' ? `Spelling Alerts (${inputSpellIssues.length})` : `拼写警示 (${inputSpellIssues.length})`)
+                        : (uiLang === 'en' ? "Academic Spell Check" : "学术拼写检查")}
+                  </span>
+                </button>
                 <AudioTranscriber
                   speechProxyUrl={import.meta.env.VITE_SPEECH_PROXY_URL}
                   onTranscribe={(transcribedText) => {
@@ -2532,6 +2849,18 @@ export default function App() {
               placeholder={t('inputPlaceholder')}
               className="ui-query-input flex-1 bg-transparent border-none outline-none resize-none text-base sm:text-lg md:text-xl text-slate-100 placeholder:text-content-muted leading-relaxed font-normal custom-scrollbar overflow-y-auto min-h-[56px]"
             />
+
+            {/* Real-time Academic Spell-Check Highlight & Tooltip Bar */}
+            {isSpellCheckEnabled && inputSpellIssues.length > 0 && (
+              <SpellCheckInputBar
+                text={input}
+                issues={inputSpellIssues}
+                onApplySuggestion={handleApplyInputSpellFix}
+                onApplyAll={handleApplyAllInputSpellFixes}
+                onIgnoreWord={handleIgnoreSpellWord}
+                uiLang={uiLang}
+              />
+            )}
 
             {/* Comparison Mode Configuration Bar */}
             <div id="guided-config-panel" className="flex flex-wrap items-center gap-3 mt-2 py-2 px-1 border-t border-white/5">
@@ -2929,9 +3258,33 @@ export default function App() {
                     <span className="legend-prox inline-flex items-center gap-1 text-fuchsia-300 [.theme-light_&]:text-fuchsia-800 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400 [.theme-light_&]:bg-fuchsia-600"></span>NEAR/ADJ</span>
                     <span className="legend-field inline-flex items-center gap-1 text-violet-300 [.theme-light_&]:text-purple-900 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-violet-400 [.theme-light_&]:bg-purple-600"></span>{uiLang === 'zh' || i18n.language === 'mix' ? "字段标签" : "Fields"}</span>
                     <span className="legend-phrase inline-flex items-center gap-1 text-emerald-300 [.theme-light_&]:text-green-800 font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 [.theme-light_&]:bg-green-600"></span>{uiLang === 'zh' || i18n.language === 'mix' ? '"精确词组"' : '"Phrases"'}</span>
+                    {isSpellCheckEnabled && (
+                      <span className="legend-spell inline-flex items-center gap-1 font-semibold underline decoration-wavy decoration-amber-400 underline-offset-2">
+                        {uiLang === 'zh' || i18n.language === 'mix' ? "拼写警示" : "Spelling"}
+                      </span>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Real-time Academic Spell Check Indicator for Formula */}
+                    {isSpellCheckEnabled && formulaSpellIssues.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleApplyAllFormulaSpellFixes(false, formulaSpellIssues)}
+                        className="ui-spell-status-warn inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider font-mono border cursor-pointer transition-all hover:opacity-90"
+                        title={uiLang === 'en'
+                          ? "Click to fix all detected academic spelling errors in this query, or hover highlighted words for individual suggestions"
+                          : "悬停公式中的高亮词可逐项替换，点击此处一键修正全部学术拼写错误"}
+                      >
+                        <SpellCheck2 size={11} />
+                        <span>
+                          {uiLang === 'en'
+                            ? `Fix Spelling (${formulaSpellIssues.length})`
+                            : `拼写警示 (${formulaSpellIssues.length}处 · 一键修正)`}
+                        </span>
+                      </button>
+                    )}
+
                     {/* Real-time Syntax Validation Indicator */}
                     {syntaxValidation && (
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider font-mono ${
@@ -3044,6 +3397,11 @@ export default function App() {
                       {result ? (
                         <HighlightedBooleanQuery
                           query={showMapped ? (effectiveA.fieldSpecificQuery || effectiveA.booleanQuery) : effectiveA.booleanQuery}
+                          spellCheck={isSpellCheckEnabled}
+                          ignoredWords={ignoredSpellSet}
+                          onApplySpellFix={(issue, replacement) => handleApplyFormulaSpellFix(false, issue, replacement)}
+                          onIgnoreSpellWord={handleIgnoreSpellWord}
+                          uiLang={uiLang}
                         />
                       ) : (
                         "Formula will appear here..."
@@ -3447,7 +3805,9 @@ export default function App() {
                                       : "line-through border-transparent text-content-muted bg-black/10"
                                   }`}
                                 >
-                                  <span className="text-xs uppercase tracking-tight truncate font-sans font-medium">{group.original}</span>
+                                  <span className="text-xs uppercase tracking-tight truncate font-sans font-medium">
+                                    {renderTermWithSpellCheck(group.original, isSemanticB)}
+                                  </span>
                                   <span className="text-[9px] font-mono opacity-80 uppercase shrink-0">
                                     {isWordSelected(isSemanticB, idx, group.original) ? "✓" : "✖"}
                                   </span>
@@ -3472,7 +3832,7 @@ export default function App() {
                                               : "bg-black/15 border-transparent text-content-muted line-through"
                                           }`}
                                         >
-                                          {syn}
+                                          {renderTermWithSpellCheck(syn, isSemanticB)}
                                         </button>
                                       );
                                     })
@@ -3500,7 +3860,7 @@ export default function App() {
                                               : "bg-black/15 border-transparent text-content-muted line-through"
                                           }`}
                                         >
-                                          {syn}
+                                          {renderTermWithSpellCheck(syn, isSemanticB)}
                                         </button>
                                       );
                                     })
@@ -4392,161 +4752,171 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Guided Search spotlight mask and popup card */}
-      {tourStep !== null && (
-        <div className="fixed inset-0 z-[990] pointer-events-none select-none">
-          <svg className="absolute inset-0 w-full h-full pointer-events-auto">
-            <defs>
-              <mask id="tour-spotlight-mask">
-                <rect width="100%" height="100%" fill="white" />
-                {tourBounds && (
-                  <rect
-                    x={tourBounds.left - 6}
-                    y={tourBounds.top - 6}
-                    width={tourBounds.width + 12}
-                    height={tourBounds.height + 12}
-                    rx={12}
-                    fill="black"
-                  />
-                )}
-              </mask>
-            </defs>
-            <rect
-              width="100%"
-              height="100%"
-              fill="#020617"
-              fillOpacity={0.78}
-              mask="url(#tour-spotlight-mask)"
-            />
-          </svg>
+      {/* Non-blocking Guided Search highlight ring (never intercepts clicks or scroll) */}
+      {tourStep !== null && tourBounds && (() => {
+        const headerBottom = 64;
+        const visibleTop = Math.max(headerBottom, tourBounds.top - 4);
+        const visibleLeft = Math.max(4, tourBounds.left - 4);
+        const visibleRight = Math.min(tourViewport.width - 4, tourBounds.left + tourBounds.width + 4);
+        const visibleBottom = Math.min(tourViewport.height - 4, tourBounds.top + tourBounds.height + 4);
+        const visibleWidth = visibleRight - visibleLeft;
+        const visibleHeight = visibleBottom - visibleTop;
 
-          {/* Animated breathing highlight border overlay around the cutout bounds */}
-          {tourBounds && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{
-                opacity: 1,
-                boxShadow: [
-                  "0 0 15px rgba(34,211,238,0.3)",
-                  "0 0 35px rgba(34,211,238,0.65)",
-                  "0 0 15px rgba(34,211,238,0.3)"
-                ],
-                borderColor: [
-                  "rgba(34,211,238,0.45)",
-                  "rgba(168,85,247,0.78)",
-                  "rgba(34,211,238,0.45)"
-                ]
-              }}
-              exit={{ opacity: 0 }}
-              className="fixed border-2 rounded-2xl pointer-events-none z-[995] transition-all duration-300"
-              style={{
-                top: tourBounds.top - 8,
-                left: tourBounds.left - 8,
-                width: tourBounds.width + 16,
-                height: tourBounds.height + 16,
-              }}
-              transition={{
-                duration: 2.2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-          )}
-        </div>
-      )}
+        if (visibleWidth <= 20 || visibleHeight <= 20) return null;
 
+        return (
+          <div
+            aria-hidden="true"
+            className="fixed border-2 border-cyan-400/75 rounded-2xl pointer-events-none z-40 transition-all duration-200 shadow-[0_0_0_2px_rgba(6,182,212,0.18),0_0_20px_rgba(6,182,212,0.22)]"
+            style={{
+              top: visibleTop,
+              left: visibleLeft,
+              width: visibleWidth,
+              height: visibleHeight
+            }}
+          />
+        );
+      })()}
+
+      {/* Non-modal, viewport-clamped floating Guide Card */}
       {tourStep !== null && (
         <AnimatePresence>
           <motion.div
-            initial={{ opacity: 0, scale: 0.94, y: 15 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 15 }}
-            className="fixed z-[1000] w-96 bg-slate-900/95 border border-cyan-500/30 rounded-2xl p-5 shadow-[0_25px_60px_rgba(0,0,0,0.85),0_0_40px_rgba(6,182,212,0.15)] backdrop-blur-xl flex flex-col gap-4 text-left pointer-events-auto"
+            key={`tour-card-${tourStep}`}
+            role="complementary"
+            aria-label={uiLang === 'en' ? "Interactive walkthrough" : "功能导览提示"}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.16 }}
+            className="ui-card fixed z-50 w-[min(22rem,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-y-auto bg-surface-elevated border border-cyan-500/40 rounded-2xl p-4 shadow-[0_18px_45px_rgba(0,0,0,0.45)] flex flex-col gap-3 text-left pointer-events-auto"
             style={(() => {
-              if (!tourBounds) {
+              const margin = 16;
+              const screenWidth = tourViewport.width;
+              const screenHeight = tourViewport.height;
+              const cardWidth = Math.min(352, screenWidth - margin * 2);
+              const estimatedHeight = Math.min(240, screenHeight - margin * 2);
+
+              // On compact/split windows or when target isn't mounted, dock safely at bottom-right
+              if (!tourBounds || screenWidth < 920 || screenHeight < 620) {
                 return {
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
+                  bottom: `${margin}px`,
+                  right: `${margin}px`
                 };
               }
-              
-              const tooltipWidth = 384; 
-              const tooltipHeight = 250;
-              const margin = 20;
-              const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
-              const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 768;
-              
-              let top = tourBounds.top + tourBounds.height + margin;
-              let left = tourBounds.left + tourBounds.width / 2 - tooltipWidth / 2;
-              
-              if (left < margin) left = margin;
-              if (left + tooltipWidth > screenWidth - margin) {
-                left = screenWidth - tooltipWidth - margin;
+
+              const headerGuard = 72;
+              let top: number | null = null;
+              let left: number | null = null;
+
+              const spaceBelow = screenHeight - (tourBounds.top + tourBounds.height) - margin;
+              const spaceAbove = tourBounds.top - headerGuard - margin;
+              const spaceRight = screenWidth - (tourBounds.left + tourBounds.width) - margin;
+              const spaceLeft = tourBounds.left - margin;
+
+              if (spaceBelow >= estimatedHeight) {
+                top = tourBounds.top + tourBounds.height + 12;
+                left = tourBounds.left + tourBounds.width / 2 - cardWidth / 2;
+              } else if (spaceAbove >= estimatedHeight) {
+                top = tourBounds.top - estimatedHeight - 12;
+                left = tourBounds.left + tourBounds.width / 2 - cardWidth / 2;
+              } else if (spaceRight >= cardWidth) {
+                left = tourBounds.left + tourBounds.width + 12;
+                top = tourBounds.top + tourBounds.height / 2 - estimatedHeight / 2;
+              } else if (spaceLeft >= cardWidth) {
+                left = tourBounds.left - cardWidth - 12;
+                top = tourBounds.top + tourBounds.height / 2 - estimatedHeight / 2;
+              } else {
+                // Target fills most of the viewport: dock cleanly at bottom-right so it never overflows
+                return {
+                  bottom: `${margin}px`,
+                  right: `${margin}px`
+                };
               }
-              
-              if (top + tooltipHeight > screenHeight - margin) {
-                top = tourBounds.top - tooltipHeight - margin;
-              }
-              if (top < margin) {
-                top = Math.max(margin, tourBounds.top + tourBounds.height / 2 - tooltipHeight / 2);
-                if (tourBounds.left > tooltipWidth + margin) {
-                  left = tourBounds.left - tooltipWidth - margin;
-                } else {
-                  left = tourBounds.left + tourBounds.width + margin;
-                }
-              }
-              
+
+              const clampedLeft = Math.max(margin, Math.min(left, screenWidth - cardWidth - margin));
+              const clampedTop = Math.max(headerGuard, Math.min(top, screenHeight - estimatedHeight - margin));
+
               return {
-                top: `${top}px`,
-                left: `${left}px`,
+                top: `${clampedTop}px`,
+                left: `${clampedLeft}px`
               };
             })()}
           >
             {/* Step header */}
-            <div className="flex justify-between items-center bg-black/20 -mx-5 -mt-5 px-5 py-3 border-b border-white/5 rounded-t-2xl select-none">
-              <span className="text-[10px] uppercase font-black tracking-widest text-cyan-400 font-mono">
-                Guided Walkthrough ({tourStep + 1} / 5)
-              </span>
-              <button
-                onClick={exitTour}
-                className="text-content-muted hover:text-white transition-colors p-1"
-                title="Exit Tour"
-              >
-                <X size={14} />
-              </button>
+            <div className="flex justify-between items-center pb-2.5 border-b border-white/10 select-none gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[10px] uppercase font-black tracking-widest text-cyan-400 font-mono truncate">
+                  {uiLang === 'en' ? `Guide (${tourStep + 1} / 5)` : `功能导览 (${tourStep + 1} / 5)`}
+                </span>
+                <span className="text-[9px] text-content-muted font-mono hidden sm:inline">
+                  {uiLang === 'en' ? "• Interactive" : "• 可直接操作页面"}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={exitTour}
+                  className="text-[10px] text-content-muted hover:text-content transition-colors px-1.5 py-0.5 rounded cursor-pointer font-mono"
+                >
+                  {uiLang === 'en' ? "Skip" : "跳过"}
+                </button>
+                <button
+                  type="button"
+                  onClick={exitTour}
+                  className="text-content-muted hover:text-content transition-colors p-1 rounded cursor-pointer"
+                  title={uiLang === 'en' ? "Close Guide (Esc)" : "关闭导览 (Esc)"}
+                  aria-label={uiLang === 'en' ? "Close Guide" : "关闭导览"}
+                >
+                  <X size={14} />
+                </button>
+              </div>
             </div>
 
             {/* Step body */}
-            <div className="space-y-2">
-              <h3 className="text-sm font-black text-white leading-tight uppercase flex items-center gap-2 select-none">
+            <div className="space-y-1.5">
+              <h3 className="text-xs sm:text-sm font-black text-content leading-snug flex items-center gap-2 select-none">
                 <span className="w-1.5 h-3 bg-cyan-500 rounded-full shrink-0"></span>
-                {TOUR_STEPS[tourStep].title}
+                <span>{TOUR_STEPS[tourStep].title}</span>
               </h3>
-              <p className="text-xs text-slate-300 leading-relaxed font-medium">
+              <p className="text-xs text-content-secondary leading-relaxed">
                 {TOUR_STEPS[tourStep].desc}
               </p>
+              {!tourBounds && (
+                <p className="text-[10px] text-content-muted font-mono">
+                  {uiLang === 'en'
+                    ? "Target section is currently hidden in this view; you can continue using the workspace normally."
+                    : "当前视图未展开该区域，您可直接正常操作页面或继续查看下一步。"}
+                </p>
+              )}
             </div>
 
             {/* Progress dots & Actions */}
-            <div className="flex justify-between items-center mt-2 border-t border-white/5 pt-3 select-none">
-              <div className="flex gap-1.5">
+            <div className="flex justify-between items-center pt-2.5 border-t border-white/10 select-none gap-2">
+              <div className="flex items-center gap-0.5">
                 {[0, 1, 2, 3, 4].map((i) => (
                   <button
+                    type="button"
                     key={i}
+                    aria-label={uiLang === 'en' ? `Go to step ${i + 1}` : `跳转到第 ${i + 1} 步`}
                     onClick={() => setTourStep(i)}
-                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      tourStep === i ? 'w-4 bg-cyan-400' : 'bg-slate-700 hover:bg-slate-500'
-                    }`}
-                  />
+                    className="flex items-center justify-center rounded-full cursor-pointer hover:bg-white/5 transition-colors"
+                  >
+                    <span
+                      className={`h-1.5 rounded-full transition-all duration-200 ${
+                        tourStep === i ? 'w-4 bg-cyan-400' : 'w-1.5 bg-slate-500'
+                      }`}
+                    />
+                  </button>
                 ))}
               </div>
 
               <div className="flex gap-2">
                 {tourStep > 0 && (
                   <button
+                    type="button"
                     onClick={() => setTourStep(tourStep - 1)}
-                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 font-bold rounded-lg text-[10px] tracking-wider uppercase transition-all border border-white/5 cursor-pointer"
+                    className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-content-secondary font-bold rounded-lg text-[10px] tracking-wider uppercase transition-all border border-white/10 cursor-pointer"
                   >
                     {uiLang === 'zh' || i18n.language === 'mix' ? "上一步" : "Prev"}
                   </button>
@@ -4554,18 +4924,20 @@ export default function App() {
                 
                 {tourStep < 4 ? (
                   <button
+                    type="button"
                     onClick={() => setTourStep(tourStep + 1)}
-                    className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-lg text-[10px] tracking-wider uppercase transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] flex items-center gap-1 group cursor-pointer"
+                    className="ui-button-primary px-3.5 py-1 font-black rounded-lg text-[10px] tracking-wider uppercase transition-all flex items-center gap-1 group cursor-pointer"
                   >
                     {uiLang === 'zh' || i18n.language === 'mix' ? "下一步" : "Next"}
                     <span className="translate-x-0 group-hover:translate-x-0.5 transition-transform">→</span>
                   </button>
                 ) : (
                   <button
+                    type="button"
                     onClick={exitTour}
-                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-lg text-[10px] tracking-widest uppercase transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] cursor-pointer"
+                    className="ui-button-primary px-3.5 py-1 font-black rounded-lg text-[10px] tracking-widest uppercase transition-all cursor-pointer"
                   >
-                    {uiLang === 'zh' || i18n.language === 'mix' ? "完成探索" : "Finish"}
+                    {uiLang === 'zh' || i18n.language === 'mix' ? "完成" : "Done"}
                   </button>
                 )}
               </div>
