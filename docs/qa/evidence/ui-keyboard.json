@@ -1,0 +1,51 @@
+{
+  "time": "2026-11-17T00:34:19.438Z",
+  "checks": [
+    {
+      "name": "Skip navigation is first focus target and focuses main",
+      "status": "PASS"
+    },
+    {
+      "name": "Configuration dialog focus entry, forward/reverse trap, Escape and return",
+      "status": "PASS"
+    },
+    {
+      "name": "Keyboard focus indicator has visible outline",
+      "status": "PASS"
+    },
+    {
+      "name": "Query history: focus entry, trap, Escape and return",
+      "status": "PASS"
+    },
+    {
+      "name": "Offline installation: focus entry, trap, Escape and return",
+      "status": "PASS"
+    },
+    {
+      "name": "dark: 200% root font with 640px reflow",
+      "status": "PASS",
+      "geometry": {
+        "viewport": 640,
+        "document": 640,
+        "overflow": []
+      }
+    },
+    {
+      "name": "light: 200% root font with 640px reflow",
+      "status": "PASS",
+      "geometry": {
+        "viewport": 640,
+        "document": 640,
+        "overflow": []
+      }
+    }
+  ],
+  "limits": [
+    "Root font 200% plus 640px reflow scenario; not OS magnification, screen-reader or full-browser zoom certification."
+  ],
+  "lastGeometry": {
+    "viewport": 640,
+    "document": 640,
+    "overflow": []
+  }
+}

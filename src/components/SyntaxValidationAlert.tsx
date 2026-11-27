@@ -44,7 +44,7 @@ export default function SyntaxValidationAlert({
   // If valid with zero warnings, show a sleek positive reassurance banner or pill
   if (isValid && warnings.length === 0) {
     return (
-      <div className={`flex flex-col gap-1 ${className}`}>
+      <div className={`ui-validation ui-validation-success flex flex-col gap-1 ${className}`}>
         {/* Subtle green assurance line */}
         <div className="h-0.5 w-full bg-gradient-to-r from-emerald-500/10 via-emerald-500/40 to-emerald-500/10 rounded-full" />
         
@@ -57,7 +57,7 @@ export default function SyntaxValidationAlert({
             </span>
           </div>
 
-          <div className="flex items-center gap-2 text-[10px] text-slate-400">
+          <div className="flex items-center gap-2 text-[10px] text-content-secondary">
             <span>
               {isZh ? "括号:" : "Parens:"} <strong className="text-emerald-300 font-bold">{stats.openParens}/{stats.closeParens}</strong>
             </span>
@@ -67,7 +67,7 @@ export default function SyntaxValidationAlert({
             </span>
           </div>
         </div>
-        <p className="px-3 text-[10px] leading-relaxed text-slate-500">
+        <p className="px-3 text-[10px] leading-relaxed text-content-muted">
           {isZh
             ? "基础结构检查通过不等于数据库语法认证；正式检索前请在目标平台验证。"
             : "A structural pass is not database syntax certification; verify the query on the target platform."}
@@ -77,13 +77,13 @@ export default function SyntaxValidationAlert({
   }
 
   return (
-    <div className={`flex flex-col gap-2 ${className}`}>
+    <div className={`ui-validation ${errors.length ? 'ui-validation-error' : 'ui-validation-warning'} flex flex-col gap-2 ${className}`}>
       {/* 醒目的红色线条高亮提示 (Eye-catching red warning line with pulsing glow) */}
       <div className="relative w-full">
         <div 
-          className="h-1.5 w-full bg-gradient-to-r from-rose-600 via-red-500 to-rose-600 rounded-full shadow-[0_0_15px_rgba(244,63,94,0.7)] animate-pulse"
+          className="ui-validation-stripe h-1.5 w-full bg-gradient-to-r from-rose-600 via-red-500 to-rose-600 rounded-full shadow-[0_0_15px_rgba(244,63,94,0.7)] animate-pulse"
         />
-        <div className="absolute -top-1 left-1/2 -translate-x-1/2 px-2.5 py-0.2 bg-rose-600 text-white font-black font-mono text-[9px] uppercase tracking-widest rounded-full shadow-md flex items-center gap-1">
+        <div className="ui-validation-badge absolute -top-1 left-1/2 -translate-x-1/2 px-2.5 py-0.2 bg-rose-600 text-white font-black font-mono text-[9px] uppercase tracking-widest rounded-full shadow-md flex items-center gap-1">
           <ShieldAlert size={10} />
           <span>{isZh ? "结构检查警示" : "STRUCTURE CHECK"}</span>
         </div>
@@ -120,7 +120,7 @@ export default function SyntaxValidationAlert({
               <button
                 type="button"
                 onClick={() => onApplyFix(fixedQuery)}
-                className="px-3 py-1 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-xs rounded-lg shadow-[0_0_10px_rgba(244,63,94,0.4)] transition-all flex items-center gap-1.5 cursor-pointer"
+                className="ui-button-primary px-3 py-1 text-white font-bold text-xs rounded-lg shadow-[0_0_10px_rgba(244,63,94,0.4)] transition-all flex items-center gap-1.5 cursor-pointer"
                 title={isZh ? "仅规范化全角标点，不会改写检索逻辑" : "Normalize punctuation only; Boolean logic is preserved"}
               >
                 <Wrench size={12} />
@@ -131,7 +131,7 @@ export default function SyntaxValidationAlert({
             <button
               type="button"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="text-slate-400 hover:text-white p-1 rounded hover:bg-white/5 transition-colors cursor-pointer"
+              className="text-content-secondary hover:text-white p-1 rounded hover:bg-white/5 transition-colors cursor-pointer"
               title={isExpanded ? "收起详情" : "展开详情"}
             >
               {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -154,7 +154,7 @@ export default function SyntaxValidationAlert({
                       {err.title}
                     </span>
                     {err.snippet && (
-                      <code className="px-1.5 py-0.2 bg-rose-950/60 border border-rose-500/40 text-rose-200 text-[10px] font-mono rounded">
+                      <code className="ui-validation-snippet ui-validation-snippet-error px-1.5 py-0.2 bg-rose-950/60 border border-rose-500/40 text-rose-200 text-[10px] font-mono rounded">
                         {err.snippet}
                       </code>
                     )}
@@ -163,7 +163,7 @@ export default function SyntaxValidationAlert({
                     {err.message}
                   </p>
                   {err.fixSuggestion && (
-                    <p className="text-[10px] text-amber-300/90 font-mono flex items-center gap-1">
+                    <p className="text-[10px] text-status-warning font-mono flex items-center gap-1">
                       <Sparkles size={10} className="text-amber-400" />
                       <span>{isZh ? "建议修复:" : "Suggestion:"} {err.fixSuggestion}</span>
                     </p>
@@ -184,7 +184,7 @@ export default function SyntaxValidationAlert({
                       {warn.title}
                     </span>
                     {warn.snippet && (
-                      <code className="px-1.5 py-0.2 bg-amber-950/60 border border-amber-500/40 text-amber-200 text-[10px] font-mono rounded">
+                      <code className="ui-validation-snippet ui-validation-snippet-warning px-1.5 py-0.2 bg-amber-950/60 border border-amber-500/40 text-amber-200 text-[10px] font-mono rounded">
                         {warn.snippet}
                       </code>
                     )}
@@ -193,7 +193,7 @@ export default function SyntaxValidationAlert({
                     {warn.message}
                   </p>
                   {warn.fixSuggestion && (
-                    <p className="text-[10px] text-amber-300/80 font-mono flex items-center gap-1">
+                    <p className="text-[10px] text-status-warning font-mono flex items-center gap-1">
                       <Sparkles size={10} className="text-amber-400" />
                       <span>{isZh ? "建议:" : "Tip:"} {warn.fixSuggestion}</span>
                     </p>
@@ -214,7 +214,7 @@ export default function SyntaxValidationAlert({
                     <button
                       type="button"
                       onClick={handleCopyFix}
-                      className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/10 transition-colors cursor-pointer"
+                      className="text-[10px] text-content-secondary hover:text-white flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/10 transition-colors cursor-pointer"
                     >
                       {copiedFix ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} />}
                       <span>{copiedFix ? (isZh ? "已复制" : "Copied") : (isZh ? "复制规范化结果" : "Copy")}</span>
@@ -230,7 +230,7 @@ export default function SyntaxValidationAlert({
                     )}
                   </div>
                 </div>
-                <div className="text-[11px] font-mono text-emerald-200/90 bg-black/50 p-2 rounded border border-white/5 break-words whitespace-pre-wrap select-all">
+                <div className="ui-normalized-query text-[11px] font-mono p-2 rounded border border-white/5 break-words whitespace-pre-wrap select-all">
                   {fixedQuery}
                 </div>
               </div>

@@ -1,0 +1,114 @@
+{
+  "Dark": [
+    {
+      "foreground": "text-primary",
+      "background": "surface",
+      "ratio": 15.79,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "text-secondary",
+      "background": "surface",
+      "ratio": 10.65,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "text-muted",
+      "background": "surface",
+      "ratio": 8.03,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "primary",
+      "background": "brand-surface",
+      "ratio": 7.87,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "success",
+      "background": "success-surface",
+      "ratio": 8.51,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "warning",
+      "background": "warning-surface",
+      "ratio": 9.09,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "error",
+      "background": "error-surface",
+      "ratio": 7.74,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "on-primary",
+      "background": "primary-solid",
+      "ratio": 5.32,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "border",
+      "background": "surface",
+      "ratio": 3.61,
+      "minimum": 3
+    }
+  ],
+  "Light": [
+    {
+      "foreground": "text-primary",
+      "background": "surface",
+      "ratio": 15.67,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "text-secondary",
+      "background": "surface",
+      "ratio": 7.99,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "text-muted",
+      "background": "surface",
+      "ratio": 5.8,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "primary",
+      "background": "brand-surface",
+      "ratio": 6.13,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "success",
+      "background": "success-surface",
+      "ratio": 6.46,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "warning",
+      "background": "warning-surface",
+      "ratio": 6.5,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "error",
+      "background": "error-surface",
+      "ratio": 6.64,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "on-primary",
+      "background": "primary-solid",
+      "ratio": 6.1,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "border",
+      "background": "surface",
+      "ratio": 3.67,
+      "minimum": 3
+    }
+  ]
+}

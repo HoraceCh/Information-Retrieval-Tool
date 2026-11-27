@@ -15,7 +15,7 @@ interface VisualQueryTreeProps {
   selectedWords: Record<string, boolean>;
   onToggleWord: (isModelB: boolean, groupIdx: number, word: string) => void;
   operatorStyle: "OR" | "Space";
-  uiLang: "zh" | "mix";
+  uiLang: "zh" | "mix" | "en";
 }
 
 export default function VisualQueryTree({
@@ -139,7 +139,7 @@ export default function VisualQueryTree({
   const nodes = d3Tree ? d3Tree.descendants() : [];
 
   return (
-    <div className="w-full bg-slate-950/45 border border-cyan-500/10 rounded-xl p-4 mt-4 animate-fade-in text-left">
+    <div className="ui-card w-full bg-surface border border-cyan-500/10 rounded-xl p-4 mt-4 animate-fade-in text-left">
       {/* Visual Header */}
       <div className="flex justify-between items-center mb-3 border-b border-white/5 pb-2">
         <div className="flex items-center gap-1.5">
@@ -148,13 +148,13 @@ export default function VisualQueryTree({
             {uiLang === "zh" || uiLang === "mix" ? "布尔逻辑树状图" : "BULLET LOGIC VISUAL TREE"}
           </span>
         </div>
-        <div className="text-[9px] text-slate-500 flex items-center gap-1 font-mono">
+        <div className="text-[9px] text-content-muted flex items-center gap-1 font-mono">
           <span>{uiLang === "zh" || uiLang === "mix" ? "💡 点击叶子节点可直接剔除对应同义词" : "💡 Click leaf synonym to exclude it"}</span>
         </div>
       </div>
 
       {/* SVG Canvas with aspect ratio container */}
-      <div className="w-full overflow-x-auto custom-scrollbar">
+      <div tabIndex={0} role="region" aria-label={uiLang === "en" ? "Scrollable Boolean query tree" : "可横向滚动的布尔检索树"} className="w-full overflow-x-auto custom-scrollbar">
         <div className="min-w-[600px] flex justify-center">
           <svg
             width="100%"
@@ -284,6 +284,15 @@ export default function VisualQueryTree({
                     <g 
                       key={`node-${node.data.id || i}`} 
                       transform={`translate(${cx}, ${cy})`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={uiLang === "en" ? `Exclude synonym ${label}` : `排除同义词 ${label}`}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          onToggleWord(isModelB, groupIdx, label);
+                        }
+                      }}
                       onClick={() => onToggleWord(isModelB, groupIdx, label)}
                       className="cursor-pointer group select-none"
                     >

@@ -39,6 +39,7 @@ import {
   TrendingUp,
   GitCommit,
   ShieldAlert,
+  AlertTriangle,
   CheckCircle2,
   Wrench,
   Cpu,
@@ -75,7 +76,7 @@ const UI_STRINGS = {
     generate: "GENERATE_QUERY",
     waitingInput: "Waiting for input...",
     formulaTitle: "Search Formula",
-    processedWith: "PROCESSED_WITH_GEMINI_AI // CONFIDENCE: HIGH",
+    processedWith: "检索前请在目标数据库复核 / Verify before search",
     copyCode: "COPY_TO_CLIPBOARD",
     copied: "COPIED",
     semanticMap: "Semantic Map",
@@ -84,7 +85,7 @@ const UI_STRINGS = {
     insightTitle: "Logic Insight",
     insightDesc: "分析用户的检索语境，提取其中的学术主轴，并利用大规模语义语言模型针对性地补充相关领域的高频同义词与术语，以极大地提升检索覆盖面。",
     recallBoost: "RECALL_BOOST: GAIN_ENHANCED",
-    sysOpt: "SYSTEM_RESOURCES_OPTIMIZED",
+    sysOpt: "QUERY WORKSPACE",
     processing: "PROCESSING...",
     genComplete: "GEN_COMPLETE",
     waitInit: "WAIT_INIT",
@@ -199,7 +200,7 @@ const UI_STRINGS = {
     generate: "GENERATE QUERY",
     waitingInput: "Waiting for input...",
     formulaTitle: "Search Formula",
-    processedWith: "PROCESSED BY AI // CONFIDENCE: HIGH",
+    processedWith: "VERIFY ON TARGET DATABASE",
     copyCode: "COPY TO CLIPBOARD",
     copied: "COPIED",
     semanticMap: "Semantic Map",
@@ -1784,7 +1785,7 @@ export default function App() {
             <span className={`text-[10px] font-extrabold uppercase tracking-wider ${isModelA ? 'text-cyan-300' : 'text-purple-300'}`}>
               {title}
             </span>
-            <span className="text-[10px] text-slate-400 font-mono" title={modelName}>
+            <span className="text-[10px] text-content-secondary font-mono" title={modelName}>
               ({modelName})
             </span>
           </div>
@@ -1829,7 +1830,7 @@ export default function App() {
               </span>
             )}
             {mResp?._usage?.totalTokens && (
-              <span className="inline-flex items-center px-1.5 py-0.5 bg-white/5 border border-white/10 text-slate-400 text-[8px] rounded-md font-bold font-mono">
+              <span className="inline-flex items-center px-1.5 py-0.5 bg-white/5 border border-white/10 text-content-secondary text-[8px] rounded-md font-bold font-mono">
                 {mResp._usage.totalTokens} Tokens
               </span>
             )}
@@ -1850,7 +1851,7 @@ export default function App() {
 
         {/* Content */}
         {isLoading ? (
-          <div className="flex-1 flex flex-col justify-center items-center py-8 text-slate-500 text-xs gap-3">
+          <div className="flex-1 flex flex-col justify-center items-center py-8 text-content-muted text-xs gap-3">
             <div className="w-5 h-5 border-2 border-white/20 border-t-cyan-400 rounded-full animate-spin" />
             <span className="font-mono animate-pulse uppercase tracking-widest text-[10px]">
               {uiLang === 'zh' || i18n.language === 'mix' ? "大模型并行求解中..." : "SOLVING DYNAMIC RETRIEVAL..."}
@@ -1869,7 +1870,7 @@ export default function App() {
                   minHeight: '110px',
                   maxHeight: '260px'
                 }}
-                className={`formula-code-box font-mono text-xs leading-relaxed tracking-normal overflow-y-auto custom-scrollbar select-all flex-1 p-3.5 sm:p-4 rounded-xl border whitespace-pre-wrap break-words transition-all ${
+                className={`ui-code-editor formula-code-box font-mono text-xs leading-relaxed tracking-normal overflow-y-auto custom-scrollbar select-all flex-1 p-3.5 sm:p-4 rounded-xl border whitespace-pre-wrap break-words transition-all ${
                   cardValidation && !cardValidation.isValid
                     ? 'border-rose-500/60 shadow-[0_0_12px_rgba(244,63,94,0.2)] ring-1 ring-rose-500/30'
                     : 'border-white/10 [.theme-light_&]:border-slate-300'
@@ -1881,7 +1882,7 @@ export default function App() {
               {/* Copy Overlay Button */}
               <button 
                 onClick={handleCardCopy}
-                className="absolute right-2 text-slate-400 hover:text-white bottom-2 p-1.5 bg-slate-800/80 hover:bg-slate-750 border border-white/10 rounded-lg transition-all cursor-pointer shadow"
+                className="absolute right-2 text-content-secondary hover:text-white bottom-2 p-1.5 bg-slate-800/80 hover:bg-slate-750 border border-white/10 rounded-lg transition-all cursor-pointer shadow"
                 title="Copy code"
               >
                 {cardCopied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
@@ -1915,7 +1916,7 @@ export default function App() {
             {mResp.explanation && (
               <div className="bg-black/25 rounded-lg p-2.5 border border-white/5 flex flex-col gap-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase select-none font-mono">
+                  <span className="text-[9px] font-bold text-content-secondary uppercase select-none font-mono">
                     STRATEGY / 检索逻辑策略:
                   </span>
                   <button
@@ -1935,13 +1936,13 @@ export default function App() {
             {/* Field Mappings */}
             {hasMapping && (
               <div className="flex flex-col gap-1.5 mt-1 border-t border-white/5 pt-2 custom-scrollbar overflow-y-auto max-h-[220px]">
-                <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Field mappings / 字段对应映射:</span>
+                <span className="text-[9px] uppercase font-bold text-content-secondary tracking-wider">Field mappings / 字段对应映射:</span>
                 <div className="space-y-1.5">
                   {mResp.schemaMapping.map((map: any, i: number) => (
                     <div key={i} className="flex flex-wrap items-start gap-1.5 text-[10px] bg-white/5 px-2.5 py-1.5 rounded">
                       <span className="text-[9px] text-emerald-400 font-mono bg-emerald-400/10 border border-emerald-500/20 px-1.5 py-0.5 rounded shrink-0">[{map.field}]</span>
                       <span className="text-slate-200 font-medium shrink-0">"{map.mappedConcept}"</span>
-                      <span className="text-slate-400 text-[9px] flex-1 break-words">({map.reason})</span>
+                      <span className="text-content-secondary text-[9px] flex-1 break-words">({map.reason})</span>
                     </div>
                   ))}
                 </div>
@@ -1992,10 +1993,60 @@ export default function App() {
 
   const isOfflineMode = !isOnline || consecutiveFailures >= 2;
 
+  // Dialogs keep keyboard navigation inside the active surface and restore the
+  // launcher's focus on close. No visual-only overlay is treated as a dialog.
+  useEffect(() => {
+    if (!isConfigOpen && !isStatsOpen && !isHistoryOpen && !isQuickWhitelistOpen && !showInstallerModal) return;
+    const dialogs = document.querySelectorAll<HTMLElement>('.ui-dialog');
+    const dialog = dialogs[dialogs.length - 1];
+    if (!dialog) return;
+    const launcher = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusables = () => Array.from(dialog.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]'
+    )).filter(element => element.getClientRects().length > 0);
+    const shell = document.querySelector('.app-shell');
+    const background = shell ? Array.from(shell.children).filter((child): child is HTMLElement =>
+      child instanceof HTMLElement && !child.contains(dialog)
+    ) : [];
+    const priorInert = background.map(element => element.inert);
+    background.forEach(element => { element.inert = true; });
+    const priorOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    (focusables()[0] || dialog).focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (showInstallerModal) setShowInstallerModal(false);
+        else if (isQuickWhitelistOpen) setIsQuickWhitelistOpen(false);
+        else if (isHistoryOpen) setIsHistoryOpen(false);
+        else if (isConfigOpen) setIsConfigOpen(false);
+        else setIsStatsOpen(false);
+      }
+      if (event.key !== 'Tab') return;
+      const items = focusables();
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (!first) { event.preventDefault(); dialog.focus(); return; }
+      if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      background.forEach((element, index) => { element.inert = priorInert[index]; });
+      document.body.style.overflow = priorOverflow;
+      launcher?.focus();
+    };
+  }, [isConfigOpen, isStatsOpen, isHistoryOpen, isQuickWhitelistOpen, showInstallerModal]);
+
   return (
-    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 overflow-x-hidden ${theme === 'light' ? 'theme-light bg-[#f8fafc] text-slate-900' : 'bg-[#05070A] text-slate-100'}`}>
+    <div className={`app-shell min-h-screen flex flex-col font-sans transition-colors duration-200 overflow-x-hidden ${theme === 'light' ? 'theme-light bg-[#f8fafc] text-slate-900' : 'bg-canvas text-slate-100'}`}>
+      <a href="#main-content" className="ui-skip-link">{uiLang === "en" ? "Skip to main content" : "跳至主要内容"}</a>
       {/* Header Section */}
-      <header className="flex items-center justify-between border-b border-white/10 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 shrink-0 bg-[#05070A]/80 backdrop-blur-sm z-50 gap-2 sm:gap-4 transition-colors relative">
+      <header className="ui-header flex items-center justify-between border-b border-white/10 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 shrink-0 bg-surface backdrop-blur-sm z-50 gap-2 sm:gap-4 transition-colors relative">
         {/* Brand Logo & Title */}
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center border border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.3)] shrink-0">
@@ -2004,9 +2055,9 @@ export default function App() {
           <div className="min-w-0">
             <h1 className="text-sm sm:text-base md:text-xl font-bold tracking-tight text-white uppercase flex items-center flex-wrap gap-1 sm:gap-1.5 truncate">
               <span className="truncate">{t('appTitle')}</span>
-              <span className="text-cyan-500 text-[9px] sm:text-[10px] font-mono opacity-70 shrink-0">v2.4.0</span>
+              <span className="text-brand text-[9px] sm:text-[10px] font-mono shrink-0">v2.4.0</span>
             </h1>
-            <p className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-widest leading-none hidden xs:block truncate">
+            <p className="text-[9px] sm:text-[10px] text-content-secondary uppercase tracking-widest leading-none hidden xs:block truncate">
               {t('appSubtitle')}
             </p>
           </div>
@@ -2045,13 +2096,25 @@ export default function App() {
                 e.currentTarget.querySelector('.dropdown-menu')?.classList.toggle('-translate-y-2');
               }}
               tabIndex={0}
+              onKeyDown={(event) => {
+                const menu = event.currentTarget.querySelector('.dropdown-menu, .provider-dropdown');
+                if (event.key === 'Escape') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  menu?.classList.add('hidden', 'opacity-0', '-translate-y-2');
+                  event.currentTarget.focus();
+                } else if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                  event.preventDefault();
+                  event.currentTarget.click();
+                }
+              }}
               onBlur={(e) => {
                 if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                   e.currentTarget.querySelector('.dropdown-menu')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
                 }
               }}
             >
-              <Languages size={13} className="text-slate-400 group-hover:text-cyan-400 transition-colors" />
+              <Languages size={13} className="text-content-secondary group-hover:text-cyan-400 transition-colors" />
               <div className="text-xs font-bold text-slate-300 group-hover:text-white pr-4 select-none relative z-10 pointer-events-none">
                 {uiLang === 'mix' ? '中文/EN' : uiLang === 'zh' ? '简体中文' : 'English'}
               </div>
@@ -2060,7 +2123,7 @@ export default function App() {
               </div>
 
               {/* Custom Dropdown Menu */}
-              <div className="dropdown-menu hidden opacity-0 -translate-y-2 transition-all duration-200 absolute top-full right-0 mt-2.5 bg-[#0a0f18] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] min-w-full w-max">
+              <div className="dropdown-menu hidden opacity-0 -translate-y-2 transition-all duration-200 absolute top-full right-0 mt-2.5 bg-surface-elevated border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] min-w-full w-max">
                 <div className="flex flex-col py-1">
                   <button
                     onClick={(e) => {
@@ -2114,7 +2177,7 @@ export default function App() {
             {/* Quick Help/Offline Installer Corner Button */}
             <button
               onClick={() => setShowInstallerModal(true)}
-              className="p-2 bg-slate-800/40 hover:bg-cyan-500/10 text-slate-400 hover:text-cyan-400 border border-white/5 hover:border-cyan-500/30 rounded-xl transition-all relative group flex items-center justify-center shrink-0 cursor-pointer"
+              className="p-2 bg-slate-800/40 hover:bg-cyan-500/10 text-content-secondary hover:text-cyan-400 border border-white/5 hover:border-cyan-500/30 rounded-xl transition-all relative group flex items-center justify-center shrink-0 cursor-pointer"
               title="一键离线安装与本地部署说明 (Offline & Installer)"
             >
               <Info size={14} />
@@ -2127,6 +2190,7 @@ export default function App() {
                 setIsConfigOpen(true);
               }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800/40 hover:bg-slate-700/60 text-slate-300 hover:text-cyan-300 border border-white/5 hover:border-cyan-500/30 rounded-xl transition-all cursor-pointer shrink-0 font-mono text-xs font-bold"
+              aria-label="Settings"
               title="大模型API配置、检索模板管理与AI优化轨迹"
             >
               <Settings size={13} className="text-cyan-400" />
@@ -2137,6 +2201,7 @@ export default function App() {
             <button
               onClick={() => setIsHistoryOpen(true)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800/40 hover:bg-slate-700/60 text-slate-300 hover:text-cyan-300 border border-white/5 hover:border-cyan-500/30 rounded-xl transition-all cursor-pointer shrink-0 font-mono text-xs font-bold"
+              aria-label="History"
               title="查看历史检索式生成记录"
             >
               <History size={13} className="text-cyan-400" />
@@ -2165,6 +2230,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={toggleTheme}
+                aria-label={theme === "dark" ? "Switch to Light Theme" : "Switch to Dark Theme"}
                 className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer select-none border ${
                   theme === 'light'
                     ? 'bg-amber-500/20 text-amber-800 border-amber-500/40 hover:bg-amber-500/30 shadow-sm'
@@ -2269,7 +2335,7 @@ export default function App() {
 
             {/* Streamlined System Menu Popover */}
             {isSystemMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-[#0a0f18] border border-cyan-500/30 rounded-2xl shadow-2xl overflow-hidden z-[130] animate-in fade-in slide-in-from-top-2 duration-150 p-3 flex flex-col gap-3 font-sans">
+              <div className="absolute right-0 top-full mt-2 w-72 bg-surface-elevated border border-cyan-500/30 rounded-2xl shadow-2xl overflow-hidden z-[130] animate-in fade-in slide-in-from-top-2 duration-150 p-3 flex flex-col gap-3 font-sans">
                 {/* Header within popover */}
                 <div className="flex items-center justify-between pb-2 border-b border-white/10">
                   <div className="flex items-center gap-1.5">
@@ -2291,7 +2357,7 @@ export default function App() {
 
                 {/* Section 1: Appearance Theme Switcher */}
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-mono uppercase font-bold text-slate-400">
+                  <span className="text-[10px] font-mono uppercase font-bold text-content-secondary">
                     {uiLang === 'zh' || i18n.language === 'mix' ? "🎨 主题外观 (Theme)" : "🎨 Appearance"}
                   </span>
                   <div className="grid grid-cols-2 gap-1.5 p-1 bg-black/40 rounded-xl border border-white/5">
@@ -2303,10 +2369,10 @@ export default function App() {
                       className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                         theme === 'dark'
                           ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                          : 'text-slate-400 hover:text-white border border-transparent'
+                          : 'text-content-secondary hover:text-white border border-transparent'
                       }`}
                     >
-                      <Moon size={13} className={theme === 'dark' ? 'text-cyan-400' : 'text-slate-500'} />
+                      <Moon size={13} className={theme === 'dark' ? 'text-cyan-400' : 'text-content-muted'} />
                       <span>{uiLang === 'zh' || i18n.language === 'mix' ? "深色科技" : "Dark"}</span>
                     </button>
 
@@ -2318,10 +2384,10 @@ export default function App() {
                       className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                         theme === 'light'
                           ? 'bg-amber-500/25 text-amber-300 border border-amber-500/50 shadow-sm'
-                          : 'text-slate-400 hover:text-white border border-transparent'
+                          : 'text-content-secondary hover:text-white border border-transparent'
                       }`}
                     >
-                      <Sun size={13} className={theme === 'light' ? 'text-amber-400' : 'text-slate-500'} />
+                      <Sun size={13} className={theme === 'light' ? 'text-amber-400' : 'text-content-muted'} />
                       <span>{uiLang === 'zh' || i18n.language === 'mix' ? "浅色高亮" : "Light"}</span>
                     </button>
                   </div>
@@ -2329,7 +2395,7 @@ export default function App() {
 
                 {/* Section 2: Interface Language Selection */}
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-mono uppercase font-bold text-slate-400">
+                  <span className="text-[10px] font-mono uppercase font-bold text-content-secondary">
                     {uiLang === 'zh' || i18n.language === 'mix' ? "🌐 界面语言 (Language)" : "🌐 Language"}
                   </span>
                   <div className="flex flex-col gap-1 bg-black/40 rounded-xl p-1 border border-white/5">
@@ -2361,7 +2427,7 @@ export default function App() {
 
                 {/* Section: Real-time Performance Metrics Overview */}
                 <div className="flex flex-col gap-1.5 pt-1 border-t border-white/10">
-                  <span className="text-[10px] font-mono uppercase font-bold text-slate-400 flex items-center justify-between">
+                  <span className="text-[10px] font-mono uppercase font-bold text-content-secondary flex items-center justify-between">
                     <span>⚡ 实时性能指标 (Metrics)</span>
                     {results[activeIndex] && (
                       <span className="text-[9px] text-cyan-400 font-mono">
@@ -2371,11 +2437,11 @@ export default function App() {
                   </span>
                   <div className="p-2.5 bg-black/40 rounded-xl border border-white/5 flex flex-col gap-1.5 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400 text-[10px]">生效模型:</span>
+                      <span className="text-content-secondary text-[10px]">生效模型:</span>
                       <span className="text-white font-mono font-bold text-[11px]">{results[activeIndex]?._modelUsed || activeModel}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400 text-[10px]">响应耗时 / Tokens:</span>
+                      <span className="text-content-secondary text-[10px]">响应耗时 / Tokens:</span>
                       <span className="text-cyan-300 font-mono font-bold text-[11px]">
                         {results[activeIndex] ? (
                           results[activeIndex]._fromCache 
@@ -2401,7 +2467,7 @@ export default function App() {
                     <Settings size={14} className="text-cyan-400 shrink-0" />
                     <div className="flex flex-col">
                       <span>{t('settings')} / API配置</span>
-                      <span className="text-[9px] text-slate-400 font-normal">模型提供商、自定义API与模板库</span>
+                      <span className="text-[9px] text-content-secondary font-normal">模型提供商、自定义API与模板库</span>
                     </div>
                   </button>
 
@@ -2416,7 +2482,7 @@ export default function App() {
                     <History size={14} className="text-cyan-400 shrink-0" />
                     <div className="flex flex-col">
                       <span>{t('historyButton')}</span>
-                      <span className="text-[9px] text-slate-400 font-normal">浏览与恢复近期生成的布尔检索式</span>
+                      <span className="text-[9px] text-content-secondary font-normal">浏览与恢复近期生成的布尔检索式</span>
                     </div>
                   </button>
 
@@ -2431,7 +2497,7 @@ export default function App() {
                     <Info size={14} className="text-cyan-400 shrink-0" />
                     <div className="flex flex-col">
                       <span>离线安装与本地部署</span>
-                      <span className="text-[9px] text-slate-400 font-normal">单文件离线生成与离线运行指引</span>
+                      <span className="text-[9px] text-content-secondary font-normal">单文件离线生成与离线运行指引</span>
                     </div>
                   </button>
                 </div>
@@ -2442,27 +2508,29 @@ export default function App() {
       </header>
 
       {/* Interface Tab Selector */}
-      <div className={`flex border-b px-3 sm:px-6 lg:px-8 py-2.5 gap-2 sm:gap-3 shrink-0 justify-start items-center z-40 overflow-x-auto scrollbar-hide ${theme === 'light' ? 'bg-white border-slate-200' : 'border-white/10 bg-[#05070A]/95'}`}>
+      <nav aria-label="Main navigation" className={`ui-navigation flex border-b px-3 sm:px-6 lg:px-8 py-2.5 gap-2 sm:gap-3 shrink-0 justify-start items-center z-40 overflow-x-auto scrollbar-hide ${theme === 'light' ? 'bg-white border-slate-200' : 'border-white/10 bg-canvas/95'}`}>
         <button
           onClick={() => setActiveTab('ai')}
+          aria-current={activeTab === 'ai' ? 'page' : undefined}
           className={`px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all rounded-lg flex items-center gap-2 border shrink-0 cursor-pointer ${
             activeTab === 'ai' 
               ? 'text-cyan-400 bg-cyan-950/25 border-cyan-500/30' 
-              : 'text-slate-400 hover:text-slate-200 border-transparent hover:bg-white/5'
+              : 'text-content-secondary hover:text-slate-200 border-transparent hover:bg-white/5'
           }`}
         >
-          <Sparkles size={14} className={activeTab === 'ai' ? 'text-cyan-400' : 'text-slate-400'} />
+          <Sparkles size={14} className={activeTab === 'ai' ? 'text-cyan-400' : 'text-content-secondary'} />
           <span>AI 智能检索式生成 (AI Query Builder)</span>
         </button>
         <button
           onClick={() => setActiveTab('whitelist')}
+          aria-current={activeTab === 'whitelist' ? 'page' : undefined}
           className={`px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all rounded-lg flex items-center gap-2 border shrink-0 cursor-pointer ${
             activeTab === 'whitelist' 
               ? 'text-cyan-400 bg-cyan-950/25 border-cyan-500/30' 
-              : 'text-slate-400 hover:text-slate-200 border-transparent hover:bg-white/5'
+              : 'text-content-secondary hover:text-slate-200 border-transparent hover:bg-white/5'
           }`}
         >
-          <Globe size={14} className={activeTab === 'whitelist' ? 'text-cyan-400' : 'text-slate-400'} />
+          <Globe size={14} className={activeTab === 'whitelist' ? 'text-cyan-400' : 'text-content-secondary'} />
           <span>官方网址速查 (Official Whitelist)</span>
         </button>
         <button
@@ -2471,27 +2539,27 @@ export default function App() {
           className={`px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all rounded-lg flex items-center gap-2 border shrink-0 cursor-pointer ${
             activeTab === 'about'
               ? 'text-cyan-400 bg-cyan-950/25 border-cyan-500/30'
-              : 'text-slate-400 hover:text-slate-200 border-transparent hover:bg-white/5'
+              : 'text-content-secondary hover:text-slate-200 border-transparent hover:bg-white/5'
           }`}
         >
-          <BookOpen size={14} className={activeTab === 'about' ? 'text-cyan-400' : 'text-slate-400'} />
+          <BookOpen size={14} className={activeTab === 'about' ? 'text-cyan-400' : 'text-content-secondary'} />
           <span>{uiLang === 'en' ? 'About' : uiLang === 'zh' ? '项目介绍' : '项目介绍 / About'}</span>
         </button>
-      </div>
+      </nav>
 
       {activeTab === 'ai' ? (
-        <main className="flex-1 flex flex-col xl:flex-row gap-4 sm:gap-6 p-3 sm:p-4 lg:p-6 min-h-0 overflow-y-auto container mx-auto max-w-[1680px]">
+        <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col xl:flex-row gap-4 sm:gap-6 p-3 sm:p-4 lg:p-6 min-h-0 overflow-y-auto container mx-auto max-w-[1680px]">
         
         {/* Left Column: Input & Formula Result */}
         <div className="flex-1 flex flex-col gap-4 sm:gap-6 min-w-0">
           {/* Input Block */}
-          <section id="guided-input-panel" className="bg-slate-900/40 rounded-2xl border border-white/5 p-4 sm:p-6 flex flex-col relative group transition-all hover:border-white/10 shadow-sm shrink-0">
-            <div className="flex justify-between items-center mb-2.5">
-              <label className="text-[11px] text-cyan-400 uppercase font-bold tracking-[0.15em] flex items-center gap-1.5">
+          <section id="guided-input-panel" className="ui-card bg-surface rounded-2xl border border-white/5 p-4 sm:p-6 flex flex-col relative group transition-all hover:border-white/10 shadow-sm shrink-0">
+            <div className="query-input-heading flex flex-wrap justify-between items-center gap-3 mb-3">
+              <label htmlFor="query-intent" className="ui-label text-[11px] uppercase font-bold tracking-[0.15em] flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
                 {t('inputLabel')}
               </label>
-              <div className="flex items-center gap-3">
+              <div className="query-speech-row flex flex-wrap items-center gap-3 min-w-0">
                 <AudioTranscriber
                   geminiKey={geminiApiKey}
                   speechProxyUrl={import.meta.env.VITE_SPEECH_PROXY_URL}
@@ -2501,15 +2569,16 @@ export default function App() {
                   uiLang={uiLang}
                   disabled={loading}
                 />
-                <span className="text-[10px] text-slate-500 font-mono tracking-tighter opacity-60 hidden sm:inline">INPUT_NATURAL_LANGUAGE</span>
+                <span className="text-[10px] text-content-muted font-mono tracking-tighter hidden sm:inline">INPUT_NATURAL_LANGUAGE</span>
               </div>
             </div>
             
             <textarea
+              id="query-intent"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={t('inputPlaceholder')}
-              className="flex-1 bg-transparent border-none outline-none resize-none text-base sm:text-lg md:text-xl text-slate-100 placeholder:text-slate-600 leading-relaxed font-normal custom-scrollbar overflow-y-auto min-h-[56px]"
+              className="ui-query-input flex-1 bg-transparent border-none outline-none resize-none text-base sm:text-lg md:text-xl text-slate-100 placeholder:text-content-muted leading-relaxed font-normal custom-scrollbar overflow-y-auto min-h-[56px]"
             />
 
             {/* Comparison Mode Configuration Bar */}
@@ -2517,11 +2586,12 @@ export default function App() {
               {/* Checkbox Toggle Button */}
               <button
                 type="button"
+                aria-pressed={isCompareMode}
                 onClick={() => saveCompareMode(!isCompareMode)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all text-xs font-bold leading-none cursor-pointer select-none ${
                   isCompareMode 
                     ? "bg-purple-500/10 border-purple-500/30 text-purple-300 hover:bg-purple-500/20" 
-                    : "bg-white/5 border-white/5 text-slate-400 hover:text-slate-300 hover:bg-white/10"
+                    : "bg-white/5 border-white/5 text-content-secondary hover:text-slate-300 hover:bg-white/10"
                 }`}
               >
                 <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${isCompareMode ? "border-purple-400 bg-purple-500" : "border-slate-500"}`}>
@@ -2531,13 +2601,14 @@ export default function App() {
               </button>
 
               {/* Model Selectors */}
-              <div className="flex items-center gap-3 flex-wrap text-xs">
+              <div className="model-selector-row flex items-center gap-3 flex-wrap text-xs min-w-0 w-full">
                 {/* Model A Dropdown */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">
+                <div className="model-selector flex items-center gap-1.5 min-w-0 max-w-full">
+                  <span className="shrink-0 text-[10px] uppercase font-bold text-content-secondary">
                     {uiLang === 'zh' || i18n.language === 'mix' ? "大模型 A:" : "Model A:"}
                   </span>
                   <select
+                    aria-label="Model A"
                     value={`${activeProviderId}:${activeModel}`}
                     onChange={(e) => {
                       const [provId, modName] = e.target.value.split(':');
@@ -2549,7 +2620,7 @@ export default function App() {
                     {providers.map(p => {
                       const mods = p.models.split(',').map(m => m.trim()).filter(Boolean);
                       return mods.map(m => (
-                        <option key={`${p.id}:${m}`} value={`${p.id}:${m}`} className="bg-[#05070A]">
+                        <option key={`${p.id}:${m}`} value={`${p.id}:${m}`} className="bg-canvas">
                           {p.name} · {m}
                         </option>
                       ));
@@ -2564,10 +2635,11 @@ export default function App() {
                     className="flex items-center gap-1.5"
                   >
                     <span className="font-extrabold text-purple-400 text-xs select-none">VS</span>
-                    <span className="text-[10px] uppercase font-bold text-slate-400">
+                    <span className="text-[10px] uppercase font-bold text-content-secondary">
                       {uiLang === 'zh' || i18n.language === 'mix' ? "大模型 B:" : "Model B:"}
                     </span>
                     <select
+                      aria-label="Model B"
                       value={`${compareProviderId}:${compareModel}`}
                       onChange={(e) => {
                         const [provId, modName] = e.target.value.split(':');
@@ -2579,7 +2651,7 @@ export default function App() {
                       {providers.map(p => {
                         const mods = p.models.split(',').map(m => m.trim()).filter(Boolean);
                         return mods.map(m => (
-                          <option key={`${p.id}:${m}`} value={`${p.id}:${m}`} className="bg-[#05070A]">
+                          <option key={`${p.id}:${m}`} value={`${p.id}:${m}`} className="bg-canvas">
                             {p.name} · {m}
                           </option>
                         ));
@@ -2599,12 +2671,13 @@ export default function App() {
                 >
                   <Database size={14} className="text-cyan-400 shrink-0" />
                   <select
+                    aria-label="Target database"
                     value={dbType}
                     onChange={(e) => setDbType(e.target.value)}
                     className="bg-transparent border-none text-xs font-mono text-slate-300 focus:ring-0 cursor-pointer hover:text-cyan-300 transition-colors uppercase tracking-wider p-0 pr-1 max-w-[260px] truncate"
                   >
                     {DB_TYPES.map(type => (
-                      <option key={type} value={type} className="bg-[#05070A] text-slate-200">{type}</option>
+                      <option key={type} value={type} className="bg-canvas text-slate-200">{type}</option>
                     ))}
                   </select>
                 </div>
@@ -2616,13 +2689,14 @@ export default function App() {
                 >
                   <Languages size={14} className="text-cyan-400 shrink-0" />
                   <select
+                    aria-label="Query language"
                     value={langPref}
                     onChange={(e) => setLangPref(e.target.value)}
                     className="bg-transparent border-none text-xs font-mono text-slate-300 focus:ring-0 cursor-pointer hover:text-cyan-300 transition-colors uppercase tracking-wider p-0 pr-1"
                   >
-                    <option value="双语混合 (Bilingual)" className="bg-[#05070A] text-slate-200">Bilingual (双语混合)</option>
-                    <option value="仅中文 (Chinese Only)" className="bg-[#05070A] text-slate-200">ZH Only (仅中文)</option>
-                    <option value="仅英文 (English Only)" className="bg-[#05070A] text-slate-200">EN Only (仅英文)</option>
+                    <option value="双语混合 (Bilingual)" className="bg-canvas text-slate-200">Bilingual (双语混合)</option>
+                    <option value="仅中文 (Chinese Only)" className="bg-canvas text-slate-200">ZH Only (仅中文)</option>
+                    <option value="仅英文 (English Only)" className="bg-canvas text-slate-200">EN Only (仅英文)</option>
                   </select>
                 </div>
 
@@ -2635,17 +2709,18 @@ export default function App() {
                   }`}
                   title="检索式逻辑框架模板约束 / Search Formula Framework Template"
                 >
-                  <Layers size={14} className={activeTemplateId ? "text-amber-400 shrink-0" : "text-cyan-400/70 shrink-0"} />
+                  <Layers size={14} className={activeTemplateId ? "text-amber-400 shrink-0" : "text-brand shrink-0"} />
                   <select
+                    aria-label="Query framework template"
                     value={activeTemplateId || ""}
                     onChange={(e) => handleSelectTemplate(e.target.value ? e.target.value : null)}
                     className={`bg-transparent border-none text-xs font-mono focus:ring-0 cursor-pointer transition-colors uppercase tracking-wider p-0 pr-1 max-w-[240px] sm:max-w-[300px] truncate ${
                       activeTemplateId ? 'text-amber-300 font-bold' : 'text-slate-300 hover:text-cyan-300'
                     }`}
                   >
-                    <option value="" className="bg-[#05070A] text-slate-200">框架: 智能组配 (自由)</option>
+                    <option value="" className="bg-canvas text-slate-200">框架: 智能组配 (自由)</option>
                     {templates.map(tpl => (
-                      <option key={tpl.id} value={tpl.id} className="bg-[#05070A] text-slate-200">
+                      <option key={tpl.id} value={tpl.id} className="bg-canvas text-slate-200">
                         框架: {tpl.name}
                       </option>
                     ))}
@@ -2682,7 +2757,7 @@ export default function App() {
                 {input && (
                   <button 
                     onClick={reset}
-                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all border border-white/10 rounded-xl flex items-center gap-2 text-xs font-bold cursor-pointer"
+                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-content-secondary hover:text-white transition-all border border-white/10 rounded-xl flex items-center gap-2 text-xs font-bold cursor-pointer"
                     title={t('reset')}
                   >
                     <RotateCcw size={14} />
@@ -2693,7 +2768,7 @@ export default function App() {
                 <button
                   onClick={handleGenerate}
                   disabled={loading || !input.trim()}
-                  className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-sm hover:shadow-cyan-500/20 active:scale-[0.98] flex items-center gap-2 group/btn disabled:opacity-30 disabled:shadow-none cursor-pointer text-sm"
+                  className="ui-button-primary px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-sm hover:shadow-cyan-500/20 active:scale-[0.98] flex items-center gap-2 group/btn disabled:opacity-30 disabled:shadow-none cursor-pointer text-sm"
                 >
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -2717,7 +2792,7 @@ export default function App() {
                   <span className="font-semibold text-amber-300 truncate">
                     {activeTemplate.name}
                   </span>
-                  <span className="text-[11px] text-amber-400/70 font-mono hidden md:inline truncate">
+                  <span className="text-[11px] text-status-warning font-mono hidden md:inline truncate">
                     {activeTemplate.framework}
                   </span>
                 </div>
@@ -2735,7 +2810,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => handleSelectTemplate(null)}
-                    className="text-[11px] text-slate-400 hover:text-white cursor-pointer px-1 py-0.5 rounded hover:bg-white/10 transition-colors"
+                    className="text-[11px] text-content-secondary hover:text-white cursor-pointer px-1 py-0.5 rounded hover:bg-white/10 transition-colors"
                     title="清除模板约束"
                   >
                     ✕
@@ -2755,7 +2830,7 @@ export default function App() {
                   className={`px-4 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border shrink-0 flex items-center gap-1.5 ${
                     activeIndex === idx 
                       ? 'bg-cyan-500 text-white border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]' 
-                      : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
+                      : 'bg-white/5 text-content-secondary border-white/5 hover:bg-white/10'
                   }`}
                   title={r._inputLine}
                 >
@@ -2773,12 +2848,12 @@ export default function App() {
             style={{ 
               minHeight: screenHeight < 700 ? '220px' : screenHeight < 800 ? '260px' : '300px'
             }}
-            className={`flex flex-col flex-1 rounded-2xl border transition-all duration-700 relative shadow-inner ${
+            className={`ui-card flex flex-col flex-1 rounded-2xl border transition-all duration-700 relative shadow-inner ${
               result
                 ? 'bg-cyan-950/20 border-cyan-500/30'
                 : theme === 'light'
                   ? 'bg-white border-slate-200 pointer-events-none'
-                  : 'bg-slate-900/20 border-white/5 grayscale pointer-events-none'
+                  : 'bg-slate-900/20 border-white/5 pointer-events-none'
             }`}
           >
             <AnimatePresence>
@@ -2794,7 +2869,7 @@ export default function App() {
             <div className="p-4 sm:p-5 lg:p-6 flex-1 flex flex-col min-h-0 relative z-10 font-sans">
               <div className="flex flex-wrap justify-between items-center mb-3.5 gap-2.5">
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] text-cyan-400/80 uppercase font-bold tracking-[0.2em]">
+                  <label className="text-[11px] text-brand uppercase font-bold tracking-[0.2em]">
                     {isCompareMode ? (uiLang === 'zh' || i18n.language === 'mix' ? "大模型双语语义比对诊断" : "AI MODEL COMPARISON DIAGNOSIS") : t('formulaTitle')}
                   </label>
                   {result && (result._fromCache || result._compareResult?._fromCache) && (
@@ -2818,7 +2893,7 @@ export default function App() {
                         type="button"
                         onClick={() => setIsWrapFormula(!isWrapFormula)}
                         className={`text-[10px] font-mono font-bold px-2 py-1 rounded flex items-center gap-1 transition-all cursor-pointer ${
-                          isWrapFormula ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:text-slate-200'
+                          isWrapFormula ? 'bg-cyan-500/20 text-cyan-300' : 'text-content-secondary hover:text-slate-200'
                         }`}
                         title={isWrapFormula ? "切换为单行横向滚动模式（方便整行复制）" : "切换为自动折行模式（方便分行阅读）"}
                       >
@@ -2831,7 +2906,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setFormulaFontSize('sm')}
-                          className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${formulaFontSize === 'sm' ? 'text-cyan-300 font-bold bg-white/10' : 'text-slate-400 hover:text-white'}`}
+                          className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${formulaFontSize === 'sm' ? 'text-cyan-300 font-bold bg-white/10' : 'text-content-secondary hover:text-white'}`}
                           title="小号字体"
                         >
                           A-
@@ -2839,7 +2914,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setFormulaFontSize('base')}
-                          className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${formulaFontSize === 'base' ? 'text-cyan-300 font-bold bg-white/10' : 'text-slate-400 hover:text-white'}`}
+                          className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${formulaFontSize === 'base' ? 'text-cyan-300 font-bold bg-white/10' : 'text-content-secondary hover:text-white'}`}
                           title="标准字体"
                         >
                           A
@@ -2847,7 +2922,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setFormulaFontSize('lg')}
-                          className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${formulaFontSize === 'lg' ? 'text-cyan-300 font-bold bg-white/10' : 'text-slate-400 hover:text-white'}`}
+                          className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${formulaFontSize === 'lg' ? 'text-cyan-300 font-bold bg-white/10' : 'text-content-secondary hover:text-white'}`}
                           title="大号字体"
                         >
                           A+
@@ -2859,7 +2934,7 @@ export default function App() {
                         type="button"
                         onClick={() => setIsFormulaExpanded(!isFormulaExpanded)}
                         className={`text-[10px] font-mono font-bold px-2 py-1 rounded flex items-center gap-1 border-l border-white/10 pl-1.5 transition-all cursor-pointer ${
-                          isFormulaExpanded ? 'bg-amber-500/20 text-amber-300' : 'text-slate-400 hover:text-slate-200'
+                          isFormulaExpanded ? 'bg-amber-500/20 text-amber-300' : 'text-content-secondary hover:text-slate-200'
                         }`}
                         title={isFormulaExpanded ? "收起全览" : "展开完整显示（解除高度限制）"}
                       >
@@ -2873,7 +2948,7 @@ export default function App() {
                       <button
                         onClick={() => setShowMapped(false)}
                         className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1.5 rounded transition-all cursor-pointer ${
-                          !showMapped ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'
+                          !showMapped ? 'bg-cyan-500/20 text-cyan-300' : 'text-content-muted hover:text-slate-300'
                         }`}
                       >
                         {t('basicWeb')}
@@ -2881,7 +2956,7 @@ export default function App() {
                       <button
                         onClick={() => setShowMapped(true)}
                         className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1.5 rounded transition-all cursor-pointer ${
-                          showMapped ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'
+                          showMapped ? 'bg-cyan-500/20 text-cyan-300' : 'text-content-muted hover:text-slate-300'
                         }`}
                       >
                         {t('schemaMapped')}
@@ -2895,7 +2970,7 @@ export default function App() {
               {result && !result._isLoading && (
                 <div className="syntax-legend-bar flex flex-wrap items-center justify-between gap-2.5 text-[10px] font-mono select-none mb-3 px-3 py-2 bg-black/30 rounded-xl border border-cyan-500/10 transition-colors">
                   <div className="flex flex-wrap items-center gap-2.5">
-                    <span className="text-slate-400 [.theme-light_&]:text-slate-600 font-bold mr-0.5">🎨 {uiLang === 'zh' || i18n.language === 'mix' ? "语法图例:" : "Syntax Legend:"}</span>
+                    <span className="text-content-secondary [.theme-light_&]:text-content-muted font-bold mr-0.5">🎨 {uiLang === 'zh' || i18n.language === 'mix' ? "语法图例:" : "Syntax Legend:"}</span>
                     <span className="legend-and inline-flex items-center gap-1 text-amber-300 [.theme-light_&]:text-amber-800 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-amber-400 [.theme-light_&]:bg-amber-600"></span>AND</span>
                     <span className="legend-or inline-flex items-center gap-1 text-cyan-300 [.theme-light_&]:text-sky-700 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400 [.theme-light_&]:bg-sky-600"></span>OR</span>
                     <span className="legend-not inline-flex items-center gap-1 text-rose-400 [.theme-light_&]:text-red-700 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-rose-400 [.theme-light_&]:bg-red-600"></span>NOT</span>
@@ -2909,13 +2984,17 @@ export default function App() {
                     {syntaxValidation && (
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider font-mono ${
                         syntaxValidation.isValid
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                          ? syntaxValidation.warnings.length
+                            ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
+                            : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                           : 'bg-rose-500/20 text-rose-300 border border-rose-500/50 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.3)]'
                       }`}>
                         {syntaxValidation.isValid ? (
                           <>
-                            <CheckCircle2 size={11} className="text-emerald-400" />
-                            <span>{uiLang === 'zh' || i18n.language === 'mix' ? "实时语法验证通过" : "Syntax Valid"}</span>
+                            {syntaxValidation.warnings.length ? <AlertTriangle size={11} /> : <CheckCircle2 size={11} className="text-emerald-400" />}
+                            <span>{syntaxValidation.warnings.length
+                              ? (uiLang === 'en' ? `Review warnings (${syntaxValidation.warnings.length})` : `结构有预警 (${syntaxValidation.warnings.length})`)
+                              : (uiLang === 'zh' || i18n.language === 'mix' ? "实时语法验证通过" : "Syntax Valid")}</span>
                           </>
                         ) : (
                           <>
@@ -2930,7 +3009,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleInjectSampleSyntaxError}
-                      className="text-[9px] text-slate-500 hover:text-amber-300 transition-colors font-mono cursor-pointer flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5"
+                      className="text-[9px] text-content-muted hover:text-amber-300 transition-colors font-mono cursor-pointer flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5"
                       title={uiLang === 'zh' || i18n.language === 'mix' ? "注入全角字符/悬空算符示例，快速检验红色高亮提示与一键修复" : "Test error detection & auto-fix"}
                     >
                       <Wrench size={10} />
@@ -2941,7 +3020,7 @@ export default function App() {
               )}
               
               {!result ? (
-                <div className="flex-1 flex flex-col justify-center items-center text-slate-600 text-xs gap-3">
+                <div className="flex-1 flex flex-col justify-center items-center text-content-muted text-xs gap-3">
                   <span className="font-mono tracking-widest uppercase">
                     {uiLang === 'zh' || i18n.language === 'mix' ? "请在上方输入自然语言检索式并生成" : "No formulas generated yet"}
                   </span>
@@ -3000,7 +3079,7 @@ export default function App() {
                         maxHeight: isFormulaExpanded ? 'none' : (screenHeight < 700 ? '220px' : screenHeight < 850 ? '320px' : '420px'),
                         height: isFormulaExpanded ? 'auto' : undefined
                       }}
-                      className={`formula-code-box font-mono ${
+                      className={`ui-code-editor formula-code-box font-mono ${
                         formulaFontSize === 'sm' ? 'text-xs' : formulaFontSize === 'lg' ? 'text-base md:text-lg' : 'text-sm md:text-base'
                       } leading-relaxed tracking-normal overflow-y-auto custom-scrollbar select-all p-4 sm:p-5 rounded-xl border ${
                         syntaxValidation && !syntaxValidation.isValid
@@ -3052,7 +3131,7 @@ export default function App() {
 
                     {result && !result._isLoading && showMapped && Array.isArray(result.schemaMapping) && result.schemaMapping.length > 0 && (
                       <div className="flex-1 overflow-y-auto custom-scrollbar mt-2">
-                        <h4 className="text-[10px] text-cyan-400/70 font-mono tracking-widest uppercase mb-3">Field Mapping Logic</h4>
+                        <h4 className="text-[10px] text-brand font-mono tracking-widest uppercase mb-3">Field Mapping Logic</h4>
                         <div className="space-y-2">
                           {result.schemaMapping.map((map, i) => (
                             <div key={i} className="flex flex-col sm:flex-row sm:items-baseline gap-2 bg-white/5 border border-white/5 p-3 rounded-lg text-sm">
@@ -3060,7 +3139,7 @@ export default function App() {
                                 <span className="text-[10px] text-emerald-400 font-mono bg-emerald-400/10 px-1.5 py-0.5 rounded">[{map.field}]</span>
                               </div>
                               <div className="flex-1 text-slate-300 text-xs">
-                                <span className="text-cyan-200 font-medium">"{map.mappedConcept}"</span> - <span className="opacity-70">{map.reason}</span>
+                                <span className="text-cyan-200 font-medium">"{map.mappedConcept}"</span> - <span className="text-content-secondary">{map.reason}</span>
                               </div>
                             </div>
                           ))}
@@ -3071,8 +3150,8 @@ export default function App() {
 
                   {result && !result._isLoading && (
                     <div className="mt-4 pt-3 border-t border-cyan-500/15 [.theme-light_&]:border-slate-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 w-full shrink-0">
-                      <span className="text-[10px] text-cyan-500/60 font-mono italic flex items-center gap-2 shrink-0">
-                        <Check size={10} className="text-emerald-500" /> {t('processedWith')}
+                      <span className="text-[10px] text-content-muted font-mono italic flex items-center gap-2 shrink-0">
+                        <Info size={10} /> {t('processedWith')}
                       </span>
                       <div className="flex flex-wrap items-center gap-2 max-w-full lg:justify-end justify-start">
                         <button 
@@ -3171,7 +3250,7 @@ export default function App() {
                         </div>
 
                         <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-slate-400 mr-1.5">
+                          <span className="text-[10px] text-content-secondary mr-1.5">
                             {uiLang === 'zh' || i18n.language === 'mix' ? '主观关联度评价:' : 'Relevance Score:'}
                           </span>
                           {[1, 2, 3, 4, 5].map((starVal) => (
@@ -3185,7 +3264,7 @@ export default function App() {
                               <Star 
                                 size={14} 
                                 fill={starVal <= feedbackRating ? "#22d3ee" : "transparent"} 
-                                className={starVal <= feedbackRating ? "text-cyan-400 font-bold" : "text-slate-600 hover:text-cyan-400/60"} 
+                                className={starVal <= feedbackRating ? "text-cyan-400 font-bold" : "text-content-muted hover:text-cyan-400/60"}
                               />
                             </button>
                           ))}
@@ -3201,7 +3280,7 @@ export default function App() {
                         >
                           {/* Checklists */}
                           <div className="flex flex-col gap-1.5">
-                            <span className="text-[10px] uppercase font-bold text-slate-400 text-left">
+                            <span className="text-[10px] uppercase font-bold text-content-secondary text-left">
                               {uiLang === 'zh' || i18n.language === 'mix' ? '选择细节诊断标签(可选):' : 'Select quick tags (Optional):'}
                             </span>
                             <div className="flex flex-wrap gap-1.5">
@@ -3224,7 +3303,7 @@ export default function App() {
                                     className={`text-[10px] px-2.5 py-0.5 rounded transition-all font-bold border cursor-pointer select-none ${
                                       isSelected 
                                         ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/45 shadow-[0_0_8px_rgba(6,182,212,0.15)]' 
-                                        : 'bg-white/5 text-slate-400 border-transparent hover:bg-white/10'
+                                        : 'bg-white/5 text-content-secondary border-transparent hover:bg-white/10'
                                     }`}
                                   >
                                     {tagStr}
@@ -3237,7 +3316,7 @@ export default function App() {
                           {/* Custom Written comments */}
                           <div className="flex flex-col gap-1.5">
                             <div className="flex justify-between items-center">
-                              <label className="text-[10px] uppercase font-bold text-slate-400">
+                              <label className="text-[10px] uppercase font-bold text-content-secondary">
                                 {uiLang === 'zh' || i18n.language === 'mix' ? '具体修正意见与期望补充的同义词/算符逻辑 (可选):' : 'Custom correction intent / expected synonyms (Optional):'}
                               </label>
                               {feedbackRating <= 3 && (
@@ -3249,7 +3328,8 @@ export default function App() {
                             <div className="flex gap-2">
                               <input 
                                 type="text"
-                                value={feedbackWritten}
+                                aria-label="Query feedback"
+                        value={feedbackWritten}
                                 onChange={(e) => setFeedbackWritten(e.target.value)}
                                 placeholder={
                                   feedbackRating >= 4 
@@ -3318,13 +3398,13 @@ export default function App() {
         {/* Right Column: Semantics & Explanation */}
         <aside className="w-full xl:w-96 2xl:w-[420px] flex flex-col gap-4 sm:gap-6 shrink-0">
           {/* Keywords panel */}
-          <div id="guided-refinement-panel" className="flex-1 bg-slate-900/60 rounded-2xl border border-white/5 flex flex-col overflow-hidden shadow-2xl">
+          <div id="guided-refinement-panel" className="flex-1 bg-surface rounded-2xl border border-white/5 flex flex-col overflow-hidden shadow-2xl">
             <div className="p-6 border-b border-white/5">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-1 h-3 bg-cyan-500 rounded-full"></div>
                 <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">{t('semanticMap')}</h3>
               </div>
-              <p className="text-[10px] text-slate-500 uppercase tracking-tighter">{t('topicExpansion')}</p>
+              <p className="text-[10px] text-content-muted uppercase tracking-tighter">{t('topicExpansion')}</p>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
@@ -3334,7 +3414,7 @@ export default function App() {
                     type="button"
                     onClick={() => setSemanticActiveModel('A')}
                     className={`flex-1 text-[9px] uppercase font-black tracking-wider py-1.5 rounded transition-all cursor-pointer ${
-                      semanticActiveModel === 'A' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'
+                      semanticActiveModel === 'A' ? 'bg-cyan-500/20 text-cyan-300' : 'text-content-muted hover:text-slate-300'
                     }`}
                   >
                     Model A {uiLang === 'zh' || i18n.language === 'mix' ? "词表" : "Terms"}
@@ -3343,7 +3423,7 @@ export default function App() {
                     type="button"
                     onClick={() => setSemanticActiveModel('B')}
                     className={`flex-1 text-[9px] uppercase font-black tracking-wider py-1.5 rounded transition-all cursor-pointer ${
-                      semanticActiveModel === 'B' ? 'bg-purple-500/20 text-purple-300' : 'text-slate-500 hover:text-slate-300'
+                      semanticActiveModel === 'B' ? 'bg-purple-500/20 text-purple-300' : 'text-content-muted hover:text-slate-300'
                     }`}
                   >
                     Model B {uiLang === 'zh' || i18n.language === 'mix' ? "词表" : "Terms"}
@@ -3394,7 +3474,7 @@ export default function App() {
                                   className={`px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase transition-all cursor-pointer ${
                                     isGroupSelected(isSemanticB, idx, group)
                                       ? (isSemanticB ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30")
-                                      : "bg-slate-800/40 text-slate-500 border border-transparent"
+                                      : "bg-slate-800/40 text-content-muted border border-transparent"
                                   }`}
                                   title={uiLang === 'zh' || i18n.language === 'mix' ? "切换整组词的选定状态" : "Toggle all terms in group"}
                                 >
@@ -3412,7 +3492,7 @@ export default function App() {
                                   className={`p-1.5 rounded-lg flex items-center justify-between flex-1 transition-all border text-left cursor-pointer ${
                                     isWordSelected(isSemanticB, idx, group.original)
                                       ? (isSemanticB ? "bg-purple-950/45 border-purple-500/50 text-white font-bold" : "bg-cyan-950/45 border-cyan-500/50 text-white font-bold")
-                                      : "opacity-40 line-through border-transparent text-slate-500 bg-black/10"
+                                      : "line-through border-transparent text-content-muted bg-black/10"
                                   }`}
                                 >
                                   <span className="text-xs uppercase tracking-tight truncate font-sans font-medium">{group.original}</span>
@@ -3423,7 +3503,7 @@ export default function App() {
                               </div>
 
                               <div className="flex flex-wrap gap-1.5 mb-2.5 items-center select-none">
-                                <span className="text-[9px] font-mono text-slate-600 uppercase w-5 shrink-0 text-left">ZH:</span>
+                                <span className="text-[9px] font-mono text-content-muted uppercase w-5 shrink-0 text-left">ZH:</span>
                                 <div className="flex-1 flex flex-wrap gap-1">
                                   {Array.isArray(group.zhSynonyms) && group.zhSynonyms.length > 0 ? (
                                     group.zhSynonyms.map((syn, sIdx) => {
@@ -3432,11 +3512,12 @@ export default function App() {
                                         <button
                                           type="button"
                                           key={`zh-${sIdx}`}
+                                          aria-pressed={active}
                                           onClick={() => toggleWordSelection(isSemanticB, idx, syn)}
                                           className={`text-[10px] font-medium px-2 py-0.5 rounded transition-all flex items-center gap-1 border cursor-pointer ${
                                             active
                                               ? (isSemanticB ? "bg-purple-500/15 border-purple-500/40 text-purple-300" : "bg-cyan-500/15 border-cyan-500/40 text-cyan-300")
-                                              : "bg-black/15 border-transparent text-slate-500 opacity-40 line-through"
+                                              : "bg-black/15 border-transparent text-content-muted line-through"
                                           }`}
                                         >
                                           {syn}
@@ -3444,13 +3525,13 @@ export default function App() {
                                       );
                                     })
                                   ) : (
-                                    <span className="text-[10px] text-slate-600 italic">None</span>
+                                    <span className="text-[10px] text-content-muted italic">None</span>
                                   )}
                                 </div>
                               </div>
 
                               <div className="flex flex-wrap gap-1.5 items-center select-none">
-                                <span className="text-[9px] font-mono text-slate-600 uppercase w-5 shrink-0 text-left">EN:</span>
+                                <span className="text-[9px] font-mono text-content-muted uppercase w-5 shrink-0 text-left">EN:</span>
                                 <div className="flex-1 flex flex-wrap gap-1">
                                   {Array.isArray(group.enSynonyms) && group.enSynonyms.length > 0 ? (
                                     group.enSynonyms.map((syn, sIdx) => {
@@ -3459,11 +3540,12 @@ export default function App() {
                                         <button
                                           type="button"
                                           key={`en-${sIdx}`}
+                                          aria-pressed={active}
                                           onClick={() => toggleWordSelection(isSemanticB, idx, syn)}
                                           className={`text-[10px] font-medium px-2 py-0.5 rounded transition-all flex items-center gap-1 border cursor-pointer italic ${
                                             active
                                               ? (isSemanticB ? "bg-purple-500/15 border-purple-500/40 text-purple-300" : "bg-cyan-500/15 border-cyan-500/40 text-cyan-300")
-                                              : "bg-black/15 border-transparent text-slate-500 opacity-40 line-through"
+                                              : "bg-black/15 border-transparent text-content-muted line-through"
                                           }`}
                                         >
                                           {syn}
@@ -3471,21 +3553,21 @@ export default function App() {
                                       );
                                     })
                                   ) : (
-                                    <span className="text-[10px] text-slate-600 italic">None</span>
+                                    <span className="text-[10px] text-content-muted italic">None</span>
                                   )}
                                 </div>
                               </div>
                             </motion.div>
                           ))}
                           
-                          <p className="text-[9px] text-slate-500 mt-2 hover:text-slate-400 transition-colors uppercase font-mono tracking-tighter leading-normal select-none">
+                          <p className="text-[9px] text-content-muted mt-2 hover:text-content-secondary transition-colors uppercase font-mono tracking-tighter leading-normal select-none">
                             💡 {uiLang === 'zh' || i18n.language === 'mix' ? "提示：点击词条可在此检索式中排除或重新包含该关联词" : "Tip: click terms to exclude or include them in final query formula"}
                           </p>
                         </div>
                       );
                     } else {
                       return (
-                        <div className="flex flex-col items-center justify-center h-full opacity-10 py-12 select-none">
+                        <div className="flex flex-col items-center justify-center h-full text-content-muted py-12 select-none">
                           <Search size={40} />
                           <p className="mt-4 text-[10px] font-mono tracking-tighter uppercase">{t('waitingInput')}</p>
                         </div>
@@ -3498,13 +3580,13 @@ export default function App() {
           </div>
 
           {/* Reasoning / Strategy / Stats block */}
-          <div className="flex-shrink-0 bg-slate-900/60 rounded-2xl border border-white/5 p-6 flex flex-col gap-4 shadow-2xl relative overflow-hidden group hover:border-white/10 transition-colors">
+          <div className="flex-shrink-0 bg-surface rounded-2xl border border-white/5 p-6 flex flex-col gap-4 shadow-2xl relative overflow-hidden group hover:border-white/10 transition-colors">
             <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
               <Sparkles size={80} />
             </div>
             
             <div className="relative z-10">
-              <span className="text-[10px] text-slate-500 uppercase font-black block mb-2 tracking-widest flex items-center gap-2">
+              <span className="text-[10px] text-content-muted uppercase font-black block mb-2 tracking-widest flex items-center gap-2">
                 <Lightbulb size={12} className="text-orange-400" /> {t('insightTitle')}
               </span>
               
@@ -3547,7 +3629,7 @@ export default function App() {
 
             <div className="relative z-10 border-t border-white/5 pt-3">
                <div className="flex justify-between items-end">
-                  <div className="text-[10px] font-mono text-cyan-400/70 uppercase"><span className="font-bold">{t('recallBoost')}</span></div>
+                  <div className="text-[10px] font-mono text-brand uppercase"><span className="font-bold">{t('recallBoost')}</span></div>
                   <div className="h-4 flex items-end gap-1">
                     {[0.2, 0.4, 0.7, 0.5, 0.9, 1.0].map((h, i) => (
                       <div key={i} className="w-1 bg-cyan-500/40 rounded-t-sm" style={{ height: `${h * 100}%` }}></div>
@@ -3559,7 +3641,7 @@ export default function App() {
         </aside>
       </main>
       ) : activeTab === 'whitelist' ? (
-        <main className="flex-1 flex flex-col gap-6 p-3 sm:p-6 overflow-y-auto min-h-0 container mx-auto max-w-[1680px]">
+        <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col gap-6 p-3 sm:p-6 overflow-y-auto min-h-0 container mx-auto max-w-[1680px]">
           <OfficialWhitelist />
         </main>
       ) : (
@@ -3570,31 +3652,30 @@ export default function App() {
       )}
 
       {/* Footer System Bar */}
-      <footer className="shrink-0 min-h-10 border-t border-white/5 flex flex-wrap items-center justify-between px-4 sm:px-8 py-2 sm:py-0 bg-[#05070A] gap-2 text-center sm:text-left transition-colors">
+      <footer className="shrink-0 min-h-10 border-t border-white/5 flex flex-wrap items-center justify-between px-4 sm:px-8 py-2 sm:py-0 bg-canvas gap-2 text-center sm:text-left transition-colors">
         <div className="flex flex-wrap items-center gap-4 sm:gap-8">
-          <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
+          <div className="flex items-center gap-2 text-[10px] text-content-muted font-mono">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span>
             {t('sysOpt')}
           </div>
-          <div className="flex items-center gap-3 sm:gap-4 text-[10px] text-slate-500 font-mono tracking-tighter flex-wrap">
-            <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsHistoryOpen(true)}>
+          <div className="flex items-center gap-3 sm:gap-4 text-[10px] text-content-muted font-mono tracking-tighter flex-wrap">
+            <button type="button" className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsHistoryOpen(true)}>
               <History size={12} className="mr-1" /> {t('historyButton')}
-            </span>
-            <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsConfigOpen(true)}>
+            </button>
+            <button type="button" className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsConfigOpen(true)}>
               <Settings size={12} className="mr-1" /> {t('settings')}
-            </span>
-            <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsStatsOpen(true)}>
+            </button>
+            <button type="button" className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setIsStatsOpen(true)}>
               <BarChart2 size={12} className="mr-1" /> {t('statsButton')}
-            </span>
-            <span className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setActiveTab('about')}>
+            </button>
+            <button type="button" className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center" onClick={() => setActiveTab('about')}>
               <BookOpen size={12} className="mr-1" /> {uiLang === 'en' ? 'About' : '项目介绍'}
-            </span>
+            </button>
             <a href="https://github.com/HoraceCh/Information-Retrieval-Tool#readme" target="_blank" rel="noreferrer" className="hover:text-cyan-400 transition-colors">README</a>
-            <span className="hover:text-cyan-400 cursor-pointer transition-colors hidden sm:inline">DB_STATUS: OK</span>
           </div>
         </div>
-        <div className="text-[10px] text-slate-600 font-mono uppercase tracking-tighter hidden md:block">
-          CTX_ID: {loading ? t('processing') : (result ? t('genComplete') : t('waitInit'))} // BUILD_HASH: 0x55F2A
+        <div className="text-[10px] text-content-muted font-mono uppercase tracking-tighter hidden md:block">
+          {loading ? t('processing') : (result ? t('genComplete') : t('waitInit'))}
         </div>
       </footer>
 
@@ -3607,25 +3688,26 @@ export default function App() {
           >
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
+              role="dialog" aria-modal="true" aria-label="Usage statistics" tabIndex={-1}
+              className="ui-dialog bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
             >
               <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/5 shrink-0">
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
                   <BarChart2 size={16} className="text-cyan-400" />
                   {t('statsTitle')}
                 </h3>
-                <button onClick={() => setIsStatsOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                <button onClick={() => setIsStatsOpen(false)} aria-label="Close statistics" className="text-content-secondary hover:text-white transition-colors">
                   <X size={18} />
                 </button>
               </div>
 
               {/* Sub-tab selection indicator */}
-              <div className="px-6 py-0 border-b border-white/5 bg-slate-900/40 flex justify-start shrink-0 select-none gap-4">
+              <div className="px-6 py-0 border-b border-white/5 bg-surface flex justify-start shrink-0 select-none gap-4">
                 <button
                   type="button"
                   onClick={() => setStatsSubTab('traffic')}
                   className={`text-[11px] font-bold uppercase tracking-widest py-2.5 border-b-2 transition-all cursor-pointer ${
-                    statsSubTab === 'traffic' ? 'text-cyan-300 border-cyan-500' : 'text-slate-500 border-transparent hover:text-slate-300'
+                    statsSubTab === 'traffic' ? 'text-cyan-300 border-cyan-500' : 'text-content-muted border-transparent hover:text-slate-300'
                   }`}
                 >
                   {uiLang === 'zh' || i18n.language === 'mix' ? '大模型吞吐统计 / Tokens' : 'Token Usage'}
@@ -3634,7 +3716,7 @@ export default function App() {
                   type="button"
                   onClick={() => setStatsSubTab('feedback')}
                   className={`text-[11px] font-bold uppercase tracking-widest py-2.5 border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
-                    statsSubTab === 'feedback' ? 'text-cyan-300 border-cyan-500' : 'text-slate-500 border-transparent hover:text-slate-300'
+                    statsSubTab === 'feedback' ? 'text-cyan-300 border-cyan-500' : 'text-content-muted border-transparent hover:text-slate-300'
                   }`}
                 >
                   {uiLang === 'zh' || i18n.language === 'mix' ? '主观评测与纠偏反馈' : 'Feedback Analytics'}
@@ -3661,7 +3743,7 @@ export default function App() {
                     lang={uiLang}
                   />
                 ) : Object.keys(usageStats).length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-48 text-slate-500 opacity-50">
+                  <div className="flex flex-col items-center justify-center h-48 text-content-muted">
                     <BarChart2 size={48} className="mb-4" />
                     <p className="text-sm uppercase tracking-widest font-bold">{t('statsNoData')}</p>
                   </div>
@@ -3682,20 +3764,20 @@ export default function App() {
                                 <div className="text-sm font-mono text-cyan-400 font-bold">{model}</div>
                                 <div className="grid grid-cols-3 gap-3">
                                   <div className="bg-slate-800/50 rounded-lg p-3 border border-white/5">
-                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{t('statsQueries')}</div>
+                                    <div className="text-[10px] text-content-muted uppercase tracking-wider mb-1">{t('statsQueries')}</div>
                                     <div className="text-xl font-mono text-white">{stats.queries}</div>
                                   </div>
                                   <div className="bg-slate-800/50 rounded-lg p-3 border border-white/5">
-                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{t('statsSuccess')}</div>
+                                    <div className="text-[10px] text-content-muted uppercase tracking-wider mb-1">{t('statsSuccess')}</div>
                                     <div className="text-xl font-mono text-emerald-400">
                                       {stats.queries > 0 ? Math.round((stats.successes / stats.queries) * 100) : 0}%
                                     </div>
-                                    <div className="text-[9px] text-slate-500 mt-0.5">
+                                    <div className="text-[9px] text-content-muted mt-0.5">
                                       {stats.successes} succ / {stats.failures} fail
                                     </div>
                                   </div>
                                   <div className="bg-slate-800/50 rounded-lg p-3 border border-white/5">
-                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{t('statsTokens')}</div>
+                                    <div className="text-[10px] text-content-muted uppercase tracking-wider mb-1">{t('statsTokens')}</div>
                                     <div className="text-xl font-mono text-cyan-200">{stats.totalTokens.toLocaleString()}</div>
                                   </div>
                                 </div>
@@ -3722,25 +3804,26 @@ export default function App() {
           >
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-4xl xl:max-w-5xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
+              role="dialog" aria-modal="true" aria-label="System configuration" tabIndex={-1}
+              className="ui-dialog bg-slate-900 border border-white/10 rounded-2xl w-full max-w-4xl xl:max-w-5xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
             >
               <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/5 shrink-0">
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
                   <Settings size={16} className="text-cyan-400" />
                   {t('configTitle')}
                 </h3>
-                <button onClick={() => setIsConfigOpen(false)} className="text-slate-400 hover:text-white transition-colors cursor-pointer">
+                <button onClick={() => setIsConfigOpen(false)} aria-label="Close settings" className="text-content-secondary hover:text-white transition-colors cursor-pointer">
                   <X size={18} />
                 </button>
               </div>
 
               {/* Settings Sub-Tabs */}
-              <div className="px-6 py-0 border-b border-white/5 bg-slate-900/40 flex justify-start shrink-0 select-none gap-4">
+              <div className="px-6 py-0 border-b border-white/5 bg-surface flex justify-start shrink-0 select-none gap-4">
                 <button
                   type="button"
                   onClick={() => setSettingsTab('api')}
                   className={`text-[11px] font-bold uppercase tracking-widest py-2.5 border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
-                    settingsTab === 'api' ? 'text-cyan-300 border-cyan-500' : 'text-slate-500 border-transparent hover:text-slate-300'
+                    settingsTab === 'api' ? 'text-cyan-300 border-cyan-500' : 'text-content-muted border-transparent hover:text-slate-300'
                   }`}
                 >
                   <Key size={13} />
@@ -3750,7 +3833,7 @@ export default function App() {
                   type="button"
                   onClick={() => setSettingsTab('templates')}
                   className={`text-[11px] font-bold uppercase tracking-widest py-2.5 border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
-                    settingsTab === 'templates' ? 'text-amber-300 border-amber-500' : 'text-slate-500 border-transparent hover:text-slate-300'
+                    settingsTab === 'templates' ? 'text-amber-300 border-amber-500' : 'text-content-muted border-transparent hover:text-slate-300'
                   }`}
                 >
                   <Layers size={13} />
@@ -3763,7 +3846,7 @@ export default function App() {
                   type="button"
                   onClick={() => setSettingsTab('trajectories')}
                   className={`text-[11px] font-bold uppercase tracking-widest py-2.5 border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
-                    settingsTab === 'trajectories' ? 'text-cyan-300 border-cyan-500' : 'text-slate-500 border-transparent hover:text-slate-300'
+                    settingsTab === 'trajectories' ? 'text-cyan-300 border-cyan-500' : 'text-content-muted border-transparent hover:text-slate-300'
                   }`}
                 >
                   <TrendingUp size={13} />
@@ -3800,7 +3883,7 @@ export default function App() {
                 <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 custom-scrollbar">
                 
                 {/* User API Key Guidance Banner */}
-                <div className="bg-cyan-950/40 border border-cyan-500/30 rounded-xl p-3.5 text-xs text-cyan-200/90 leading-relaxed flex gap-3 items-start shadow-inner">
+                <div className="ui-info-notice border rounded-xl p-3.5 text-xs text-content-secondary leading-relaxed flex gap-3 items-start shadow-inner">
                   <Key size={18} className="text-cyan-400 shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <div className="font-bold text-cyan-300">🔑 API Key 指引 / Key Configuration Guide</div>
@@ -3815,7 +3898,7 @@ export default function App() {
 
                 {/* Active Provider Selection */}
                 <div>
-                  <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('providerLabel')}</label>
+                  <label className="text-xs text-content-secondary uppercase font-bold tracking-wider mb-2 block">{t('providerLabel')}</label>
                   <div className="flex gap-2">
                     <div 
                       className="flex-1 bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 hover:border-cyan-500/50 transition-colors cursor-pointer relative group"
@@ -3825,6 +3908,18 @@ export default function App() {
                         e.currentTarget.querySelector('.provider-dropdown')?.classList.toggle('-translate-y-2');
                       }}
                       tabIndex={0}
+              onKeyDown={(event) => {
+                const menu = event.currentTarget.querySelector('.dropdown-menu, .provider-dropdown');
+                if (event.key === 'Escape') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  menu?.classList.add('hidden', 'opacity-0', '-translate-y-2');
+                  event.currentTarget.focus();
+                } else if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                  event.preventDefault();
+                  event.currentTarget.click();
+                }
+              }}
                       onBlur={(e) => {
                         if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                           e.currentTarget.querySelector('.provider-dropdown')?.classList.add('hidden', 'opacity-0', '-translate-y-2');
@@ -3840,11 +3935,11 @@ export default function App() {
                         <span className="text-sm text-cyan-100 font-mono flex-1 select-none pointer-events-none">
                           {activeProvider?.name || 'Select Provider'}
                         </span>
-                        <ChevronDown size={14} className="text-slate-500" />
+                        <ChevronDown size={14} className="text-content-muted" />
                       </div>
 
                       {/* Provider Dropdown List */}
-                      <div className="provider-dropdown hidden opacity-0 -translate-y-2 transition-all duration-200 absolute top-full left-0 right-0 mt-2 bg-[#0a0f18] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                      <div className="provider-dropdown hidden opacity-0 -translate-y-2 transition-all duration-200 absolute top-full left-0 right-0 mt-2 bg-surface-elevated border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
                         <div className="flex flex-col py-1 max-h-[300px] overflow-y-auto custom-scrollbar">
                           {providers.map(p => (
                             <button
@@ -3891,23 +3986,26 @@ export default function App() {
 
                 {/* API Key */}
                 <div>
-                  <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('apiKeyLabel')}</label>
+                  <label htmlFor="provider-api-key" className="ui-label text-xs uppercase font-bold tracking-wider mb-2 block">{t('apiKeyLabel')}</label>
                   <input
+                    id="provider-api-key"
+                    aria-label="Provider API key"
                     type="password"
                     value={activeProvider.apiKey}
                     onChange={(e) => updateActiveProvider({ apiKey: e.target.value })}
                     placeholder={t('apiKeyPlaceholder')}
-                    className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-cyan-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
+                    className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-cyan-100 placeholder:text-content-muted focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
                   />
-                  <p className="text-[10px] text-slate-500 mt-2 font-mono">
+                  <p className="text-[10px] text-content-muted mt-2 font-mono">
                     密钥保存在本浏览器的 localStorage 中（未加密）。模型调用时会直接发送至所选服务商；留空将无法调用模型。
                   </p>
                 </div>
 
                 {/* Model Selection */}
                 <div>
-                  <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('modelLabel')}</label>
+                  <label className="text-xs text-content-secondary uppercase font-bold tracking-wider mb-2 block">{t('modelLabel')}</label>
                   <select
+                    aria-label="Provider model"
                     value={activeModel}
                     onChange={(e) => saveActiveModel(e.target.value)}
                     className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-cyan-100 focus:outline-none focus:border-cyan-500/50 transition-colors font-mono appearance-none"
@@ -3920,8 +4018,9 @@ export default function App() {
 
                 {/* Operator Style Selection */}
                 <div>
-                  <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('operatorStyleLabel')}</label>
+                  <label className="text-xs text-content-secondary uppercase font-bold tracking-wider mb-2 block">{t('operatorStyleLabel')}</label>
                   <select
+                    aria-label="Boolean operator style"
                     value={operatorStyle}
                     onChange={(e) => saveOperatorStyle(e.target.value as "OR" | "Space")}
                     className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-cyan-100 focus:outline-none focus:border-cyan-500/50 transition-colors appearance-none"
@@ -3935,18 +4034,20 @@ export default function App() {
                 {activeProvider.id !== 'gemini' && activeProvider.id !== 'deepseek' && (
                   <div className="p-4 rounded-xl border border-dashed border-cyan-500/30 bg-cyan-950/10 flex flex-col gap-4 mt-2">
                     <div>
-                      <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('providerName')}</label>
+                      <label className="text-xs text-content-secondary uppercase font-bold tracking-wider mb-2 block">{t('providerName')}</label>
                       <input
                         type="text"
+                        aria-label="Provider name"
                         value={activeProvider.name}
                         onChange={(e) => updateActiveProvider({ name: e.target.value })}
                         className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-cyan-100 font-mono focus:outline-none focus:border-cyan-500/50"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">API Endpoint Base URL</label>
+                      <label className="text-xs text-content-secondary uppercase font-bold tracking-wider mb-2 block">API Endpoint Base URL</label>
                       <input
                         type="text"
+                        aria-label="Provider endpoint URL"
                         value={activeProvider.endpoint}
                         onChange={(e) => updateActiveProvider({ endpoint: e.target.value })}
                         className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-cyan-100 font-mono focus:outline-none focus:border-cyan-500/50"
@@ -3954,9 +4055,10 @@ export default function App() {
                     </div>
                     <div className="flex gap-4">
                       <div className="flex-1">
-                        <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('authTypeLabel')}</label>
+                        <label className="text-xs text-content-secondary uppercase font-bold tracking-wider mb-2 block">{t('authTypeLabel')}</label>
                         <select
-                          value={activeProvider.authType}
+                          aria-label="Authentication type"
+                        value={activeProvider.authType}
                           onChange={(e) => updateActiveProvider({ authType: e.target.value as any })}
                           className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-cyan-100 font-mono focus:outline-none focus:border-cyan-500/50"
                         >
@@ -3966,10 +4068,11 @@ export default function App() {
                       </div>
                       {activeProvider.authType === 'Header' && (
                         <div className="flex-1">
-                          <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('customHeaderLabel')}</label>
+                          <label className="text-xs text-content-secondary uppercase font-bold tracking-wider mb-2 block">{t('customHeaderLabel')}</label>
                           <input
                             type="text"
-                            value={activeProvider.authHeaderName || ""}
+                            aria-label="Custom authentication header"
+                        value={activeProvider.authHeaderName || ""}
                             onChange={(e) => updateActiveProvider({ authHeaderName: e.target.value })}
                             placeholder="e.g. x-api-key"
                             className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-cyan-100 font-mono focus:outline-none focus:border-cyan-500/50"
@@ -3978,9 +4081,10 @@ export default function App() {
                       )}
                     </div>
                     <div>
-                      <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2 block">{t('modelsListLabel')}</label>
+                      <label className="text-xs text-content-secondary uppercase font-bold tracking-wider mb-2 block">{t('modelsListLabel')}</label>
                       <input
                         type="text"
+                        aria-label="Available models"
                         value={activeProvider.models}
                         onChange={(e) => {
                           const newModelsStr = e.target.value;
@@ -4008,7 +4112,7 @@ export default function App() {
 
               <div className="shrink-0 px-6 py-4 border-t border-white/5 bg-black/20 flex items-center justify-between z-10">
                 {settingsTab === 'templates' ? (
-                  <div className="text-xs text-slate-400 flex items-center gap-2">
+                  <div className="text-xs text-content-secondary flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block"></span>
                     {activeTemplate ? (
                       <span>已启用: <strong className="text-amber-300 font-mono">{activeTemplate.name}</strong></span>
@@ -4017,7 +4121,7 @@ export default function App() {
                     )}
                   </div>
                 ) : settingsTab === 'trajectories' ? (
-                  <div className="text-xs text-slate-400 flex items-center gap-2">
+                  <div className="text-xs text-content-secondary flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse inline-block"></span>
                     <span>
                       {uiLang === 'zh' || i18n.language === 'mix' 
@@ -4035,7 +4139,7 @@ export default function App() {
                       {t('testConnectionBtn')}
                     </button>
                     {testConnStatus !== 'idle' && (
-                      <span className={`text-xs ${testConnStatus === 'success' ? 'text-emerald-400' : testConnStatus === 'error' ? 'text-red-400' : 'text-slate-400'}`}>
+                      <span className={`text-xs ${testConnStatus === 'success' ? 'text-emerald-400' : testConnStatus === 'error' ? 'text-red-400' : 'text-content-secondary'}`}>
                         {testConnMessage}
                       </span>
                     )}
@@ -4043,7 +4147,7 @@ export default function App() {
                 )}
                 <button 
                   onClick={() => setIsConfigOpen(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(8,145,178,0.2)] cursor-pointer"
+                  className="ui-button-primary px-4 py-2 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(8,145,178,0.2)] cursor-pointer"
                 >
                   {t('saveConfig')}
                 </button>
@@ -4062,7 +4166,8 @@ export default function App() {
           >
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl relative flex flex-col max-h-[85vh]"
+              role="dialog" aria-modal="true" aria-label="Query history" tabIndex={-1}
+              className="ui-dialog bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl relative flex flex-col max-h-[85vh]"
             >
               <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/5 shrink-0">
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
@@ -4082,7 +4187,7 @@ export default function App() {
                       {t('clearHistory')}
                     </button>
                   )}
-                  <button onClick={() => setIsHistoryOpen(false)} className="text-slate-400 hover:text-white transition-colors p-1">
+                  <button onClick={() => setIsHistoryOpen(false)} aria-label="Close history" className="text-content-secondary hover:text-white transition-colors p-1">
                     <X size={18} />
                   </button>
                 </div>
@@ -4090,7 +4195,7 @@ export default function App() {
               
               <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                 {history.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-40 opacity-30">
+                  <div className="flex flex-col items-center justify-center h-40 text-content-muted">
                     <History size={32} className="mb-3" />
                     <span className="text-xs uppercase font-mono tracking-widest">{t('noHistory')}</span>
                   </div>
@@ -4103,10 +4208,10 @@ export default function App() {
                         className="bg-black/30 border border-white/5 rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 hover:bg-white/5 transition-all group"
                       >
                         <div className="flex justify-between items-start mb-2">
-                          <span className="text-[10px] text-cyan-500 opacity-70 font-mono tracking-tighter">
+                          <span className="text-[10px] text-brand font-mono tracking-tighter">
                             {new Date(item.timestamp).toLocaleString()}
                           </span>
-                          <span className="text-[9px] bg-white/5 px-2 py-0.5 rounded text-slate-400 uppercase tracking-widest border border-white/5 truncate max-w-[150px]">
+                          <span className="text-[9px] bg-white/5 px-2 py-0.5 rounded text-content-secondary uppercase tracking-widest border border-white/5 truncate max-w-[150px]">
                             {item.dbType}
                           </span>
                         </div>
@@ -4169,7 +4274,8 @@ export default function App() {
               initial={{ scale: 0.95, opacity: 0, y: 10 }} 
               animate={{ scale: 1, opacity: 1, y: 0 }} 
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="bg-[#0b0f19] border border-white/10 rounded-2xl w-full max-w-6xl overflow-hidden shadow-2xl relative flex flex-col h-[85vh]"
+              role="dialog" aria-modal="true" aria-label="Official database navigation" tabIndex={-1}
+              className="ui-dialog bg-surface-elevated border border-white/10 rounded-2xl w-full max-w-6xl overflow-hidden shadow-2xl relative flex flex-col h-[85vh]"
             >
               <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/5 shrink-0">
                 <div className="flex flex-col">
@@ -4177,13 +4283,14 @@ export default function App() {
                     <Globe size={16} className="text-cyan-400" />
                     官方白名单合规网址速查
                   </h3>
-                  <span className="text-[10px] text-slate-500 uppercase font-mono tracking-wider mt-1">
+                  <span className="text-[10px] text-content-muted uppercase font-mono tracking-wider mt-1">
                     {result ? "关联检索：点击任意链接将自动复制当前检索式并直达合规平台" : "点击链接一键直达官方白名单合规检索平台"}
                   </span>
                 </div>
                 <button 
                   onClick={() => setIsQuickWhitelistOpen(false)} 
-                  className="text-slate-400 hover:text-white transition-colors p-1.5 cursor-pointer rounded-lg hover:bg-white/5"
+                  aria-label="Close database navigation"
+                  className="text-content-secondary hover:text-white transition-colors p-1.5 cursor-pointer rounded-lg hover:bg-white/5"
                 >
                   <X size={18} />
                 </button>
@@ -4245,7 +4352,7 @@ export default function App() {
               </div>
               <button 
                 onClick={() => setJumpDbName(null)}
-                className="text-slate-500 hover:text-white transition-colors"
+                className="text-content-muted hover:text-white transition-colors"
                 id="close-jump-toast"
               >
                 <X size={16} />
@@ -4256,13 +4363,13 @@ export default function App() {
               <p className="text-xs text-slate-200">
                 正在为您在新窗口中启动 <span className="text-cyan-400 font-bold underline">{jumpDbName}</span> 进行检索。
               </p>
-              <p className="text-[10px] text-slate-400 leading-relaxed">
+              <p className="text-[10px] text-content-secondary leading-relaxed">
                 如新标签页未弹出，说明被您的浏览器拦截。请点击下方“手动前往”链接直接进入。入站后直接按 <span className="text-cyan-400 font-mono font-bold">Ctrl+V</span> (或 Cmd+V) 粘贴您的专属检索式即可！
               </p>
             </div>
  
             <div className="flex justify-between items-center bg-black/50 p-2.5 rounded-lg border border-white/5 gap-2 overflow-hidden">
-              <span className="text-[9px] font-mono text-slate-500 uppercase shrink-0">CLIPBOARD:</span>
+              <span className="text-[9px] font-mono text-content-muted uppercase shrink-0">CLIPBOARD:</span>
               <span className="text-[10px] font-mono text-cyan-300 truncate select-all">
                 {result ? (showMapped ? (effectiveA.fieldSpecificQuery || effectiveA.booleanQuery) : effectiveA.booleanQuery) : ""}
               </span>
@@ -4271,7 +4378,7 @@ export default function App() {
             <div className="flex gap-2 justify-end pt-1">
               <button
                 onClick={() => setJumpDbName(null)}
-                className="px-3 py-1.5 rounded-lg text-[10px] text-slate-400 hover:text-white font-bold tracking-wider hover:bg-white/5 transition-all uppercase"
+                className="px-3 py-1.5 rounded-lg text-[10px] text-content-secondary hover:text-white font-bold tracking-wider hover:bg-white/5 transition-all uppercase"
                 id="dismiss-jump-toast"
               >
                 我知道了 (OK)
@@ -4309,7 +4416,8 @@ export default function App() {
               initial={{ scale: 0.95, opacity: 0, y: 15 }} 
               animate={{ scale: 1, opacity: 1, y: 0 }} 
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              className="bg-[#0b0f19] border border-cyan-500/30 rounded-2xl w-full max-w-6xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(6,182,212,0.15)] relative flex flex-col h-[85vh] max-h-[85vh]"
+              role="dialog" aria-modal="true" aria-label="Offline export and installer" tabIndex={-1}
+              className="ui-dialog bg-surface-elevated border border-cyan-500/30 rounded-2xl w-full max-w-6xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(6,182,212,0.15)] relative flex flex-col h-[85vh] max-h-[85vh]"
             >
               <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-black/40 shrink-0">
                 <div className="flex items-center gap-2">
@@ -4319,14 +4427,15 @@ export default function App() {
                   </h3>
                 </div>
                 <button 
-                  onClick={() => setShowInstallerModal(false)} 
-                  className="text-slate-400 hover:text-white transition-colors p-1.5 bg-white/5 hover:bg-white/10 rounded-xl cursor-pointer"
+                  onClick={() => setShowInstallerModal(false)}
+                  aria-label="Close offline installer"
+                  className="text-content-secondary hover:text-white transition-colors p-1.5 bg-white/5 hover:bg-white/10 rounded-xl cursor-pointer"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-[#05070a]/95">
+              <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-canvas">
                 <OfflineDownloader />
               </div>
             </motion.div>
@@ -4452,7 +4561,7 @@ export default function App() {
               </span>
               <button
                 onClick={exitTour}
-                className="text-slate-500 hover:text-white transition-colors p-1"
+                className="text-content-muted hover:text-white transition-colors p-1"
                 title="Exit Tour"
               >
                 <X size={14} />

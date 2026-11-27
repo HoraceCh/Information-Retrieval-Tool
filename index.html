@@ -10,7 +10,7 @@
     <title>AI 检索力 · AI Retrieval Tool | AI 学术检索式生成器</title>
     <meta
       name="description"
-      content="AI 检索力（AI Retrieval Tool）是一款 AI 学术信息检索策略工具：支持中英文关键词与同义词扩展、布尔检索式生成、基础结构检查、学术数据库语法提示、多模型对比和离线官方网址速查。"
+      content="AI 检索力（AI Retrieval Tool）是一款 AI 学术信息检索策略工具：支持中英文关键词与同义词扩展、布尔检索式生成、基础结构检查、语音引擎适配、学术数据库导航与离线网址速查；不抓取论文或提供全文。"
     />
     <meta
       name="keywords"
@@ -25,13 +25,13 @@
     <meta property="og:title" content="AI 检索力 · AI Retrieval Tool | AI 学术检索式生成器" />
     <meta
       property="og:description"
-      content="将自然语言研究问题转化为学术数据库检索策略。扩展关键词、构建布尔逻辑、进行基础结构检查，并提供离线官方网址速查。"
+      content="将自然语言研究问题转化为学术数据库检索策略。扩展关键词、构建布尔逻辑、进行基础结构检查、选择语音引擎，并通过数据库入口导航执行检索。"
     />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="AI 检索力 · AI Retrieval Tool" />
     <meta
       name="twitter:description"
-      content="AI-assisted academic search strategy builder with keyword expansion, Boolean query generation, structural checks and an offline database URL directory."
+      content="AI-assisted academic search strategy builder with keyword expansion, Boolean query generation, structural checks, speech adapters and database URL navigation. No paper crawling or full-text database."
     />
     <script type="application/ld+json">
       {
@@ -43,7 +43,7 @@
           "AI Academic Search Strategy Builder",
           "AI Boolean Search Query Generator"
         ],
-        "description": "面向科研学习与学术信息检索的 AI 辅助检索策略构建工具，支持中英文关键词扩展、布尔检索式生成、基础结构检查、数据库语法提示、多模型对比和离线官方网址速查。",
+        "description": "面向科研学习与学术信息检索的 AI 辅助检索策略构建工具，支持中英文关键词扩展、布尔检索式生成、基础结构检查、语音引擎适配、数据库入口导航和离线网址速查，不抓取论文或提供全文。",
         "url": "https://horacech.github.io/Information-Retrieval-Tool/",
         "codeRepository": "https://github.com/HoraceCh/Information-Retrieval-Tool",
         "applicationCategory": "EducationalApplication",
@@ -76,7 +76,8 @@
           "Visual Boolean query structure",
           "Multi-model comparison",
           "Reusable search templates",
-          "Bring Your Own Key model provider configuration"
+          "Bring Your Own Key text-model provider configuration",
+          "Independent speech adapters: Gemini direct; OpenAI, Deepgram and local Whisper require a separately configured trusted proxy"
         ],
         "license": "https://www.gnu.org/licenses/gpl-3.0.html"
       }

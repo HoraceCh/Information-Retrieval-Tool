@@ -1,0 +1,31 @@
+{
+  "status": "BLOCKED",
+  "source": {
+    "main": "57739e1beefa455c6c233f9f7a31cef8be1583b3",
+    "speech": "268d0cbfa299ffdcbe8fc489734cc1c28aa3db28",
+    "ui_application": "421c456a072062a4a9017a28b1c84f2eeecb82dc"
+  },
+  "local_checks": {
+    "ui_states": 30,
+    "combined_ui_states": 30,
+    "axe_violations": 0,
+    "overflow": 0,
+    "page_errors": 0,
+    "keyboard_checks": 7,
+    "synthetic_microphone_mock_checks": 12,
+    "node_tests_combined": 60,
+    "python_mock_and_metric_tests": 37,
+    "npm_advisories": 0,
+    "cpu_image_python_advisories": 0,
+    "gpu_image_python_advisories": 0
+  },
+  "limits": [
+    "Actual model blocked by model-host 403",
+    "Actual provider credentials absent",
+    "Strict server-only storage not met for retained browser BYOK",
+    "No GPU inference or branded-browser real-microphone certification",
+    "Two Before Whitelist screenshots withheld for privacy",
+    "Axe incomplete checks are not passes",
+    "One transient local speech-test timeout retained; identical rerun passed"
+  ]
+}

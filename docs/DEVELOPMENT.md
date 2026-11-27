@@ -13,7 +13,7 @@
 - **Model integration**：Google GenAI SDK 与 OpenAI-compatible HTTP APIs
 - **Hosting**：GitHub Pages
 
-模型请求从浏览器直接发送到所选服务商。当前仓库没有提供自建的 API 代理后端。
+文本生成和现有 Gemini 语音请求从浏览器直接发送到所选服务商。其他语音引擎通过单独配置的可信代理访问；静态 GitHub Pages 不托管该代理。Local Whisper runtime 在独立 Draft PR #14 中，发布前需要真实模型和本地硬件验收。
 
 ## 2. 本地开发
 
@@ -37,6 +37,7 @@ npm run build    # Production build
 npm run preview  # Preview dist/
 npm run test:validator  # Boolean-query structural regression tests
 npm run test:security   # Storage recovery and security regression tests
+npm run test:speech     # Speech provider registry and routing tests
 ~~~
 
 ## 3. 代码目录
@@ -55,7 +56,8 @@ src/
 ├── data/
 │   └── searchTemplates.ts  # Built-in search templates
 ├── services/
-│   └── gemini.ts           # Gemini and OpenAI-compatible model requests
+│   ├── gemini.ts           # Gemini and OpenAI-compatible model requests
+│   └── speech/             # Provider-neutral speech service and registry
 ├── utils/
 │   ├── booleanSyntaxValidator.ts
 │   └── pinyinMatcher.ts
@@ -77,12 +79,13 @@ localStorage is not encrypted by this application. Treat browser storage as sens
 
 - Gemini requests use the Google GenAI SDK in the browser.
 - Other providers use direct HTTP requests to their configured OpenAI-compatible endpoint.
-- Audio transcription uses Gemini.
+- Speech engine selection is independent of the text-model provider. Gemini uses the legacy direct adapter; OpenAI, Deepgram and `whisper-local` use the trusted proxy contract.
+- Speech provider selection is persisted under `ai_retrieval_speech_provider`. Cloud speech secrets must not be added to that preference or Vite client variables.
 - Request contents and credentials are sent to the selected provider. Review that provider's data policy and billing terms.
 
 **Never inject private provider keys into a public Vite build.** Vite define replacements and client-exposed environment variables are compiled into browser assets and must be treated as public. GitHub Pages deployment therefore does not require a model API key secret.
 
-If the project later needs centrally managed credentials, rate limiting, shared accounts or server-side access control, introduce a separately secured backend/proxy rather than embedding a secret in the static frontend.
+Centrally managed credentials, rate limiting, shared accounts and server-side access control belong in a separately secured backend/proxy. The existing browser-local text/Gemini BYOK design remains a documented security limitation; adding proxy adapters does not move those legacy keys server-side.
 
 ## 5. GitHub Pages deployment
 
@@ -208,3 +211,14 @@ Run `npm run test:validator` and `npm run test:security`. The validator suite us
 ### Offline URL reference export
 
 The offline export packages the built-in database/standards/patent URL directory and pinyin search metadata into a standalone HTML file. Directory lookup works offline; external website access and model generation still require network. Custom file entries store filenames only, so the corresponding files must be placed beside the exported HTML. Inline JSON must continue to use the dedicated safe serializer.
+
+
+## 11. Speech integration and runtime release gates
+
+[Speech Provider Architecture](SPEECH_PROVIDERS.md) defines the provider registry, multipart requests and `{ "text": "..." }` response. `AudioTranscriber.tsx` owns recording UI, `speechService.ts` dispatches the selected engine, and `speechProviders.mjs` defines canonical IDs and proxy routes. Missing proxy configuration must fail explicitly; do not silently switch engines.
+
+The public Vite `VITE_SPEECH_PROXY_URL` is an endpoint, never a secret. OpenAI and Deepgram credentials belong on a trusted server. Validate file size and MIME, bound concurrency, clean temporary files and sanitize errors there. CORS/Origin checks do not authenticate users. An unauthenticated local inference service must bind to loopback; remote use needs an authenticated HTTPS gateway, limits and abuse controls.
+
+[Draft PR #14](https://github.com/HoraceCh/Information-Retrieval-Tool/pull/14) supplies the separately reviewed runtime. Consult its [runtime README](https://github.com/HoraceCh/Information-Retrieval-Tool/blob/feat/local-whisper-runtime/services/speech-whisper/README.md) for CPU/GPU Compose files, environment variables, cache volumes, health checks and benchmark commands. These files are not part of main until that PR is reviewed and merged. CPU and GPU deployment configurations must remain isolated. Do not choose CUDA/cuDNN versions without checking faster-whisper, CTranslate2 and the actual host driver together.
+
+CI provider routing tests and mocked Python inference establish contracts and error handling, not transcription accuracy or GPU compatibility. Separately validate actual Chinese/English recordings on each configured provider, Chrome/Edge microphone and local-network permissions, cancellation, timeout and recovery. Real-model reports must name the pinned model, compute type, hardware, corpus version/hash, cold/warm method, WER/CER normalization, RTF, latency, model load/download and resource measurements. Missing hardware, keys or recordings is **BLOCKED / NEEDS LOCAL VALIDATION**, never a pass. Use the same corpus and normalization when comparing models.

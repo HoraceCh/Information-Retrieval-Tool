@@ -13,6 +13,7 @@ import {
   Server
 } from "lucide-react";
 import { DEFAULT_LINKS, DEFAULT_CATEGORIES } from "./OfficialWhitelist";
+import { sanitizeLegacyResourceLabel } from "../utils/legacyResourceLabel.mjs";
 import { getPinyinMeta } from "../utils/pinyinMatcher";
 import { serializeJsonForInlineScript } from "../utils/inlineScriptJson.mjs";
 
@@ -457,6 +458,7 @@ export default function OfflineDownloader() {
   <script>
     const DEFAULT_CATEGORIES = ${categoriesJson};
     const DEFAULT_LINKS = ${linksJson};
+    const sanitizeLegacyResourceLabel = ${sanitizeLegacyResourceLabel.toString()};
 
     const storageKey = 'ai_info_literacy_offline_db_v6';
 
@@ -493,7 +495,7 @@ export default function OfflineDownloader() {
     try {
       const stored = JSON.parse(localStorage.getItem(storageKey));
       db = {
-        links: Array.isArray(stored && stored.links) ? stored.links : DEFAULT_LINKS,
+        links: Array.isArray(stored && stored.links) ? stored.links.map(sanitizeLegacyResourceLabel) : DEFAULT_LINKS,
         files: Array.isArray(stored && stored.files) ? stored.files : []
       };
     } catch {
@@ -956,10 +958,9 @@ npm run dev`;
   };
 
   return (
-    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8 bg-slate-950/20 rounded-2xl border border-white/5">
+    <div className="ui-offline-content flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8 rounded-2xl border border-white/5">
       {/* Overview Block */}
-      <div className="border border-cyan-500/10 bg-cyan-950/10 rounded-2xl p-6 relative overflow-hidden backdrop-blur-xl">
-        <div className="absolute -right-16 -top-16 opacity-10 blur-2xl w-48 h-48 bg-cyan-400 rounded-full"></div>
+      <div className="ui-card border rounded-2xl p-6 relative overflow-hidden">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-1.5 max-w-4xl">
             <div className="inline-flex items-center gap-1.5 bg-cyan-950/60 border border-cyan-500/35 px-2.5 py-1 rounded text-[10px] font-bold text-cyan-400 separator-cyan tracking-widest leading-none">
@@ -969,7 +970,7 @@ npm run dev`;
               <Download className="text-cyan-400" size={20} />
               不装开发环境？照样本地 0 门槛双击即用说明 (Offline & Installer Setup)
             </h2>
-            <p className="text-xs text-slate-400 leading-relaxed max-w-3xl">
+            <p className="text-xs text-content-secondary leading-relaxed max-w-3xl">
               针对那些不熟悉代码命令行、安装 Node 环境太繁琐的用户，我们专门升级了本地自启工具。
               您只需要将在当前浏览器右上角/设置里导出的<b>项目本地源码 ZIP 双击解压</b>，并将下载好的一键脚本放进该文件夹下，<b>直接双击即可</b>，不需要任何先修知识！
             </p>
@@ -978,7 +979,7 @@ npm run dev`;
       </div>
 
       {/* Visual Guide Row */}
-      <div className="bg-[#0b1322] border border-cyan-500/20 rounded-2xl p-6 space-y-4">
+      <div className="bg-surface border border-cyan-500/20 rounded-2xl p-6 space-y-4">
         <h3 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
           <Laptop size={14} className="text-cyan-400" />
           💡 傻瓜式本地完整安装极速步骤 (从导出到双击使用)
@@ -987,27 +988,27 @@ npm run dev`;
           <div className="bg-black/30 border border-white/5 p-4 rounded-xl flex flex-col justify-between">
             <div>
               <div className="font-mono text-cyan-400 font-bold mb-1">第一步 (导出源码)</div>
-              <p className="text-slate-400 leading-relaxed text-[11px]">
+              <p className="text-content-secondary leading-relaxed text-[11px]">
                 点击您浏览器的 AI Studio 编辑器顶部右上角的<b>“Settings/设置”</b>(或者分享导出面板)，选择<b>“Export to ZIP / 导出为ZIP包”</b>。
               </p>
             </div>
-            <span className="text-[10px] text-slate-500 mt-2">将得到本系统的完整本地源码包</span>
+            <span className="text-[10px] text-content-muted mt-2">将得到本系统的完整本地源码包</span>
           </div>
 
           <div className="bg-black/30 border border-white/5 p-4 rounded-xl flex flex-col justify-between">
             <div>
               <div className="font-mono text-cyan-400 font-bold mb-1">第二步 (解压文件)</div>
-              <p className="text-slate-400 leading-relaxed text-[11px]">
+              <p className="text-content-secondary leading-relaxed text-[11px]">
                 将下载好的 `.zip` 文件点击右键<b>【解压到当前文件夹】</b>。请勿直接双击在压缩包内打开，必须要彻底解压出来。
               </p>
             </div>
-            <span className="text-[10px] text-slate-500 mt-2">确保所有代码和配置解压到具体目录</span>
+            <span className="text-[10px] text-content-muted mt-2">确保所有代码和配置解压到具体目录</span>
           </div>
 
           <div className="bg-black/30 border border-white/5 p-4 rounded-xl flex flex-col justify-between">
             <div>
               <div className="font-mono text-cyan-400 font-bold mb-1">第三步 (获取自启脚本)</div>
-              <p className="text-slate-400 leading-relaxed text-[11px]">
+              <p className="text-content-secondary leading-relaxed text-[11px]">
                 点击下方<b>【方案三】</b>里的<b>“下载一键启动.bat文件”</b>(Mac电脑请下载.sh文件)，将其<b>直接剪切并粘贴放到您刚刚解压的那个代码文件夹根目录底</b>。
               </p>
             </div>
@@ -1017,7 +1018,7 @@ npm run dev`;
           <div className="bg-black/30 border border-white/5 p-4 rounded-xl flex flex-col justify-between">
             <div>
               <div className="font-mono text-emerald-400 font-bold mb-1">第四步 (双击完美启动)</div>
-              <p className="text-slate-400 leading-relaxed text-[11px]">
+              <p className="text-content-secondary leading-relaxed text-[11px]">
                 在您的电脑文件夹里，<b>鼠标双击运行 “Windows一键自动部署配置并运行.bat”</b>。
                 脚本会自动帮您检测、下载、配置全部的 Node 开发底层和依赖。
               </p>
@@ -1031,7 +1032,7 @@ npm run dev`;
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* Solution 1: PWA Desktop Install */}
-        <div className="bg-slate-900/40 border border-white/5 hover:border-cyan-500/20 rounded-2xl p-6 flex flex-col justify-between transition-all group hover:shadow-lg hover:shadow-cyan-950/10">
+        <div className="bg-surface border border-white/5 hover:border-cyan-500/20 rounded-2xl p-6 flex flex-col justify-between transition-all group hover:shadow-lg hover:shadow-cyan-950/10">
           <div className="space-y-4">
             <div className="bg-cyan-500/15 text-cyan-400 border border-cyan-500/10 p-3 rounded-xl w-fit">
               <Monitor size={20} />
@@ -1040,32 +1041,32 @@ npm run dev`;
               <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wide">
                 方案一：PWA 极速桌面级安装
               </h3>
-              <p className="text-[11px] text-slate-500 font-mono leading-relaxed">
+              <p className="text-[11px] text-content-muted font-mono leading-relaxed">
                 无需下载文件，通过标准现代浏览器原生技术，将本检索系统安装为独立可供轻量运行的系统级桌面独立应用。
               </p>
             </div>
             <div className="space-y-2 border-t border-white/5 pt-3">
-              <div className="flex gap-2.5 items-start text-[10px] text-slate-400 font-mono">
+              <div className="flex gap-2.5 items-start text-[10px] text-content-secondary font-mono">
                 <span className="bg-slate-800 border border-white/5 text-slate-300 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0">1</span>
                 <span>在 Edge / Chrome 浏览器中访问本页。</span>
               </div>
-              <div className="flex gap-2.5 items-start text-[10px] text-slate-400 font-mono">
+              <div className="flex gap-2.5 items-start text-[10px] text-content-secondary font-mono">
                 <span className="bg-slate-800 border border-white/5 text-slate-300 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0">2</span>
                 <span>查看地址栏右侧，点击出现的<b>"安装 / Install / ➕"</b>小图标。</span>
               </div>
-              <div className="flex gap-2.5 items-start text-[10px] text-slate-400 font-mono">
+              <div className="flex gap-2.5 items-start text-[10px] text-content-secondary font-mono">
                 <span className="bg-slate-800 border border-white/5 text-slate-300 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0">3</span>
                 <span>创建桌面快捷方式，便可全屏精细化、高灵敏独立窗口运行。</span>
               </div>
             </div>
           </div>
           <div className="mt-6 pt-4 border-t border-white/5">
-            <span className="text-[10px] text-slate-500 font-mono italic">提示：建议优先使用浏览器原生安装功能</span>
+            <span className="text-[10px] text-content-muted font-mono italic">提示：建议优先使用浏览器原生安装功能</span>
           </div>
         </div>
  
         {/* Solution 2: Interactive Single HTML */}
-        <div className="bg-slate-900/40 border border-white/5 hover:border-cyan-500/20 rounded-2xl p-6 flex flex-col justify-between transition-all group hover:shadow-lg hover:shadow-cyan-950/10">
+        <div className="bg-surface border border-white/5 hover:border-cyan-500/20 rounded-2xl p-6 flex flex-col justify-between transition-all group hover:shadow-lg hover:shadow-cyan-950/10">
           <div className="space-y-4">
             <div className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/10 p-3 rounded-xl w-fit">
               <FileCode size={20} />
@@ -1074,20 +1075,20 @@ npm run dev`;
               <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wide">
                 方案二：高集成离线单文件 (HTML)
               </h3>
-              <p className="text-[11px] text-slate-500 font-mono leading-relaxed">
+              <p className="text-[11px] text-content-muted font-mono leading-relaxed">
                 导出独立 HTML 文件，内置平台网址目录与拼音检索索引。目录查询可离线使用；外部网站访问仍需网络。
               </p>
             </div>
             <div className="space-y-2 border-t border-white/5 pt-3">
-              <div className="flex gap-2.5 items-start text-[10px] text-slate-400 font-mono">
+              <div className="flex gap-2.5 items-start text-[10px] text-content-secondary font-mono">
                 <span className="bg-slate-800 border border-white/5 text-slate-300 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0">√</span>
                 <span>内置拼音与首字母索引，支持离线检索平台名称</span>
               </div>
-              <div className="flex gap-2.5 items-start text-[10px] text-slate-400 font-mono">
+              <div className="flex gap-2.5 items-start text-[10px] text-content-secondary font-mono">
                 <span className="bg-slate-800 border border-white/5 text-slate-300 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0">√</span>
                 <span>免依赖直接打开，放进 U 盘随时便携自启动</span>
               </div>
-              <div className="flex gap-2.5 items-start text-[10px] text-slate-400 font-mono">
+              <div className="flex gap-2.5 items-start text-[10px] text-content-secondary font-mono">
                 <span className="bg-slate-800 border border-white/5 text-slate-300 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0">√</span>
                 <span>自定义网址与文件名记录保存在当前浏览器；清除站点数据后会丢失</span>
               </div>
@@ -1106,7 +1107,7 @@ npm run dev`;
         </div>
  
         {/* Solution 3: Full Stack Auto Installer */}
-        <div className="bg-slate-900/40 border border-white/5 hover:border-cyan-500/20 rounded-2xl p-6 flex flex-col justify-between transition-all group hover:shadow-lg hover:shadow-cyan-950/10">
+        <div className="bg-surface border border-white/5 hover:border-cyan-500/20 rounded-2xl p-6 flex flex-col justify-between transition-all group hover:shadow-lg hover:shadow-cyan-950/10">
           <div className="space-y-4">
             <div className="bg-blue-500/15 text-blue-400 border border-blue-500/10 p-3 rounded-xl w-fit">
               <Terminal size={20} />
@@ -1116,7 +1117,7 @@ npm run dev`;
                 方案三：本地智能化傻瓜部署脚本
                 <span className="text-[8px] bg-cyan-400/20 text-cyan-300 border border-cyan-400/30 px-1.5 py-0.5 rounded font-black tracking-normal">自动装环境</span>
               </h3>
-              <p className="text-[11px] text-slate-500 font-mono leading-relaxed">
+              <p className="text-[11px] text-content-muted font-mono leading-relaxed">
                 无需任何繁杂操作，脚本智能检查本地 Node，并具备
                 <b>全自动 Windows/Mac 后端悄悄下载程序</b>。自动保障秘钥、自动拉起浏览器，彻底全自动零命令部署！
               </p>
@@ -1125,7 +1126,7 @@ npm run dev`;
             <div className="space-y-2.5 pt-1">
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-mono text-slate-500 uppercase">Windows 系统自动部署包</span>
+                  <span className="text-[9px] font-mono text-content-muted uppercase">Windows 系统自动部署包</span>
                   <button 
                     onClick={() => handleCopyScript(winScript, 'win')}
                     className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer font-bold font-mono"
@@ -1145,7 +1146,7 @@ npm run dev`;
  
               <div className="flex flex-col gap-2 pt-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-mono text-slate-500 uppercase">macOS/Linux 极速部署包</span>
+                  <span className="text-[9px] font-mono text-content-muted uppercase">macOS/Linux 极速部署包</span>
                   <button 
                     onClick={() => handleCopyScript(macScript, 'mac')}
                     className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer font-bold font-mono"
@@ -1165,19 +1166,19 @@ npm run dev`;
             </div>
           </div>
           <div className="mt-4 border-t border-white/5 pt-3">
-            <span className="text-[9px] text-slate-500 font-mono italic">适合本地一键傻瓜化自动化配置。</span>
+            <span className="text-[9px] text-content-muted font-mono italic">适合本地一键傻瓜化自动化配置。</span>
           </div>
         </div>
  
       </div>
 
       {/* Deploy Instructions / Info Block */}
-      <div className="bg-[#0b0f19] border border-white/5 rounded-2xl p-6 space-y-4">
+      <div className="bg-surface border border-white/5 rounded-2xl p-6 space-y-4">
         <h3 className="text-xs font-bold text-slate-100 uppercase tracking-widest flex items-center gap-1.5">
           <Info size={14} className="text-cyan-400" />
           系统离线安装原理与电教机房运行守则
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-[11px] text-slate-400 leading-relaxed font-mono">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-[11px] text-content-secondary leading-relaxed font-mono">
           <div className="space-y-2">
             <p className="text-slate-300 font-bold">1. 便捷独立网页 (HTML) 机制：</p>
             <p>

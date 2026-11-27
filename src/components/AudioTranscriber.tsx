@@ -331,7 +331,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
   };
 
   return (
-    <div className="relative inline-flex items-center gap-2">
+    <div className="ui-speech relative inline-flex flex-wrap items-center gap-2 min-w-0 max-w-full">
       {!isRecording && !isTranscribing && (
         <select
           id="speech-provider-select"
@@ -339,7 +339,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
           value={providerId}
           onChange={(event) => saveProvider(event.target.value as SpeechProviderId)}
           disabled={disabled}
-          className="max-w-[132px] rounded-lg border border-slate-600/30 bg-slate-800/70 px-2 py-1.5 text-[10px] text-slate-200 outline-none focus:border-cyan-500"
+          className="ui-select max-w-[132px] rounded-lg border border-slate-600/30 bg-slate-800/70 px-2 py-1.5 text-[10px] text-slate-200 outline-none focus:border-cyan-500"
         >
           {SPEECH_PROVIDERS.map(provider => (
             <option key={provider.id} value={provider.id}>{provider.label}</option>
@@ -381,7 +381,7 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
               ? `语音转文字 · ${selectedProvider.label}`
               : `Voice input · ${selectedProvider.label}`
           }
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-cyan-500/20 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 hover:text-cyan-200 text-xs font-semibold transition-all cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(6,182,212,0.2)] disabled:opacity-40 disabled:cursor-not-allowed group select-none"
+          className="ui-speech-trigger whitespace-nowrap shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-cyan-500/20 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 hover:text-cyan-200 text-xs font-semibold transition-all cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(6,182,212,0.2)] disabled:opacity-40 disabled:cursor-not-allowed group select-none"
         >
           <Mic size={14} className="text-cyan-400 group-hover:scale-110 transition-transform" />
           <span>{uiLang === "zh" || uiLang === "mix" ? "语音输入" : "Voice Input"}</span>
@@ -396,7 +396,8 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-red-950/40 border border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.25)] text-xs text-red-200"
+          role="status" aria-live="polite"
+          className="ui-speech-recording flex flex-wrap items-center gap-3 px-3.5 py-1.5 rounded-xl bg-red-950/40 border border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.25)] text-xs text-red-200"
         >
           {/* Pulsing indicator */}
           <div className="flex items-center gap-2">
@@ -449,7 +450,8 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-cyan-950/50 border border-cyan-500/40 text-cyan-200 text-xs shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+          role="status" aria-live="polite"
+          className="ui-speech-processing flex flex-wrap items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-cyan-950/50 border border-cyan-500/40 text-cyan-200 text-xs shadow-[0_0_15px_rgba(6,182,212,0.2)]"
         >
           <Loader2 size={14} className="animate-spin text-cyan-400" />
           <span className="font-medium">
@@ -470,7 +472,8 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
-            className="absolute left-0 top-full mt-2 z-30 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-950/90 border border-emerald-500/40 text-emerald-200 text-xs shadow-xl backdrop-blur-md whitespace-nowrap"
+            role="status" aria-live="polite"
+            className="ui-notice-success absolute left-0 top-full mt-2 z-30 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-950/90 border border-emerald-500/40 text-emerald-200 text-xs shadow-xl backdrop-blur-md whitespace-nowrap"
           >
             <Check size={13} className="text-emerald-400 shrink-0" />
             <span className="max-w-[280px] truncate">{successNotice}</span>
@@ -485,12 +488,14 @@ export const AudioTranscriber: React.FC<AudioTranscriberProps> = ({
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
-            className="absolute left-0 top-full mt-2 z-30 max-w-sm flex items-start gap-2 p-2.5 rounded-lg bg-red-950/90 border border-red-500/40 text-red-200 text-xs shadow-xl backdrop-blur-md"
+            role="alert"
+            className="ui-notice-error absolute left-0 top-full mt-2 z-30 max-w-sm flex items-start gap-2 p-2.5 rounded-lg bg-red-950/90 border border-red-500/40 text-red-200 text-xs shadow-xl backdrop-blur-md"
           >
             <AlertCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
             <div className="flex-1 text-[11px] leading-tight">{errorMsg}</div>
             <button
               type="button"
+              aria-label={uiLang === "en" ? "Dismiss speech error" : "关闭语音错误提示"}
               onClick={() => setErrorMsg(null)}
               className="text-red-400 hover:text-white text-xs px-1 cursor-pointer"
             >
